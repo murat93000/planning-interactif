@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planning Hebdomadaire - Style Moderne</title>
+    <title>Planning Hebdomadaire - Version Complète</title>
     <style>
         * {
             margin: 0;
@@ -133,6 +133,69 @@
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
+        .time-slots-config {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .time-slots-list {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .time-slot-template {
+            padding: 10px 16px;
+            border-radius: 16px;
+            cursor: move;
+            font-size: 12px;
+            font-weight: 700;
+            color: white;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            transition: all 0.3s ease;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            position: relative;
+        }
+
+        .time-slot-template:hover {
+            transform: translateY(-4px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .time-slot-template .delete-slot {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 10px;
+            cursor: pointer;
+            display: none;
+            transition: all 0.3s ease;
+        }
+
+        .time-slot-template:hover .delete-slot {
+            display: block;
+        }
+
+        .time-slot-creator {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
         .templates-section {
             margin-bottom: 30px;
             padding: 20px;
@@ -167,10 +230,6 @@
             transition: all 0.3s ease;
             text-shadow: 0 1px 2px rgba(0,0,0,0.2);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        .template.work {
-            background: linear-gradient(135deg, #667eea, #764ba2);
         }
 
         .template.repos {
@@ -208,6 +267,22 @@
             justify-content: center;
             gap: 10px;
             align-items: center;
+        }
+
+        .week-templates {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .week-template-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
         }
 
         .week-nav {
@@ -306,6 +381,25 @@
             opacity: 1;
         }
 
+        .copy-week-btn {
+            position: absolute;
+            bottom: 4px;
+            left: 4px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 2px 6px;
+            font-size: 9px;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .employee-cell:hover .copy-week-btn {
+            opacity: 1;
+        }
+
         .day-cell {
             background: white;
             min-height: 80px;
@@ -342,6 +436,7 @@
             text-shadow: 0 1px 2px rgba(0,0,0,0.2);
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
             text-align: center;
+            user-select: none;
         }
 
         .shift-card.work {
@@ -373,24 +468,36 @@
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
         }
 
-        .delete-btn {
+        .shift-card .actions {
             position: absolute;
-            top: -4px;
-            right: -4px;
-            background: linear-gradient(135deg, #ef4444, #dc2626);
+            top: -8px;
+            right: -8px;
+            display: none;
+            gap: 2px;
+        }
+
+        .shift-card:hover .actions {
+            display: flex;
+        }
+
+        .shift-card .action-btn {
+            background: rgba(0, 0, 0, 0.7);
             color: white;
             border: none;
             border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            font-size: 10px;
+            width: 16px;
+            height: 16px;
+            font-size: 9px;
             cursor: pointer;
-            display: none;
             transition: all 0.3s ease;
         }
 
-        .shift-card:hover .delete-btn {
-            display: block;
+        .shift-card .action-btn.copy {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .shift-card .action-btn.delete {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
         }
 
         .summary {
@@ -553,8 +660,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📅 Planning Hebdomadaire</h1>
-            <p>Système de gestion d'équipe moderne et sécurisé</p>
+            <h1>📅 Planning Hebdomadaire Complet</h1>
+            <p>Système de gestion d'équipe moderne avec créneaux personnalisables</p>
         </div>
 
         <div class="auth-section">
@@ -578,19 +685,47 @@
             <button class="btn" onclick="addEmployee()">➕ Ajouter</button>
         </div>
 
+        <!-- Configuration des créneaux horaires -->
+        <div class="time-slots-config admin-panel">
+            <div class="templates-title">⏰ Créneaux Horaires - Glissez dans le planning</div>
+            <div class="time-slots-list" id="timeSlotsContainer">
+                <!-- Les créneaux seront générés ici -->
+            </div>
+            <div class="time-slot-creator">
+                <input type="text" id="slotName" placeholder="Nom du créneau (ex: Journée A)" style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; width: 150px;">
+                <input type="time" id="slotStart" value="09:00" style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px;">
+                <span style="font-weight: bold; color: #374151;">-</span>
+                <input type="time" id="slotEnd" value="18:30" style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px;">
+                <button class="btn" onclick="addTimeSlot()">✨ Créer Créneau</button>
+            </div>
+        </div>
+
+        <!-- Templates types -->
         <div class="templates-section admin-panel">
-            <div class="templates-title">🎨 Cases disponibles - Glissez dans le planning</div>
+            <div class="templates-title">🎨 Cases Types - Glissez dans le planning</div>
             <div class="templates">
                 <div class="template repos" draggable="true" data-type="repos">😴 Repos</div>
                 <div class="template absent" draggable="true" data-type="absent">❌ Absent</div>
                 <div class="template cours" draggable="true" data-type="cours">📚 Cours</div>
                 <div class="template conges" draggable="true" data-type="conges">🏖️ Congés</div>
-                <div class="template work" draggable="true" data-type="work">⏰ Travail</div>
             </div>
             
             <div class="custom-template-creator">
                 <input type="text" id="customText" placeholder="Case personnalisée..." style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px;">
                 <button class="btn" onclick="addCustomTemplate()">✨ Créer Case</button>
+            </div>
+        </div>
+
+        <!-- Gestion des semaines types -->
+        <div class="week-templates admin-panel">
+            <div class="templates-title">📋 Semaines Types</div>
+            <div class="week-template-controls">
+                <select id="weekTemplateSelect" style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; min-width: 200px;">
+                    <option value="">Sélectionner une semaine type...</option>
+                </select>
+                <button class="btn" onclick="saveWeekTemplate()">💾 Sauver Semaine Type</button>
+                <button class="btn" onclick="applyWeekTemplate()">📋 Appliquer Semaine Type</button>
+                <button class="btn danger" onclick="deleteWeekTemplate()">🗑️ Supprimer Type</button>
             </div>
         </div>
 
@@ -670,37 +805,45 @@
             currentWeek: new Date(),
             isAdminMode: false,
             draggedItem: null,
-            customTemplates: []
+            customTemplates: [],
+            timeSlots: [
+                { id: 'journeeA', name: 'Journée A', start: '09:00', end: '18:30' },
+                { id: 'journeeB', name: 'Journée B', start: '10:30', end: '19:30' },
+                { id: 'journeeC', name: 'Journée C', start: '07:00', end: '15:00' },
+                { id: 'matin', name: 'Matin', start: '08:00', end: '12:00' },
+                { id: 'apremidi', name: 'Après-midi', start: '13:00', end: '17:00' }
+            ],
+            weekTemplates: [],
+            copiedShift: null,
+            copiedWeek: null
         };
 
         // Initialisation
         document.addEventListener('DOMContentLoaded', function() {
-            // Définir le lundi de la semaine courante
             const today = new Date();
             globalState.currentWeek = new Date(today);
             globalState.currentWeek.setDate(today.getDate() - today.getDay() + 1);
             
             setupEventListeners();
             updateWeekDisplay();
+            renderTimeSlots();
             renderPlanning();
             updateSummary();
+            updateWeekTemplateSelect();
             loadData();
             
-            showToast('Application initialisée avec succès', 'success');
+            showToast('Planning initialisé avec succès', 'success');
         });
 
         function setupEventListeners() {
-            // Formulaires
             document.getElementById('employeeForm').addEventListener('submit', handleEmployeeSubmit);
             document.getElementById('passwordForm').addEventListener('submit', handlePasswordSubmit);
             
-            // Drag and drop sur les templates
             document.querySelectorAll('.template').forEach(template => {
                 template.addEventListener('dragstart', handleDragStart);
                 template.addEventListener('dragend', handleDragEnd);
             });
             
-            // Clic en dehors des modals
             window.addEventListener('click', (e) => {
                 if (e.target.classList.contains('modal')) {
                     closeModal();
@@ -708,13 +851,91 @@
             });
         }
 
+        function renderTimeSlots() {
+            const container = document.getElementById('timeSlotsContainer');
+            container.innerHTML = '';
+            
+            globalState.timeSlots.forEach(slot => {
+                const slotElement = document.createElement('div');
+                slotElement.className = 'time-slot-template work';
+                slotElement.draggable = true;
+                slotElement.dataset.type = 'timeSlot';
+                slotElement.dataset.slotId = slot.id;
+                slotElement.innerHTML = `
+                    ${slot.name}<br>
+                    <small style="opacity: 0.9;">${slot.start}-${slot.end}</small>
+                    <button class="delete-slot" onclick="removeTimeSlot('${slot.id}')" title="Supprimer">×</button>
+                `;
+                
+                slotElement.addEventListener('dragstart', handleDragStart);
+                slotElement.addEventListener('dragend', handleDragEnd);
+                
+                container.appendChild(slotElement);
+            });
+        }
+
+        function addTimeSlot() {
+            const name = document.getElementById('slotName').value.trim();
+            const start = document.getElementById('slotStart').value;
+            const end = document.getElementById('slotEnd').value;
+            
+            if (!name || !start || !end) {
+                showToast('Tous les champs sont requis', 'error');
+                return;
+            }
+            
+            if (globalState.timeSlots.find(slot => slot.name.toLowerCase() === name.toLowerCase())) {
+                showToast('Un créneau avec ce nom existe déjà', 'error');
+                return;
+            }
+            
+            const newSlot = {
+                id: generateId(),
+                name: name,
+                start: start,
+                end: end
+            };
+            
+            globalState.timeSlots.push(newSlot);
+            
+            document.getElementById('slotName').value = '';
+            document.getElementById('slotStart').value = '09:00';
+            document.getElementById('slotEnd').value = '18:30';
+            
+            renderTimeSlots();
+            saveData();
+            showToast('Créneau horaire créé', 'success');
+        }
+
+        function removeTimeSlot(slotId) {
+            if (confirm('Supprimer ce créneau horaire ?')) {
+                globalState.timeSlots = globalState.timeSlots.filter(slot => slot.id !== slotId);
+                renderTimeSlots();
+                saveData();
+                showToast('Créneau supprimé', 'success');
+            }
+        }
+
         function handleDragStart(e) {
             if (!globalState.isAdminMode) return;
             
-            globalState.draggedItem = {
-                type: e.target.dataset.type,
-                text: e.target.textContent.trim()
-            };
+            const type = e.target.dataset.type;
+            
+            if (type === 'timeSlot') {
+                const slotId = e.target.dataset.slotId;
+                const slot = globalState.timeSlots.find(s => s.id === slotId);
+                globalState.draggedItem = {
+                    type: 'timeSlot',
+                    text: `${slot.name} (${slot.start}-${slot.end})`,
+                    slot: slot
+                };
+            } else {
+                globalState.draggedItem = {
+                    type: e.target.dataset.type,
+                    text: e.target.textContent.trim()
+                };
+            }
+            
             e.target.classList.add('dragging');
         }
 
@@ -773,7 +994,6 @@
             const grid = document.getElementById('planningGrid');
             grid.innerHTML = '';
             
-            // Headers
             const cornerHeader = document.createElement('div');
             cornerHeader.className = 'grid-header';
             cornerHeader.textContent = '👤 Employés';
@@ -789,19 +1009,29 @@
                 grid.appendChild(dayHeader);
             });
             
-            // Employés et leurs plannings
             globalState.employees.forEach(employee => {
-                // Cellule employé
                 const empCell = document.createElement('div');
                 empCell.className = 'employee-cell';
                 empCell.innerHTML = `
                     <div class="employee-name">${employee.name}</div>
                     <div class="employee-role">${employee.role}</div>
-                    ${globalState.isAdminMode ? `<button class="remove-emp" onclick="removeEmployee('${employee.id}')" title="Supprimer">×</button>` : ''}
+                    ${globalState.isAdminMode ? `
+                        <button class="remove-emp" onclick="removeEmployee('${employee.id}')" title="Supprimer">×</button>
+                        <button class="copy-week-btn" onclick="copyEmployeeWeek('${employee.id}')" title="Copier semaine">📋</button>
+                    ` : ''}
                 `;
+                
+                if (globalState.isAdminMode) {
+                    empCell.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        if (globalState.copiedWeek) {
+                            pasteEmployeeWeek(employee.id);
+                        }
+                    });
+                }
+                
                 grid.appendChild(empCell);
                 
-                // Cellules des jours
                 for (let day = 0; day < 7; day++) {
                     const dayCell = document.createElement('div');
                     dayCell.className = 'day-cell';
@@ -814,7 +1044,6 @@
                         dayCell.addEventListener('drop', handleDrop);
                     }
                     
-                    // Ajouter les créneaux existants
                     const weekKey = getWeekKey();
                     if (employee.planning && employee.planning[weekKey] && employee.planning[weekKey][day]) {
                         employee.planning[weekKey][day].forEach(shift => {
@@ -831,10 +1060,26 @@
         function createShiftCard(shift, employeeId, day) {
             const card = document.createElement('div');
             card.className = `shift-card ${shift.type}`;
+            card.dataset.shiftId = shift.id;
             card.innerHTML = `
                 ${shift.text}
-                ${globalState.isAdminMode ? `<button class="delete-btn" onclick="removeShift('${employeeId}', ${day}, '${shift.id}')" title="Supprimer">×</button>` : ''}
+                ${globalState.isAdminMode ? `
+                    <div class="actions">
+                        <button class="action-btn copy" onclick="copyShift('${employeeId}', ${day}, '${shift.id}')" title="Copier">📋</button>
+                        <button class="action-btn delete" onclick="removeShift('${employeeId}', ${day}, '${shift.id}')" title="Supprimer">×</button>
+                    </div>
+                ` : ''}
             `;
+            
+            if (globalState.isAdminMode) {
+                card.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    if (globalState.copiedShift) {
+                        pasteShift(employeeId, day, e.target.closest('.day-cell'));
+                    }
+                });
+            }
+            
             return card;
         }
 
@@ -859,29 +1104,77 @@
             const employee = globalState.employees.find(emp => emp.id === employeeId);
             if (!employee) return;
             
-            // Initialiser le planning si nécessaire
             if (!employee.planning) employee.planning = {};
             const weekKey = getWeekKey();
             if (!employee.planning[weekKey]) employee.planning[weekKey] = {};
             if (!employee.planning[weekKey][day]) employee.planning[weekKey][day] = [];
             
-            // Créer le nouveau créneau
             const newShift = {
                 id: generateId(),
                 type: globalState.draggedItem.type,
                 text: globalState.draggedItem.text
             };
             
+            if (globalState.draggedItem.type === 'timeSlot') {
+                newShift.slot = globalState.draggedItem.slot;
+                newShift.type = 'work';
+            }
+            
             employee.planning[weekKey][day].push(newShift);
             
-            // Créer et ajouter la carte
             const shiftCard = createShiftCard(newShift, employeeId, day);
             e.currentTarget.appendChild(shiftCard);
             
             globalState.draggedItem = null;
             updateSummary();
             saveData();
-            showToast('Créneau ajouté avec succès', 'success');
+            showToast('Créneau ajouté', 'success');
+        }
+
+        function copyShift(employeeId, day, shiftId) {
+            const employee = globalState.employees.find(emp => emp.id === employeeId);
+            if (!employee) return;
+            
+            const weekKey = getWeekKey();
+            if (employee.planning && employee.planning[weekKey] && employee.planning[weekKey][day]) {
+                const shift = employee.planning[weekKey][day].find(s => s.id === shiftId);
+                if (shift) {
+                    globalState.copiedShift = {
+                        type: shift.type,
+                        text: shift.text,
+                        slot: shift.slot
+                    };
+                    showToast('Case copiée - Clic droit pour coller', 'success');
+                }
+            }
+        }
+
+        function pasteShift(employeeId, day, dayCell) {
+            if (!globalState.copiedShift) return;
+            
+            const employee = globalState.employees.find(emp => emp.id === employeeId);
+            if (!employee) return;
+            
+            if (!employee.planning) employee.planning = {};
+            const weekKey = getWeekKey();
+            if (!employee.planning[weekKey]) employee.planning[weekKey] = {};
+            if (!employee.planning[weekKey][day]) employee.planning[weekKey][day] = [];
+            
+            const newShift = {
+                id: generateId(),
+                type: globalState.copiedShift.type,
+                text: globalState.copiedShift.text,
+                slot: globalState.copiedShift.slot
+            };
+            
+            employee.planning[weekKey][day].push(newShift);
+            
+            const shiftCard = createShiftCard(newShift, employeeId, day);
+            dayCell.appendChild(shiftCard);
+            
+            updateSummary();
+            saveData();
+            showToast('Case collée', 'success');
         }
 
         function removeShift(employeeId, day, shiftId) {
@@ -892,7 +1185,6 @@
             if (employee.planning && employee.planning[weekKey] && employee.planning[weekKey][day]) {
                 employee.planning[weekKey][day] = employee.planning[weekKey][day].filter(shift => shift.id !== shiftId);
                 
-                // Supprimer le jour s'il est vide
                 if (employee.planning[weekKey][day].length === 0) {
                     delete employee.planning[weekKey][day];
                 }
@@ -902,6 +1194,47 @@
             updateSummary();
             saveData();
             showToast('Créneau supprimé', 'success');
+        }
+
+        function copyEmployeeWeek(employeeId) {
+            const employee = globalState.employees.find(emp => emp.id === employeeId);
+            if (!employee) return;
+            
+            const weekKey = getWeekKey();
+            if (employee.planning && employee.planning[weekKey]) {
+                globalState.copiedWeek = JSON.parse(JSON.stringify(employee.planning[weekKey]));
+                showToast(`Semaine de ${employee.name} copiée`, 'success');
+            } else {
+                showToast('Aucun planning à copier', 'error');
+            }
+        }
+
+        function pasteEmployeeWeek(targetEmployeeId) {
+            if (!globalState.copiedWeek) {
+                showToast('Aucune semaine copiée', 'error');
+                return;
+            }
+            
+            const employee = globalState.employees.find(emp => emp.id === targetEmployeeId);
+            if (!employee) return;
+            
+            if (confirm(`Coller la semaine sur ${employee.name} ?`)) {
+                if (!employee.planning) employee.planning = {};
+                const weekKey = getWeekKey();
+                
+                employee.planning[weekKey] = {};
+                Object.keys(globalState.copiedWeek).forEach(day => {
+                    employee.planning[weekKey][day] = globalState.copiedWeek[day].map(shift => ({
+                        ...shift,
+                        id: generateId()
+                    }));
+                });
+                
+                renderPlanning();
+                updateSummary();
+                saveData();
+                showToast(`Semaine collée sur ${employee.name}`, 'success');
+            }
         }
 
         function addEmployee() {
@@ -933,14 +1266,14 @@
             renderPlanning();
             updateSummary();
             saveData();
-            showToast('Employé ajouté avec succès', 'success');
+            showToast('Employé ajouté', 'success');
         }
 
         function removeEmployee(employeeId) {
             const employee = globalState.employees.find(emp => emp.id === employeeId);
             if (!employee) return;
             
-            if (confirm(`Supprimer ${employee.name} définitivement ?`)) {
+            if (confirm(`Supprimer ${employee.name} ?`)) {
                 globalState.employees = globalState.employees.filter(emp => emp.id !== employeeId);
                 renderPlanning();
                 updateSummary();
@@ -952,7 +1285,7 @@
         function addCustomTemplate() {
             const text = document.getElementById('customText').value.trim();
             if (!text) {
-                showToast('Texte requis pour la case personnalisée', 'error');
+                showToast('Texte requis', 'error');
                 return;
             }
             
@@ -968,7 +1301,6 @@
             document.querySelector('.templates').appendChild(customTemplate);
             document.getElementById('customText').value = '';
             
-            // Sauvegarder le template personnalisé
             globalState.customTemplates.push({
                 id: generateId(),
                 text: text
@@ -979,7 +1311,7 @@
         }
 
         function clearAll() {
-            if (confirm('Vider tous les plannings de tous les employés ?')) {
+            if (confirm('Vider tous les plannings ?')) {
                 globalState.employees.forEach(emp => {
                     emp.planning = {};
                 });
@@ -987,14 +1319,122 @@
                 renderPlanning();
                 updateSummary();
                 saveData();
-                showToast('Tous les plannings vidés', 'success');
+                showToast('Plannings vidés', 'success');
             }
+        }
+
+        function saveWeekTemplate() {
+            const name = prompt('Nom de la semaine type:');
+            if (!name) return;
+            
+            if (globalState.weekTemplates.find(t => t.name.toLowerCase() === name.toLowerCase())) {
+                showToast('Ce nom existe déjà', 'error');
+                return;
+            }
+            
+            const selectedEmployee = globalState.employees[0];
+            if (!selectedEmployee) {
+                showToast('Ajoutez un employé', 'error');
+                return;
+            }
+            
+            const weekKey = getWeekKey();
+            if (!selectedEmployee.planning || !selectedEmployee.planning[weekKey]) {
+                showToast('Aucun planning à sauvegarder', 'error');
+                return;
+            }
+            
+            const template = {
+                id: generateId(),
+                name: name,
+                planning: JSON.parse(JSON.stringify(selectedEmployee.planning[weekKey]))
+            };
+            
+            globalState.weekTemplates.push(template);
+            updateWeekTemplateSelect();
+            saveData();
+            showToast('Semaine type sauvegardée', 'success');
+        }
+
+        function applyWeekTemplate() {
+            const select = document.getElementById('weekTemplateSelect');
+            const templateId = select.value;
+            
+            if (!templateId) {
+                showToast('Sélectionnez une semaine type', 'error');
+                return;
+            }
+            
+            const template = globalState.weekTemplates.find(t => t.id === templateId);
+            if (!template) return;
+            
+            const employeeName = prompt('Nom de l\'employé:');
+            if (!employeeName) return;
+            
+            const employee = globalState.employees.find(emp => 
+                emp.name.toLowerCase().includes(employeeName.toLowerCase())
+            );
+            
+            if (!employee) {
+                showToast('Employé non trouvé', 'error');
+                return;
+            }
+            
+            if (confirm(`Appliquer "${template.name}" sur ${employee.name} ?`)) {
+                if (!employee.planning) employee.planning = {};
+                const weekKey = getWeekKey();
+                
+                employee.planning[weekKey] = {};
+                Object.keys(template.planning).forEach(day => {
+                    employee.planning[weekKey][day] = template.planning[day].map(shift => ({
+                        ...shift,
+                        id: generateId()
+                    }));
+                });
+                
+                renderPlanning();
+                updateSummary();
+                saveData();
+                showToast('Semaine type appliquée', 'success');
+            }
+        }
+
+        function deleteWeekTemplate() {
+            const select = document.getElementById('weekTemplateSelect');
+            const templateId = select.value;
+            
+            if (!templateId) {
+                showToast('Sélectionnez une semaine type', 'error');
+                return;
+            }
+            
+            const template = globalState.weekTemplates.find(t => t.id === templateId);
+            if (!template) return;
+            
+            if (confirm(`Supprimer "${template.name}" ?`)) {
+                globalState.weekTemplates = globalState.weekTemplates.filter(t => t.id !== templateId);
+                updateWeekTemplateSelect();
+                saveData();
+                showToast('Semaine type supprimée', 'success');
+            }
+        }
+
+        function updateWeekTemplateSelect() {
+            const select = document.getElementById('weekTemplateSelect');
+            select.innerHTML = '<option value="">Sélectionner une semaine type...</option>';
+            
+            globalState.weekTemplates.forEach(template => {
+                const option = document.createElement('option');
+                option.value = template.id;
+                option.textContent = template.name;
+                select.appendChild(option);
+            });
         }
 
         function updateSummary() {
             const empCount = globalState.employees.length;
             let totalShifts = 0;
-            let totalPossibleSlots = empCount * 7; // 7 jours par semaine
+            let totalPossibleSlots = empCount * 7;
             
             const weekKey = getWeekKey();
             globalState.employees.forEach(employee => {
@@ -1012,7 +1452,6 @@
             document.getElementById('occupationRate').textContent = occupationRate + '%';
         }
 
-        // Gestion des modals
         function openModal(modalId) {
             document.getElementById(modalId).style.display = 'block';
         }
@@ -1039,7 +1478,7 @@
             }
             
             if (globalState.employees.find(emp => emp.name.toLowerCase() === name.toLowerCase())) {
-                showToast('Un employé avec ce nom existe déjà', 'error');
+                showToast('Ce nom existe déjà', 'error');
                 return;
             }
             
@@ -1059,7 +1498,7 @@
             renderPlanning();
             updateSummary();
             saveData();
-            showToast('Employé ajouté avec succès', 'success');
+            showToast('Employé ajouté', 'success');
         }
 
         function handlePasswordSubmit(e) {
@@ -1072,22 +1511,21 @@
                 updateModeDisplay();
                 closeModal();
                 document.getElementById('adminPassword').value = '';
-                showToast('Mode administrateur activé', 'success');
+                showToast('Mode admin activé', 'success');
             } else {
                 showToast('Mot de passe incorrect', 'error');
             }
         }
 
-        // Fonctions utilitaires
         function generateId() {
             return 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         }
 
         function getWeekKey() {
             const year = globalState.currentWeek.getFullYear();
-            const firstDayOfYear = new Date(year, 0, 1);
-            const pastDaysOfYear = (globalState.currentWeek - firstDayOfYear) / 86400000;
-            const weekNumber = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+            const firstDay = new Date(year, 0, 1);
+            const pastDays = (globalState.currentWeek - firstDay) / 86400000;
+            const weekNumber = Math.ceil((pastDays + firstDay.getDay() + 1) / 7);
             return `${year}-W${weekNumber}`;
         }
 
@@ -1096,14 +1534,15 @@
                 const dataToSave = {
                     employees: globalState.employees,
                     customTemplates: globalState.customTemplates,
+                    timeSlots: globalState.timeSlots,
+                    weekTemplates: globalState.weekTemplates,
                     lastSave: new Date().toISOString()
                 };
                 
                 localStorage.setItem('planning_data', JSON.stringify(dataToSave));
-                showToast('Données sauvegardées', 'success');
+                showToast('Sauvegardé', 'success');
             } catch (error) {
-                showToast('Erreur de sauvegarde', 'error');
-                console.error('Erreur sauvegarde:', error);
+                showToast('Erreur sauvegarde', 'error');
             }
         }
 
@@ -1120,7 +1559,6 @@
                     if (data.customTemplates) {
                         globalState.customTemplates = data.customTemplates;
                         
-                        // Recréer les templates personnalisés
                         data.customTemplates.forEach(template => {
                             const customTemplate = document.createElement('div');
                             customTemplate.className = 'template custom';
@@ -1135,13 +1573,22 @@
                         });
                     }
                     
+                    if (data.timeSlots) {
+                        globalState.timeSlots = data.timeSlots;
+                        renderTimeSlots();
+                    }
+                    
+                    if (data.weekTemplates) {
+                        globalState.weekTemplates = data.weekTemplates;
+                        updateWeekTemplateSelect();
+                    }
+                    
                     renderPlanning();
                     updateSummary();
-                    showToast('Données chargées avec succès', 'success');
+                    showToast('Données chargées', 'success');
                 }
             } catch (error) {
-                showToast('Erreur de chargement', 'error');
-                console.error('Erreur chargement:', error);
+                showToast('Erreur chargement', 'error');
             }
         }
 
@@ -1157,7 +1604,6 @@
             }, 3000);
         }
 
-        // Raccourcis clavier
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey || e.metaKey) {
                 switch(e.key) {
@@ -1174,9 +1620,16 @@
                 }
             }
             
-            // Échap pour fermer les modals
             if (e.key === 'Escape') {
                 closeModal();
+            }
+        });
+
+        document.addEventListener('contextmenu', (e) => {
+            if (!globalState.isAdminMode) return;
+            
+            if (e.target.closest('.day-cell') || e.target.closest('.employee-cell')) {
+                e.preventDefault();
             }
         });
     </script>
