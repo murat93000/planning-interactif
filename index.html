@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planning Interactif - Version Fixée</title>
+    <title>Planning Hebdomadaire - Style Moderne</title>
     <style>
         * {
             margin: 0;
@@ -12,302 +12,479 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
             min-height: 100vh;
-            color: #333;
+            padding: 20px;
+            animation: gradientShift 15s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%); }
+            33% { background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #4facfe 100%); }
+            66% { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 50%, #764ba2 100%); }
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
-            padding: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .header {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
+            text-align: center;
             margin-bottom: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }
 
         .header h1 {
-            font-size: 2.5em;
-            text-align: center;
-            color: #2c3e50;
-            margin-bottom: 20px;
+            font-size: 2.8em;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
         }
 
-        .control-panel {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-bottom: 20px;
+        .auth-section {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
         .btn {
-            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
             border: none;
-            border-radius: 25px;
             cursor: pointer;
             font-weight: 600;
+            padding: 12px 24px;
+            border-radius: 16px;
             transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
             font-size: 14px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(45deg, #4CAF50, #45a049);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: linear-gradient(45deg, #2196F3, #1976D2);
-            color: white;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+            margin: 5px;
         }
 
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4);
         }
 
-        .status-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 15px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
+        .btn.admin {
+            background: linear-gradient(135deg, #10b981, #059669);
         }
 
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 16px;
-            background: rgba(76, 175, 80, 0.1);
-            border-radius: 20px;
-            font-weight: 600;
+        .btn.danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
         }
 
-        .planning-container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
+        .btn.warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
         }
 
-        .employee-section {
-            margin-bottom: 40px;
-            border: 2px solid #e0e0e0;
-            border-radius: 15px;
-            padding: 25px;
-            background: rgba(248, 249, 250, 0.8);
-        }
-
-        .employee-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #e0e0e0;
-        }
-
-        .employee-name {
-            font-size: 1.8em;
-            font-weight: 700;
-            color: #2c3e50;
-        }
-
-        .draggable-items {
+        .controls {
             display: flex;
             gap: 15px;
             margin-bottom: 30px;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            flex-wrap: wrap;
-        }
-
-        .draggable-item {
-            cursor: move;
-            padding: 15px 20px;
-            border-radius: 12px;
-            font-weight: 600;
-            color: white;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            transition: all 0.3s ease;
-            text-align: center;
-            min-width: 100px;
-        }
-
-        .draggable-item:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-        }
-
-        .draggable-item.repos {
-            background: linear-gradient(45deg, #9E9E9E, #757575);
-        }
-
-        .draggable-item.conges {
-            background: linear-gradient(45deg, #FF9800, #F57C00);
-        }
-
-        .draggable-item.cours {
-            background: linear-gradient(45deg, #2196F3, #1976D2);
-        }
-
-        .draggable-item.custom {
-            background: linear-gradient(45deg, #9C27B0, #7B1FA2);
-        }
-
-        .week-grid {
-            display: grid;
-            grid-template-columns: 100px repeat(7, 1fr);
-            gap: 2px;
-            margin-bottom: 20px;
-        }
-
-        .time-slot, .day-header {
-            padding: 10px;
-            text-align: center;
-            font-weight: 600;
-            border-radius: 8px;
-        }
-
-        .day-header {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-            font-size: 1.1em;
-        }
-
-        .time-slot {
-            background: rgba(103, 126, 234, 0.1);
-            color: #2c3e50;
-            border: 1px solid rgba(103, 126, 234, 0.3);
-        }
-
-        .planning-cell {
-            min-height: 60px;
-            border: 2px dashed #ddd;
-            border-radius: 8px;
-            display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s ease;
-            background: rgba(255, 255, 255, 0.5);
-            position: relative;
+            flex-wrap: wrap;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
-        .planning-cell:hover {
-            border-color: #4CAF50;
-            background: rgba(76, 175, 80, 0.1);
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
         }
 
-        .planning-cell.drag-over {
-            border-color: #2196F3;
-            background: rgba(33, 150, 243, 0.2);
-            transform: scale(1.05);
-        }
-
-        .schedule-item {
-            background: linear-gradient(45deg, #4CAF50, #45a049);
-            color: white;
-            padding: 12px 16px;
-            border-radius: 12px;
-            cursor: move;
+        .control-group label {
             font-weight: 600;
-            text-align: center;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            color: #374151;
+            font-size: 12px;
+        }
+
+        .control-group input {
+            padding: 10px 15px;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.9);
             transition: all 0.3s ease;
+            min-width: 150px;
+        }
+
+        .control-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .templates-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .templates-title {
+            text-align: center;
+            font-weight: 700;
+            color: #374151;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .templates {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .template {
+            padding: 12px 20px;
+            border-radius: 20px;
+            cursor: move;
+            font-size: 13px;
+            font-weight: 700;
+            color: white;
+            transition: all 0.3s ease;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .template.work {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .template.repos {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+        }
+
+        .template.absent {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        .template.cours {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .template.conges {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .template.custom {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        }
+
+        .template:hover {
+            transform: translateY(-4px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+        }
+
+        .template.dragging {
+            opacity: 0.7;
+            transform: rotate(8deg) scale(0.95);
+        }
+
+        .custom-template-creator {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .week-nav {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .current-week {
+            font-weight: 700;
+            min-width: 250px;
+            text-align: center;
+            color: #374151;
+            font-size: 16px;
+        }
+
+        .planning-grid {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            margin-bottom: 30px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 200px repeat(7, 1fr);
+            gap: 2px;
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 8px;
+        }
+
+        .grid-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 16px 8px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 14px;
+            border-radius: 12px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .employee-cell {
+            background: linear-gradient(135deg, #374151, #1f2937);
+            color: white;
+            padding: 16px 12px;
+            font-weight: 600;
+            font-size: 13px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 12px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(55, 65, 81, 0.3);
             position: relative;
-            min-width: 80px;
         }
 
-        .schedule-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        .employee-name {
+            font-weight: 800;
+            margin-bottom: 4px;
         }
 
-        .schedule-item.repos {
-            background: linear-gradient(45deg, #9E9E9E, #757575);
+        .employee-role {
+            font-size: 11px;
+            opacity: 0.8;
         }
 
-        .schedule-item.conges {
-            background: linear-gradient(45deg, #FF9800, #F57C00);
+        .remove-emp {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.3s ease;
         }
 
-        .schedule-item.cours {
-            background: linear-gradient(45deg, #2196F3, #1976D2);
+        .employee-cell:hover .remove-emp {
+            opacity: 1;
         }
 
-        .schedule-item.custom {
-            background: linear-gradient(45deg, #9C27B0, #7B1FA2);
+        .day-cell {
+            background: white;
+            min-height: 80px;
+            padding: 8px;
+            border: 2px dashed #e5e7eb;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .day-cell:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .day-cell.drag-over {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            border-style: solid;
+            transform: scale(1.02);
+        }
+
+        .shift-card {
+            padding: 8px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            color: white;
+            position: relative;
+            cursor: move;
+            transition: all 0.3s ease;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            text-align: center;
+        }
+
+        .shift-card.work {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .shift-card.repos {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+        }
+
+        .shift-card.absent {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        .shift-card.cours {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .shift-card.conges {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .shift-card.custom {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        }
+
+        .shift-card:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 10px;
+            cursor: pointer;
+            display: none;
+            transition: all 0.3s ease;
+        }
+
+        .shift-card:hover .delete-btn {
+            display: block;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .summary-card h4 {
+            margin-bottom: 10px;
+            color: #374151;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .summary-card .value {
+            font-size: 2em;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .modal {
             display: none;
             position: fixed;
-            z-index: 1000;
-            left: 0;
             top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(5px);
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            backdrop-filter: blur(10px);
         }
 
         .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             background: white;
-            margin: 10% auto;
             padding: 30px;
             border-radius: 20px;
+            max-width: 400px;
             width: 90%;
-            max-width: 500px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            animation: modalSlide 0.3s ease;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
         }
 
-        @keyframes modalSlide {
-            from { transform: translateY(-50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+        .modal h2 {
+            margin-bottom: 20px;
+            text-align: center;
+            color: #374151;
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .form-group label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
             font-weight: 600;
-            color: #2c3e50;
+            color: #374151;
         }
 
         .form-group input {
             width: 100%;
             padding: 12px;
-            border: 2px solid #ddd;
+            border: 2px solid #e5e7eb;
             border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s ease;
+            font-size: 14px;
         }
 
         .form-group input:focus {
             outline: none;
-            border-color: #4CAF50;
+            border-color: #667eea;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
         }
 
         .toast {
@@ -322,41 +499,53 @@
             animation: toastSlide 0.3s ease;
         }
 
-        @keyframes toastSlide {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
         .toast.success {
-            background: linear-gradient(45deg, #4CAF50, #45a049);
+            background: linear-gradient(135deg, #10b981, #059669);
         }
 
         .toast.error {
-            background: linear-gradient(45deg, #f44336, #d32f2f);
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        @keyframes toastSlide {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
 
         .admin-panel {
             display: none;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 1200px) {
+            .grid {
+                grid-template-columns: 180px repeat(7, 1fr);
+            }
+        }
+
+        @media (max-width: 900px) {
+            .grid {
+                grid-template-columns: 150px repeat(7, 1fr);
+                font-size: 12px;
+            }
+            
+            .templates {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 600px) {
             .container {
-                padding: 10px;
+                padding: 15px;
             }
             
-            .week-grid {
-                grid-template-columns: 80px repeat(7, 1fr);
-                gap: 1px;
+            .grid {
+                grid-template-columns: 120px repeat(7, 1fr);
+                font-size: 10px;
             }
             
-            .control-panel {
+            .controls {
                 flex-direction: column;
                 align-items: stretch;
-            }
-            
-            .draggable-items {
-                flex-direction: column;
-                gap: 10px;
             }
         }
     </style>
@@ -364,50 +553,71 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📅 Planning Interactif - Version Corrigée</h1>
-            <div class="control-panel">
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <button class="btn btn-secondary" onclick="toggleMode()">
-                        <span id="mode-text">🔒 Mode Lecture</span>
-                    </button>
-                    <button class="btn btn-primary admin-panel" onclick="addEmployee()">👤 Ajouter Employé</button>
-                </div>
+            <h1>📅 Planning Hebdomadaire</h1>
+            <p>Système de gestion d'équipe moderne et sécurisé</p>
+        </div>
+
+        <div class="auth-section">
+            <button class="btn" id="modeBtn" onclick="toggleMode()">🔒 Mode Lecture</button>
+            <div class="admin-panel" style="margin-top: 15px;">
+                <button class="btn admin" onclick="openEmployeeModal()">👤 Ajouter Employé</button>
+                <button class="btn warning" onclick="saveData()">💾 Sauvegarder</button>
+                <button class="btn danger" onclick="clearAll()">🗑️ Vider Planning</button>
             </div>
         </div>
 
-        <div class="status-bar">
-            <div class="status-item">
-                <span>Employés: <strong id="employeeCount">0</strong></span>
+        <div class="controls admin-panel">
+            <div class="control-group">
+                <label>👤 Nom employé</label>
+                <input type="text" id="empName" placeholder="Nom complet">
             </div>
-            <div class="status-item">
-                <span>Heures/Semaine: <strong id="totalHours">0h</strong></span>
+            <div class="control-group">
+                <label>💼 Poste</label>
+                <input type="text" id="empRole" placeholder="Fonction">
             </div>
-            <div class="status-item">
-                <span>Statut: <strong>Opérationnel</strong></span>
+            <button class="btn" onclick="addEmployee()">➕ Ajouter</button>
+        </div>
+
+        <div class="templates-section admin-panel">
+            <div class="templates-title">🎨 Cases disponibles - Glissez dans le planning</div>
+            <div class="templates">
+                <div class="template repos" draggable="true" data-type="repos">😴 Repos</div>
+                <div class="template absent" draggable="true" data-type="absent">❌ Absent</div>
+                <div class="template cours" draggable="true" data-type="cours">📚 Cours</div>
+                <div class="template conges" draggable="true" data-type="conges">🏖️ Congés</div>
+                <div class="template work" draggable="true" data-type="work">⏰ Travail</div>
+            </div>
+            
+            <div class="custom-template-creator">
+                <input type="text" id="customText" placeholder="Case personnalisée..." style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px;">
+                <button class="btn" onclick="addCustomTemplate()">✨ Créer Case</button>
             </div>
         </div>
 
-        <div class="planning-container">
-            <div class="draggable-items admin-panel">
-                <div class="draggable-item repos" draggable="true" data-type="repos">
-                    😴 Repos
-                </div>
-                <div class="draggable-item conges" draggable="true" data-type="conges">
-                    🏖️ Congés
-                </div>
-                <div class="draggable-item cours" draggable="true" data-type="cours">
-                    📚 Cours
-                </div>
-                <div class="draggable-item custom" draggable="true" data-type="custom">
-                    ⚙️ Personnalisé
-                </div>
-            </div>
+        <div class="week-nav">
+            <button class="btn" onclick="changeWeek(-1)">⬅️ Semaine précédente</button>
+            <div class="current-week" id="weekDisplay">Semaine courante</div>
+            <button class="btn" onclick="changeWeek(1)">Semaine suivante ➡️</button>
+        </div>
 
-            <div id="employeeList">
-                <div style="text-align: center; padding: 40px; color: #666;">
-                    <h3>Aucun employé ajouté</h3>
-                    <p>Passez en mode administrateur pour commencer</p>
-                </div>
+        <div class="planning-grid">
+            <div class="grid" id="planningGrid">
+                <!-- Le planning sera généré ici -->
+            </div>
+        </div>
+
+        <div class="summary">
+            <div class="summary-card">
+                <h4>👥 Employés</h4>
+                <div class="value" id="empCount">0</div>
+            </div>
+            <div class="summary-card">
+                <h4>📋 Cases assignées</h4>
+                <div class="value" id="shiftCount">0</div>
+            </div>
+            <div class="summary-card">
+                <h4>📊 Taux occupation</h4>
+                <div class="value" id="occupationRate">0%</div>
             </div>
         </div>
     </div>
@@ -418,33 +628,33 @@
             <h2>👤 Ajouter un Employé</h2>
             <form id="employeeForm">
                 <div class="form-group">
-                    <label for="employeeName">Nom de l'employé:</label>
-                    <input type="text" id="employeeName" required>
+                    <label>Nom complet:</label>
+                    <input type="text" id="modalEmpName" required>
                 </div>
                 <div class="form-group">
-                    <label for="employeeHours">Heures/semaine:</label>
-                    <input type="number" id="employeeHours" min="1" max="60" value="35">
+                    <label>Poste/Fonction:</label>
+                    <input type="text" id="modalEmpRole" required>
                 </div>
-                <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('employeeModal')">Annuler</button>
-                    <button type="submit" class="btn btn-primary">Ajouter</button>
+                <div class="form-actions">
+                    <button type="button" class="btn" onclick="closeModal()">Annuler</button>
+                    <button type="submit" class="btn admin">Ajouter</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Modal pour mot de passe -->
+    <!-- Modal pour mot de passe admin -->
     <div id="passwordModal" class="modal">
         <div class="modal-content">
             <h2>🔒 Accès Administrateur</h2>
             <form id="passwordForm">
                 <div class="form-group">
-                    <label for="adminPassword">Mot de passe:</label>
+                    <label>Mot de passe:</label>
                     <input type="password" id="adminPassword" required>
                 </div>
-                <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('passwordModal')">Annuler</button>
-                    <button type="submit" class="btn btn-primary">Valider</button>
+                <div class="form-actions">
+                    <button type="button" class="btn" onclick="closeModal()">Annuler</button>
+                    <button type="submit" class="btn admin">Valider</button>
                 </div>
             </form>
         </div>
@@ -453,14 +663,65 @@
     <script>
         // Configuration
         const ADMIN_PASSWORD = 'admin123';
-
+        
         // État global
         let globalState = {
             employees: [],
-            isAdminMode: false
+            currentWeek: new Date(),
+            isAdminMode: false,
+            draggedItem: null,
+            customTemplates: []
         };
 
-        // Fonctions principales
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Définir le lundi de la semaine courante
+            const today = new Date();
+            globalState.currentWeek = new Date(today);
+            globalState.currentWeek.setDate(today.getDate() - today.getDay() + 1);
+            
+            setupEventListeners();
+            updateWeekDisplay();
+            renderPlanning();
+            updateSummary();
+            loadData();
+            
+            showToast('Application initialisée avec succès', 'success');
+        });
+
+        function setupEventListeners() {
+            // Formulaires
+            document.getElementById('employeeForm').addEventListener('submit', handleEmployeeSubmit);
+            document.getElementById('passwordForm').addEventListener('submit', handlePasswordSubmit);
+            
+            // Drag and drop sur les templates
+            document.querySelectorAll('.template').forEach(template => {
+                template.addEventListener('dragstart', handleDragStart);
+                template.addEventListener('dragend', handleDragEnd);
+            });
+            
+            // Clic en dehors des modals
+            window.addEventListener('click', (e) => {
+                if (e.target.classList.contains('modal')) {
+                    closeModal();
+                }
+            });
+        }
+
+        function handleDragStart(e) {
+            if (!globalState.isAdminMode) return;
+            
+            globalState.draggedItem = {
+                type: e.target.dataset.type,
+                text: e.target.textContent.trim()
+            };
+            e.target.classList.add('dragging');
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+
         function toggleMode() {
             if (globalState.isAdminMode) {
                 globalState.isAdminMode = false;
@@ -472,190 +733,283 @@
         }
 
         function updateModeDisplay() {
-            const modeText = document.getElementById('mode-text');
+            const modeBtn = document.getElementById('modeBtn');
             const adminPanels = document.querySelectorAll('.admin-panel');
             
             if (globalState.isAdminMode) {
-                modeText.textContent = '🔓 Mode Admin';
-                adminPanels.forEach(panel => panel.style.display = 'inline-block');
+                modeBtn.textContent = '🔓 Mode Admin';
+                modeBtn.className = 'btn admin';
+                adminPanels.forEach(panel => panel.style.display = 'block');
             } else {
-                modeText.textContent = '🔒 Mode Lecture';
+                modeBtn.textContent = '🔒 Mode Lecture';
+                modeBtn.className = 'btn';
                 adminPanels.forEach(panel => panel.style.display = 'none');
             }
             
-            renderEmployeeList();
+            renderPlanning();
         }
 
-        function addEmployee() {
-            openModal('employeeModal');
-        }
-
-        function renderEmployeeList() {
-            const container = document.getElementById('employeeList');
+        function updateWeekDisplay() {
+            const start = new Date(globalState.currentWeek);
+            const end = new Date(globalState.currentWeek);
+            end.setDate(end.getDate() + 6);
             
-            if (globalState.employees.length === 0) {
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #666;">
-                        <h3>Aucun employé ajouté</h3>
-                        <p>${globalState.isAdminMode ? 'Cliquez sur "Ajouter Employé" pour commencer' : 'Passez en mode administrateur pour commencer'}</p>
-                    </div>
-                `;
-                return;
-            }
+            const options = { day: 'numeric', month: 'short' };
+            const startStr = start.toLocaleDateString('fr-FR', options);
+            const endStr = end.toLocaleDateString('fr-FR', options);
+            const year = end.getFullYear();
+            
+            document.getElementById('weekDisplay').textContent = `${startStr} - ${endStr} ${year}`;
+        }
 
-            container.innerHTML = '';
+        function changeWeek(direction) {
+            globalState.currentWeek.setDate(globalState.currentWeek.getDate() + (direction * 7));
+            updateWeekDisplay();
+            renderPlanning();
+            saveData();
+        }
+
+        function renderPlanning() {
+            const grid = document.getElementById('planningGrid');
+            grid.innerHTML = '';
+            
+            // Headers
+            const cornerHeader = document.createElement('div');
+            cornerHeader.className = 'grid-header';
+            cornerHeader.textContent = '👤 Employés';
+            grid.appendChild(cornerHeader);
+            
+            const days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+            days.forEach((day, index) => {
+                const dayHeader = document.createElement('div');
+                dayHeader.className = 'grid-header';
+                const date = new Date(globalState.currentWeek);
+                date.setDate(date.getDate() + index);
+                dayHeader.innerHTML = `${day}<br><small>${date.getDate()}</small>`;
+                grid.appendChild(dayHeader);
+            });
+            
+            // Employés et leurs plannings
             globalState.employees.forEach(employee => {
-                const section = createEmployeeSection(employee);
-                container.appendChild(section);
-            });
-        }
-
-        function createEmployeeSection(employee) {
-            const section = document.createElement('div');
-            section.className = 'employee-section';
-            section.innerHTML = `
-                <div class="employee-header">
+                // Cellule employé
+                const empCell = document.createElement('div');
+                empCell.className = 'employee-cell';
+                empCell.innerHTML = `
                     <div class="employee-name">${employee.name}</div>
-                    <div>
-                        ${globalState.isAdminMode ? `
-                            <button class="btn btn-secondary" onclick="removeEmployee('${employee.id}')">
-                                🗑️ Supprimer
-                            </button>
-                        ` : ''}
-                    </div>
-                </div>
-                <div class="week-grid">
-                    <div class="time-slot">Horaire</div>
-                    <div class="day-header">Lundi</div>
-                    <div class="day-header">Mardi</div>
-                    <div class="day-header">Mercredi</div>
-                    <div class="day-header">Jeudi</div>
-                    <div class="day-header">Vendredi</div>
-                    <div class="day-header">Samedi</div>
-                    <div class="day-header">Dimanche</div>
-                    ${generateTimeSlots(employee)}
-                </div>
-            `;
-            return section;
-        }
-
-        function generateTimeSlots(employee) {
-            const timeSlots = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
-            const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-            
-            let html = '';
-            
-            timeSlots.forEach(time => {
-                html += `<div class="time-slot">${time}</div>`;
-                days.forEach(day => {
-                    const cellId = `${employee.id}-${day}-${time}`;
-                    const existingItem = employee.schedule && employee.schedule[cellId];
+                    <div class="employee-role">${employee.role}</div>
+                    ${globalState.isAdminMode ? `<button class="remove-emp" onclick="removeEmployee('${employee.id}')" title="Supprimer">×</button>` : ''}
+                `;
+                grid.appendChild(empCell);
+                
+                // Cellules des jours
+                for (let day = 0; day < 7; day++) {
+                    const dayCell = document.createElement('div');
+                    dayCell.className = 'day-cell';
+                    dayCell.dataset.employeeId = employee.id;
+                    dayCell.dataset.day = day;
                     
-                    html += `
-                        <div class="planning-cell" 
-                             data-employee="${employee.id}" 
-                             data-day="${day}" 
-                             data-time="${time}"
-                             ondrop="handleDrop(event)" 
-                             ondragover="handleDragOver(event)"
-                             ondragleave="handleDragLeave(event)">
-                            ${existingItem ? createScheduleItem(existingItem) : ''}
-                        </div>
-                    `;
-                });
+                    if (globalState.isAdminMode) {
+                        dayCell.addEventListener('dragover', handleDragOver);
+                        dayCell.addEventListener('dragleave', handleDragLeave);
+                        dayCell.addEventListener('drop', handleDrop);
+                    }
+                    
+                    // Ajouter les créneaux existants
+                    const weekKey = getWeekKey();
+                    if (employee.planning && employee.planning[weekKey] && employee.planning[weekKey][day]) {
+                        employee.planning[weekKey][day].forEach(shift => {
+                            const shiftCard = createShiftCard(shift, employee.id, day);
+                            dayCell.appendChild(shiftCard);
+                        });
+                    }
+                    
+                    grid.appendChild(dayCell);
+                }
             });
-            
-            return html;
         }
 
-        function createScheduleItem(item) {
-            const typeEmojis = {
-                'repos': '😴',
-                'conges': '🏖️',
-                'cours': '📚',
-                'custom': '⚙️'
-            };
-            
-            return `
-                <div class="schedule-item ${item.type}">
-                    ${typeEmojis[item.type] || '⚙️'} ${item.text}
-                </div>
+        function createShiftCard(shift, employeeId, day) {
+            const card = document.createElement('div');
+            card.className = `shift-card ${shift.type}`;
+            card.innerHTML = `
+                ${shift.text}
+                ${globalState.isAdminMode ? `<button class="delete-btn" onclick="removeShift('${employeeId}', ${day}, '${shift.id}')" title="Supprimer">×</button>` : ''}
             `;
-        }
-
-        function handleDrop(e) {
-            if (!globalState.isAdminMode) return;
-            
-            e.preventDefault();
-            e.target.classList.remove('drag-over');
-            
-            const cell = e.target.closest('.planning-cell');
-            if (!cell || cell.querySelector('.schedule-item')) {
-                showToast('Cette cellule contient déjà un élément', 'error');
-                return;
-            }
-            
-            try {
-                const dragData = JSON.parse(e.dataTransfer.getData('text/plain'));
-                const employeeId = cell.dataset.employee;
-                const day = cell.dataset.day;
-                const time = cell.dataset.time;
-                const cellId = `${employeeId}-${day}-${time}`;
-                
-                const employee = globalState.employees.find(emp => emp.id === employeeId);
-                if (!employee.schedule) employee.schedule = {};
-                
-                const newItem = {
-                    type: dragData.type,
-                    text: dragData.text
-                };
-                
-                employee.schedule[cellId] = newItem;
-                cell.innerHTML = createScheduleItem(newItem);
-                
-                showToast('Élément ajouté avec succès', 'success');
-                updateStats();
-                
-            } catch (error) {
-                showToast('Erreur lors de l\'ajout', 'error');
-            }
+            return card;
         }
 
         function handleDragOver(e) {
-            if (!globalState.isAdminMode) return;
             e.preventDefault();
-            e.target.closest('.planning-cell').classList.add('drag-over');
+            e.currentTarget.classList.add('drag-over');
         }
 
         function handleDragLeave(e) {
-            if (!globalState.isAdminMode) return;
-            e.target.closest('.planning-cell').classList.remove('drag-over');
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            
+            if (!globalState.draggedItem) return;
+            
+            const employeeId = e.currentTarget.dataset.employeeId;
+            const day = parseInt(e.currentTarget.dataset.day);
+            
+            const employee = globalState.employees.find(emp => emp.id === employeeId);
+            if (!employee) return;
+            
+            // Initialiser le planning si nécessaire
+            if (!employee.planning) employee.planning = {};
+            const weekKey = getWeekKey();
+            if (!employee.planning[weekKey]) employee.planning[weekKey] = {};
+            if (!employee.planning[weekKey][day]) employee.planning[weekKey][day] = [];
+            
+            // Créer le nouveau créneau
+            const newShift = {
+                id: generateId(),
+                type: globalState.draggedItem.type,
+                text: globalState.draggedItem.text
+            };
+            
+            employee.planning[weekKey][day].push(newShift);
+            
+            // Créer et ajouter la carte
+            const shiftCard = createShiftCard(newShift, employeeId, day);
+            e.currentTarget.appendChild(shiftCard);
+            
+            globalState.draggedItem = null;
+            updateSummary();
+            saveData();
+            showToast('Créneau ajouté avec succès', 'success');
+        }
+
+        function removeShift(employeeId, day, shiftId) {
+            const employee = globalState.employees.find(emp => emp.id === employeeId);
+            if (!employee) return;
+            
+            const weekKey = getWeekKey();
+            if (employee.planning && employee.planning[weekKey] && employee.planning[weekKey][day]) {
+                employee.planning[weekKey][day] = employee.planning[weekKey][day].filter(shift => shift.id !== shiftId);
+                
+                // Supprimer le jour s'il est vide
+                if (employee.planning[weekKey][day].length === 0) {
+                    delete employee.planning[weekKey][day];
+                }
+            }
+            
+            renderPlanning();
+            updateSummary();
+            saveData();
+            showToast('Créneau supprimé', 'success');
+        }
+
+        function addEmployee() {
+            const name = document.getElementById('empName').value.trim();
+            const role = document.getElementById('empRole').value.trim();
+            
+            if (!name) {
+                showToast('Le nom est requis', 'error');
+                return;
+            }
+            
+            if (globalState.employees.find(emp => emp.name.toLowerCase() === name.toLowerCase())) {
+                showToast('Un employé avec ce nom existe déjà', 'error');
+                return;
+            }
+            
+            const newEmployee = {
+                id: generateId(),
+                name: name,
+                role: role || 'Employé',
+                planning: {}
+            };
+            
+            globalState.employees.push(newEmployee);
+            
+            document.getElementById('empName').value = '';
+            document.getElementById('empRole').value = '';
+            
+            renderPlanning();
+            updateSummary();
+            saveData();
+            showToast('Employé ajouté avec succès', 'success');
         }
 
         function removeEmployee(employeeId) {
-            if (confirm('Êtes-vous sûr de vouloir supprimer cet employé ?')) {
+            const employee = globalState.employees.find(emp => emp.id === employeeId);
+            if (!employee) return;
+            
+            if (confirm(`Supprimer ${employee.name} définitivement ?`)) {
                 globalState.employees = globalState.employees.filter(emp => emp.id !== employeeId);
-                renderEmployeeList();
-                updateStats();
-                showToast('Employé supprimé avec succès', 'success');
+                renderPlanning();
+                updateSummary();
+                saveData();
+                showToast('Employé supprimé', 'success');
             }
         }
 
-        function updateStats() {
-            document.getElementById('employeeCount').textContent = globalState.employees.length;
+        function addCustomTemplate() {
+            const text = document.getElementById('customText').value.trim();
+            if (!text) {
+                showToast('Texte requis pour la case personnalisée', 'error');
+                return;
+            }
             
-            let totalHours = 0;
+            const customTemplate = document.createElement('div');
+            customTemplate.className = 'template custom';
+            customTemplate.draggable = true;
+            customTemplate.dataset.type = 'custom';
+            customTemplate.textContent = `⚙️ ${text}`;
+            
+            customTemplate.addEventListener('dragstart', handleDragStart);
+            customTemplate.addEventListener('dragend', handleDragEnd);
+            
+            document.querySelector('.templates').appendChild(customTemplate);
+            document.getElementById('customText').value = '';
+            
+            // Sauvegarder le template personnalisé
+            globalState.customTemplates.push({
+                id: generateId(),
+                text: text
+            });
+            
+            saveData();
+            showToast('Case personnalisée créée', 'success');
+        }
+
+        function clearAll() {
+            if (confirm('Vider tous les plannings de tous les employés ?')) {
+                globalState.employees.forEach(emp => {
+                    emp.planning = {};
+                });
+                
+                renderPlanning();
+                updateSummary();
+                saveData();
+                showToast('Tous les plannings vidés', 'success');
+            }
+        }
+
+        function updateSummary() {
+            const empCount = globalState.employees.length;
+            let totalShifts = 0;
+            let totalPossibleSlots = empCount * 7; // 7 jours par semaine
+            
+            const weekKey = getWeekKey();
             globalState.employees.forEach(employee => {
-                if (employee.schedule) {
-                    Object.values(employee.schedule).forEach(item => {
-                        if (item.type === 'cours') {
-                            totalHours += 1;
-                        }
+                if (employee.planning && employee.planning[weekKey]) {
+                    Object.values(employee.planning[weekKey]).forEach(dayShifts => {
+                        totalShifts += dayShifts.length;
                     });
                 }
             });
             
-            document.getElementById('totalHours').textContent = totalHours + 'h';
+            const occupationRate = totalPossibleSlots > 0 ? Math.round((totalShifts / totalPossibleSlots) * 100) : 0;
+            
+            document.getElementById('empCount').textContent = empCount;
+            document.getElementById('shiftCount').textContent = totalShifts;
+            document.getElementById('occupationRate').textContent = occupationRate + '%';
         }
 
         // Gestion des modals
@@ -663,35 +1017,48 @@
             document.getElementById(modalId).style.display = 'block';
         }
 
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
+        function closeModal() {
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.style.display = 'none';
+            });
         }
 
-        // Gestion des formulaires
+        function openEmployeeModal() {
+            openModal('employeeModal');
+        }
+
         function handleEmployeeSubmit(e) {
             e.preventDefault();
             
-            const name = document.getElementById('employeeName').value.trim();
-            const hours = parseInt(document.getElementById('employeeHours').value);
+            const name = document.getElementById('modalEmpName').value.trim();
+            const role = document.getElementById('modalEmpRole').value.trim();
             
             if (!name) {
                 showToast('Le nom est requis', 'error');
                 return;
             }
             
+            if (globalState.employees.find(emp => emp.name.toLowerCase() === name.toLowerCase())) {
+                showToast('Un employé avec ce nom existe déjà', 'error');
+                return;
+            }
+            
             const newEmployee = {
-                id: 'emp_' + Date.now(),
+                id: generateId(),
                 name: name,
-                targetHours: hours,
-                schedule: {}
+                role: role || 'Employé',
+                planning: {}
             };
             
             globalState.employees.push(newEmployee);
-            renderEmployeeList();
-            updateStats();
             
-            closeModal('employeeModal');
-            document.getElementById('employeeForm').reset();
+            document.getElementById('modalEmpName').value = '';
+            document.getElementById('modalEmpRole').value = '';
+            
+            closeModal();
+            renderPlanning();
+            updateSummary();
+            saveData();
             showToast('Employé ajouté avec succès', 'success');
         }
 
@@ -703,63 +1070,115 @@
             if (password === ADMIN_PASSWORD) {
                 globalState.isAdminMode = true;
                 updateModeDisplay();
-                closeModal('passwordModal');
-                document.getElementById('passwordForm').reset();
+                closeModal();
+                document.getElementById('adminPassword').value = '';
                 showToast('Mode administrateur activé', 'success');
             } else {
                 showToast('Mot de passe incorrect', 'error');
             }
         }
 
-        // Utilitaires
+        // Fonctions utilitaires
+        function generateId() {
+            return 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function getWeekKey() {
+            const year = globalState.currentWeek.getFullYear();
+            const firstDayOfYear = new Date(year, 0, 1);
+            const pastDaysOfYear = (globalState.currentWeek - firstDayOfYear) / 86400000;
+            const weekNumber = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+            return `${year}-W${weekNumber}`;
+        }
+
+        function saveData() {
+            try {
+                const dataToSave = {
+                    employees: globalState.employees,
+                    customTemplates: globalState.customTemplates,
+                    lastSave: new Date().toISOString()
+                };
+                
+                localStorage.setItem('planning_data', JSON.stringify(dataToSave));
+                showToast('Données sauvegardées', 'success');
+            } catch (error) {
+                showToast('Erreur de sauvegarde', 'error');
+                console.error('Erreur sauvegarde:', error);
+            }
+        }
+
+        function loadData() {
+            try {
+                const savedData = localStorage.getItem('planning_data');
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    
+                    if (data.employees) {
+                        globalState.employees = data.employees;
+                    }
+                    
+                    if (data.customTemplates) {
+                        globalState.customTemplates = data.customTemplates;
+                        
+                        // Recréer les templates personnalisés
+                        data.customTemplates.forEach(template => {
+                            const customTemplate = document.createElement('div');
+                            customTemplate.className = 'template custom';
+                            customTemplate.draggable = true;
+                            customTemplate.dataset.type = 'custom';
+                            customTemplate.textContent = `⚙️ ${template.text}`;
+                            
+                            customTemplate.addEventListener('dragstart', handleDragStart);
+                            customTemplate.addEventListener('dragend', handleDragEnd);
+                            
+                            document.querySelector('.templates').appendChild(customTemplate);
+                        });
+                    }
+                    
+                    renderPlanning();
+                    updateSummary();
+                    showToast('Données chargées avec succès', 'success');
+                }
+            } catch (error) {
+                showToast('Erreur de chargement', 'error');
+                console.error('Erreur chargement:', error);
+            }
+        }
+
         function showToast(message, type = 'success') {
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
             toast.textContent = message;
+            
             document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
         }
 
-        function generateId() {
-            return 'emp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        }
-
-        // Setup des événements drag and drop
-        function setupDragAndDrop() {
-            const draggableItems = document.querySelectorAll('.draggable-item');
-            draggableItems.forEach(item => {
-                item.addEventListener('dragstart', (e) => {
-                    if (!globalState.isAdminMode) return;
-                    
-                    e.dataTransfer.setData('text/plain', JSON.stringify({
-                        type: item.dataset.type,
-                        text: item.textContent.trim()
-                    }));
-                });
-            });
-        }
-
-        // Initialisation
-        document.addEventListener('DOMContentLoaded', function() {
-            // Setup des formulaires
-            document.getElementById('employeeForm').addEventListener('submit', handleEmployeeSubmit);
-            document.getElementById('passwordForm').addEventListener('submit', handlePasswordSubmit);
-            
-            // Setup drag and drop
-            setupDragAndDrop();
-            
-            // Stats initiales
-            updateStats();
-            
-            showToast('Application initialisée avec succès', 'success');
-        });
-
-        // Fermeture des modals en cliquant à l'extérieur
-        window.onclick = function(event) {
-            if (event.target.classList.contains('modal')) {
-                event.target.style.display = 'none';
+        // Raccourcis clavier
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 's':
+                        e.preventDefault();
+                        saveData();
+                        break;
+                    case 'a':
+                        if (globalState.isAdminMode) {
+                            e.preventDefault();
+                            openEmployeeModal();
+                        }
+                        break;
+                }
             }
-        }
+            
+            // Échap pour fermer les modals
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
     </script>
 </body>
 </html>
