@@ -154,38 +154,50 @@
 
         function setupFloatingToolbar() {
             const toolbar = document.getElementById('floatingToolbar');
-            let isScrolling = false;
             
-            window.addEventListener('scroll', () => {
-                if (isScrolling) return;
-                isScrolling = true;
-                
-                requestAnimationFrame(() => {
-                    try {
-                        const scrollY = window.scrollY;
-                        const planningGrid = document.querySelector('.planning-grid');
+            function checkScroll() {
+                try {
+                    const scrollY = window.scrollY;
+                    const planningGrid = document.querySelector('.planning-grid');
+                    
+                    if (planningGrid && globalState.isAdminMode) {
+                        const gridRect = planningGrid.getBoundingClientRect();
+                        const windowHeight = window.innerHeight;
                         
-                        if (planningGrid && globalState.isAdminMode) {
-                            const gridRect = planningGrid.getBoundingClientRect();
-                            const windowHeight = window.innerHeight;
-                            
-                            // Afficher la toolbar si on scroll et qu'on voit le planning
-                            if (scrollY > 200 && gridRect.top < windowHeight && gridRect.bottom > 0) {
+                        // Afficher la toolbar dès qu'on scroll et qu'on voit le planning
+                        if (scrollY > 150 || (gridRect.top < windowHeight && gridRect.bottom > 0)) {
+                            if (!toolbar.classList.contains('show')) {
                                 toolbar.classList.add('show');
                                 updateFloatingContent();
-                            } else {
-                                toolbar.classList.remove('show');
                             }
                         } else {
                             toolbar.classList.remove('show');
                         }
-                    } catch (error) {
-                        console.error('Erreur floating toolbar:', error);
+                    } else {
+                        toolbar.classList.remove('show');
                     }
-                    
-                    isScrolling = false;
-                });
+                } catch (error) {
+                    console.error('Erreur check scroll:', error);
+                }
+            }
+            
+            // Vérifier au scroll avec throttling
+            let ticking = false;
+            window.addEventListener('scroll', () => {
+                if (!ticking) {
+                    requestAnimationFrame(() => {
+                        checkScroll();
+                        ticking = false;
+                    });
+                    ticking = true;
+                }
             });
+            
+            // Vérifier aussi au resize
+            window.addEventListener('resize', checkScroll);
+            
+            // Vérifier immédiatement
+            setTimeout(checkScroll, 100);
         }
 
         function updateFloatingContent() {
@@ -507,12 +519,7 @@
         function createDefaultData() {
             try {
                 globalState = {
-                    employees: [{
-                        id: generateId(),
-                        name: 'Jean Dupont',
-                        role: 'Employé Exemple',
-                        planning: {}
-                    }],
+                    employees: [],
                     currentWeek: new Date(),
                     isAdminMode: false,
                     draggedItem: null,
@@ -527,21 +534,12 @@
                     copiedWeek: null
                 };
                 
-                // Ajouter un planning d'exemple
-                const weekKey = getWeekKey();
-                globalState.employees[0].planning[weekKey] = {
-                    0: [{ id: generateId(), type: 'work', text: 'Journée A (09:00-18:30)', slot: globalState.timeSlots[0] }],
-                    1: [{ id: generateId(), type: 'work', text: 'Journée B (10:30-19:30)', slot: globalState.timeSlots[1] }],
-                    2: [{ id: generateId(), type: 'repos', text: '😴 Repos' }],
-                    3: [{ id: generateId(), type: 'cours', text: '📚 Cours' }],
-                    4: [{ id: generateId(), type: 'work', text: 'Journée C (07:00-15:00)', slot: globalState.timeSlots[2] }]
-                };
-                
+                // PAS de données de démonstration
                 saveData();
                 renderPlanning();
                 updateSummary();
                 
-                showToast('Planning de démonstration créé - Mot de passe admin: admin123', 'success');
+                showToast('Planning initialisé - Passez en mode admin pour ajouter des employés', 'success');
             } catch (error) {
                 console.error('Erreur create default data:', error);
             }
@@ -698,64 +696,55 @@
                     grid.appendChild(dayHeader);
                 });
                 
-                // Lignes des employés
+                // Si pas d'employés, afficher un message pour les ajouter
                 if (!Array.isArray(globalState.employees) || globalState.employees.length === 0) {
-                    // Créer employés de démonstration s'il n'y en a pas
-                    globalState.employees = [
-                        {
-                            id: 'lysa',
-                            name: 'Lysa',
-                            role: 'Apprentie',
-                            planning: {},
-                            weekHours: '35h | 5 jours'
-                        },
-                        {
-                            id: 'melissa',
-                            name: 'Melissa', 
-                            role: 'Apprentie',
-                            planning: {},
-                            weekHours: '35h | 5 jours'
-                        },
-                        {
-                            id: 'emre',
-                            name: 'Emre',
-                            role: 'Apprentie', 
-                            planning: {},
-                            weekHours: '0h | 0 jours'
-                        }
-                    ];
-                    
-                    // Ajouter un planning d'exemple
-                    const weekKey = getWeekKey();
-                    globalState.employees[0].planning[weekKey] = {
-                        0: [{ id: generateId(), type: 'work', text: '10:00 - 18:00', hours: '7h' }],
-                        1: [{ id: generateId(), type: 'work', text: '12:00 - 20:00', hours: '7h' }],
-                        2: [{ id: generateId(), type: 'work', text: '09:30 - 18:30', hours: '8h' }],
-                        3: [{ id: generateId(), type: 'work', text: '12:00 - 20:00', hours: '7h' }],
-                        4: [{ id: generateId(), type: 'work', text: '12:30 - 19:30', hours: '6h' }],
-                        5: [{ id: generateId(), type: 'repos', text: '😴 Repos' }],
-                        6: [{ id: generateId(), type: 'repos', text: '😴 Repos' }]
-                    };
-                    
-                    globalState.employees[1].planning[weekKey] = {
-                        0: [{ id: generateId(), type: 'work', text: '12:00 - 20:00', hours: '7h' }],
-                        1: [{ id: generateId(), type: 'repos', text: '😴 Repos' }],
-                        2: [{ id: generateId(), type: 'work', text: '11:00 - 19:00', hours: '7h' }],
-                        3: [{ id: generateId(), type: 'work', text: '11:00 - 19:00', hours: '7h' }],
-                        4: [{ id: generateId(), type: 'work', text: '10:00 - 18:00', hours: '7h' }],
-                        5: [{ id: generateId(), type: 'work', text: '11:00 - 19:00', hours: '7h' }],
-                        6: [{ id: generateId(), type: 'repos', text: '😴 Repos' }]
-                    };
+                    const emptyMessage = document.createElement('div');
+                    emptyMessage.style.cssText = `
+                        grid-column: 1 / -1;
+                        text-align: center;
+                        padding: 40px;
+                        color: #6b7280;
+                        background: rgba(255, 255, 255, 0.8);
+                        border-radius: 12px;
+                        margin: 10px;
+                    `;
+                    emptyMessage.innerHTML = `
+                        <h3 style="margin-bottom: 10px;">Aucun employé ajouté</h3>
+                        <p>Passez en mode administrateur pour commencer à créer votre planning</p>
+                    `;
+                    grid.appendChild(emptyMessage);
+                    return;
                 }
                 
+                // Lignes des employés
                 globalState.employees.forEach(employee => {
                     // Cellule employé
                     const empCell = document.createElement('div');
                     empCell.className = 'employee-cell';
+                    
+                    // Calculer les heures de la semaine
+                    let weekHours = 0;
+                    let workDays = 0;
+                    const weekKey = getWeekKey();
+                    
+                    if (employee.planning && employee.planning[weekKey]) {
+                        Object.values(employee.planning[weekKey]).forEach(dayShifts => {
+                            let hasWork = false;
+                            dayShifts.forEach(shift => {
+                                if (shift.type === 'work' && shift.hours) {
+                                    const hours = parseFloat(shift.hours.replace('h', ''));
+                                    weekHours += hours;
+                                    hasWork = true;
+                                }
+                            });
+                            if (hasWork) workDays++;
+                        });
+                    }
+                    
                     empCell.innerHTML = `
                         <div class="employee-name">${employee.name}</div>
                         <div class="employee-role">${employee.role}</div>
-                        <div class="employee-hours">${employee.weekHours || '0h | 0 jours'}</div>
+                        <div class="employee-hours">${weekHours.toFixed(0)}h | ${workDays} jours</div>
                         ${globalState.isAdminMode ? `
                             <button class="remove-emp" onclick="removeEmployee('${employee.id}')" title="Supprimer">×</button>
                             <button class="copy-week-btn" onclick="copyEmployeeWeek('${employee.id}')" title="Copier semaine">📋</button>
@@ -1275,20 +1264,113 @@
         function handleEmployeeSubmit(e) {
             try {
                 e.preventDefault();
-                showToast('Fonctionnalité en cours de développement', 'error');
+                
+                const name = document.getElementById('modalEmpName').value.trim();
+                const role = document.getElementById('modalEmpRole').value.trim();
+                
+                if (!name) {
+                    showToast('Le nom est requis', 'error');
+                    return;
+                }
+                
+                if (!Array.isArray(globalState.employees)) {
+                    globalState.employees = [];
+                }
+                
+                if (globalState.employees.find(emp => emp.name.toLowerCase() === name.toLowerCase())) {
+                    showToast('Un employé avec ce nom existe déjà', 'error');
+                    return;
+                }
+                
+                const newEmployee = {
+                    id: generateId(),
+                    name: name,
+                    role: role || 'Employé',
+                    planning: {}
+                };
+                
+                globalState.employees.push(newEmployee);
+                
+                document.getElementById('modalEmpName').value = '';
+                document.getElementById('modalEmpRole').value = '';
+                
+                closeModal();
+                renderPlanning();
+                updateSummary();
+                saveData();
+                showToast('Employé ajouté avec succès', 'success');
             } catch (error) {
                 console.error('Erreur employee submit:', error);
+                showToast('Erreur lors de l\'ajout', 'error');
             }
         }
 
         // Stubs pour les autres fonctions nécessaires
-        function openEmployeeModal() { showToast('Fonctionnalité en développement', 'error'); }
-        function addEmployee() { showToast('Fonctionnalité en développement', 'error'); }
-        function clearAll() { showToast('Fonctionnalité en développement', 'error'); }
-        function changeWeek() { showToast('Fonctionnalité en développement', 'error'); }
+        function openEmployeeModal() { openModal('employeeModal'); }
+        function addEmployee() {
+            const name = document.getElementById('empName').value.trim();
+            const role = document.getElementById('empRole').value.trim();
+            
+            if (!name) {
+                showToast('Le nom est requis', 'error');
+                return;
+            }
+            
+            if (!Array.isArray(globalState.employees)) {
+                globalState.employees = [];
+            }
+            
+            if (globalState.employees.find(emp => emp.name.toLowerCase() === name.toLowerCase())) {
+                showToast('Un employé avec ce nom existe déjà', 'error');
+                return;
+            }
+            
+            const newEmployee = {
+                id: generateId(),
+                name: name,
+                role: role || 'Employé',
+                planning: {}
+            };
+            
+            globalState.employees.push(newEmployee);
+            
+            document.getElementById('empName').value = '';
+            document.getElementById('empRole').value = '';
+            
+            renderPlanning();
+            updateSummary();
+            saveData();
+            showToast('Employé ajouté avec succès', 'success');
+        }
+        
+        function clearAll() { 
+            if (confirm('Vider tous les plannings ?')) {
+                if (Array.isArray(globalState.employees)) {
+                    globalState.employees.forEach(emp => {
+                        emp.planning = {};
+                    });
+                }
+                renderPlanning();
+                updateSummary();
+                saveData();
+                showToast('Plannings vidés', 'success');
+            }
+        }
+        
+        function changeWeek(direction) {
+            try {
+                globalState.currentWeek.setDate(globalState.currentWeek.getDate() + (direction * 7));
+                updateWeekDisplay();
+                renderPlanning();
+                saveData();
+            } catch (error) {
+                console.error('Erreur change week:', error);
+            }
+        }
+        
         function saveWeekTemplate() { showToast('Fonctionnalité en développement', 'error'); }
         function applyWeekTemplate() { showToast('Fonctionnalité en développement', 'error'); }
-        function deleteWeekTemplate() { showToast('Fonctionnalité en développement', 'error'); }
+        function deleteWeekTemplate() { showToast('Fonctionnalité en développement', 'error'); }alité en développement', 'error'); }
         
         // Gestion des raccourcis clavier
         document.addEventListener('keydown', (e) => {
@@ -1520,60 +1602,67 @@
             background: linear-gradient(135deg, #f59e0b, #d97706);
         }
 
-        /* Barre flottante FIXÉE */
+        /* Barre flottante VRAIMENT FIXE */
         .floating-toolbar {
-            position: fixed;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 9999;
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(20px);
-            border: 2px solid rgba(102, 126, 234, 0.3);
-            border-radius: 20px;
-            padding: 15px 20px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-            max-width: 90vw;
-            overflow-x: auto;
+            position: fixed !important;
+            top: 10px !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            z-index: 9999 !important;
+            background: rgba(255, 255, 255, 0.98) !important;
+            backdrop-filter: blur(20px) !important;
+            border: 2px solid rgba(102, 126, 234, 0.3) !important;
+            border-radius: 20px !important;
+            padding: 15px 20px !important;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+            transition: all 0.3s ease !important;
+            max-width: 90vw !important;
+            overflow-x: auto !important;
         }
 
         .floating-toolbar.show {
-            opacity: 1;
-            visibility: visible;
+            opacity: 1 !important;
+            visibility: visible !important;
         }
 
-        .toolbar-content {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            flex-wrap: wrap;
-            justify-content: center;
+        .floating-toolbar .toolbar-content {
+            display: flex !important;
+            gap: 15px !important;
+            align-items: center !important;
+            flex-wrap: wrap !important;
+            justify-content: center !important;
         }
 
-        .toolbar-section {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap;
+        .floating-toolbar .toolbar-section {
+            display: flex !important;
+            gap: 8px !important;
+            align-items: center !important;
+            flex-wrap: wrap !important;
         }
 
-        .toolbar-title {
-            font-size: 12px;
-            font-weight: 700;
-            color: #374151;
-            margin-right: 8px;
+        .floating-toolbar .toolbar-title {
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            color: #374151 !important;
+            margin-right: 8px !important;
+            white-space: nowrap !important;
         }
 
         .floating-toolbar .template,
         .floating-toolbar .time-slot-template {
-            padding: 6px 12px;
-            font-size: 11px;
-            border-radius: 12px;
-            cursor: move;
-            transition: all 0.3s ease;
+            padding: 6px 12px !important;
+            font-size: 11px !important;
+            border-radius: 12px !important;
+            cursor: move !important;
+            transition: all 0.3s ease !important;
+            white-space: nowrap !important;
+        }
+
+        .floating-toolbar .template:hover,
+        .floating-toolbar .time-slot-template:hover {
+            transform: translateY(-2px) scale(1.05) !important;
         }
 
         .controls {
