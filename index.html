@@ -679,24 +679,543 @@
                 const grid = document.getElementById('planningGrid');
                 if (!grid) return;
                 
-                grid.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;"><h3>Planning en cours de chargement...</h3></div>';
+                grid.innerHTML = '';
                 
-                // Version simplifiée pour éviter les erreurs
-                setTimeout(() => {
-                    grid.innerHTML = '<div style="text-align: center; padding: 40px; color: #374151;"><h3>Planning opérationnel</h3><p>Utilisez le mode admin (mot de passe: admin123) pour modifier</p></div>';
-                }, 100);
+                // Header avec employés
+                const cornerHeader = document.createElement('div');
+                cornerHeader.className = 'grid-header';
+                cornerHeader.textContent = '👤 Employés';
+                grid.appendChild(cornerHeader);
+                
+                // Headers des jours
+                const days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+                days.forEach((day, index) => {
+                    const dayHeader = document.createElement('div');
+                    dayHeader.className = 'grid-header';
+                    const date = new Date(globalState.currentWeek);
+                    date.setDate(date.getDate() + index);
+                    dayHeader.innerHTML = `${day}<br><small>${date.getDate()}</small>`;
+                    grid.appendChild(dayHeader);
+                });
+                
+                // Lignes des employés
+                if (!Array.isArray(globalState.employees) || globalState.employees.length === 0) {
+                    // Créer employés de démonstration s'il n'y en a pas
+                    globalState.employees = [
+                        {
+                            id: 'lysa',
+                            name: 'Lysa',
+                            role: 'Apprentie',
+                            planning: {},
+                            weekHours: '35h | 5 jours'
+                        },
+                        {
+                            id: 'melissa',
+                            name: 'Melissa', 
+                            role: 'Apprentie',
+                            planning: {},
+                            weekHours: '35h | 5 jours'
+                        },
+                        {
+                            id: 'emre',
+                            name: 'Emre',
+                            role: 'Apprentie', 
+                            planning: {},
+                            weekHours: '0h | 0 jours'
+                        }
+                    ];
+                    
+                    // Ajouter un planning d'exemple
+                    const weekKey = getWeekKey();
+                    globalState.employees[0].planning[weekKey] = {
+                        0: [{ id: generateId(), type: 'work', text: '10:00 - 18:00', hours: '7h' }],
+                        1: [{ id: generateId(), type: 'work', text: '12:00 - 20:00', hours: '7h' }],
+                        2: [{ id: generateId(), type: 'work', text: '09:30 - 18:30', hours: '8h' }],
+                        3: [{ id: generateId(), type: 'work', text: '12:00 - 20:00', hours: '7h' }],
+                        4: [{ id: generateId(), type: 'work', text: '12:30 - 19:30', hours: '6h' }],
+                        5: [{ id: generateId(), type: 'repos', text: '😴 Repos' }],
+                        6: [{ id: generateId(), type: 'repos', text: '😴 Repos' }]
+                    };
+                    
+                    globalState.employees[1].planning[weekKey] = {
+                        0: [{ id: generateId(), type: 'work', text: '12:00 - 20:00', hours: '7h' }],
+                        1: [{ id: generateId(), type: 'repos', text: '😴 Repos' }],
+                        2: [{ id: generateId(), type: 'work', text: '11:00 - 19:00', hours: '7h' }],
+                        3: [{ id: generateId(), type: 'work', text: '11:00 - 19:00', hours: '7h' }],
+                        4: [{ id: generateId(), type: 'work', text: '10:00 - 18:00', hours: '7h' }],
+                        5: [{ id: generateId(), type: 'work', text: '11:00 - 19:00', hours: '7h' }],
+                        6: [{ id: generateId(), type: 'repos', text: '😴 Repos' }]
+                    };
+                }
+                
+                globalState.employees.forEach(employee => {
+                    // Cellule employé
+                    const empCell = document.createElement('div');
+                    empCell.className = 'employee-cell';
+                    empCell.innerHTML = `
+                        <div class="employee-name">${employee.name}</div>
+                        <div class="employee-role">${employee.role}</div>
+                        <div class="employee-hours">${employee.weekHours || '0h | 0 jours'}</div>
+                        ${globalState.isAdminMode ? `
+                            <button class="remove-emp" onclick="removeEmployee('${employee.id}')" title="Supprimer">×</button>
+                            <button class="copy-week-btn" onclick="copyEmployeeWeek('${employee.id}')" title="Copier semaine">📋</button>
+                            <button class="paste-week-btn" onclick="pasteEmployeeWeek('${employee.id}')" title="Coller semaine" style="opacity: ${globalState.copiedWeek ? '1' : '0.3'};">📥</button>
+                        ` : ''}
+                    `;
+                    
+                    if (globalState.isAdminMode) {
+                        empCell.addEventListener('contextmenu', (e) => {
+                            e.preventDefault();
+                            if (globalState.copiedWeek) {
+                                pasteEmployeeWeek(employee.id);
+                            }
+                        });
+                    }
+                    
+                    grid.appendChild(empCell);
+                    
+                    // Cellules des jours
+                    for (let day = 0; day < 7; day++) {
+                        const dayCell = document.createElement('div');
+                        dayCell.className = 'day-cell';
+                        dayCell.dataset.employeeId = employee.id;
+                        dayCell.dataset.day = day;
+                        
+                        if (globalState.isAdminMode) {
+                            dayCell.addEventListener('dragover', handleDragOver);
+                            dayCell.addEventListener('dragleave', handleDragLeave);
+                            dayCell.addEventListener('drop', handleDrop);
+                        }
+                        
+                        // Ajouter les créneaux existants
+                        const weekKey = getWeekKey();
+                        if (employee.planning && employee.planning[weekKey] && employee.planning[weekKey][day]) {
+                            employee.planning[weekKey][day].forEach(shift => {
+                                const shiftCard = createShiftCard(shift, employee.id, day);
+                                dayCell.appendChild(shiftCard);
+                            });
+                        }
+                        
+                        grid.appendChild(dayCell);
+                    }
+                });
+                
             } catch (error) {
                 console.error('Erreur render planning:', error);
+                const grid = document.getElementById('planningGrid');
+                if (grid) {
+                    grid.innerHTML = '<div style="text-align: center; padding: 40px; color: #374151;"><h3>Erreur de chargement du planning</h3></div>';
+                }
+            }
+        }
+
+        function createShiftCard(shift, employeeId, day) {
+            try {
+                const card = document.createElement('div');
+                card.className = `shift-card ${shift.type}`;
+                card.dataset.shiftId = shift.id;
+                
+                // Affichage selon le type
+                let content = '';
+                if (shift.type === 'work') {
+                    content = `
+                        <div style="font-weight: 800; font-size: 12px;">${shift.text}</div>
+                        ${shift.hours ? `<div style="font-size: 10px; opacity: 0.9;">${shift.hours}</div>` : ''}
+                    `;
+                } else {
+                    content = shift.text;
+                }
+                
+                card.innerHTML = `
+                    ${content}
+                    ${globalState.isAdminMode ? `
+                        <div class="actions">
+                            <button class="action-btn copy" onclick="copyShift('${employeeId}', ${day}, '${shift.id}')" title="Copier">📋</button>
+                            <button class="action-btn delete" onclick="removeShift('${employeeId}', ${day}, '${shift.id}')" title="Supprimer">×</button>
+                        </div>
+                    ` : ''}
+                `;
+                
+                if (globalState.isAdminMode) {
+                    card.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        if (globalState.copiedShift) {
+                            pasteShift(employeeId, day, e.target.closest('.day-cell'));
+                        }
+                    });
+                }
+                
+                return card;
+            } catch (error) {
+                console.error('Erreur create shift card:', error);
+                const card = document.createElement('div');
+                card.className = 'shift-card';
+                card.textContent = 'Erreur';
+                return card;
+            }
+        }
+
+        function handleDrop(e) {
+            try {
+                e.preventDefault();
+                e.currentTarget.classList.remove('drag-over');
+                
+                if (!globalState.draggedItem) return;
+                
+                const employeeId = e.currentTarget.dataset.employeeId;
+                const day = parseInt(e.currentTarget.dataset.day);
+                
+                const employee = globalState.employees.find(emp => emp.id === employeeId);
+                if (!employee) return;
+                
+                if (!employee.planning) employee.planning = {};
+                const weekKey = getWeekKey();
+                if (!employee.planning[weekKey]) employee.planning[weekKey] = {};
+                if (!employee.planning[weekKey][day]) employee.planning[weekKey][day] = [];
+                
+                let newShift;
+                
+                if (globalState.draggedItem.type === 'timeSlot') {
+                    const slot = globalState.draggedItem.slot;
+                    const hours = calculateHours(slot.start, slot.end);
+                    newShift = {
+                        id: generateId(),
+                        type: 'work',
+                        text: `${slot.start} - ${slot.end}`,
+                        hours: `${hours.toFixed(0)}h`,
+                        slot: slot
+                    };
+                } else {
+                    newShift = {
+                        id: generateId(),
+                        type: globalState.draggedItem.type,
+                        text: globalState.draggedItem.text
+                    };
+                }
+                
+                employee.planning[weekKey][day].push(newShift);
+                
+                const shiftCard = createShiftCard(newShift, employeeId, day);
+                e.currentTarget.appendChild(shiftCard);
+                
+                globalState.draggedItem = null;
+                updateSummary();
+                saveData();
+                showToast('Créneau ajouté', 'success');
+                
+            } catch (error) {
+                console.error('Erreur handle drop:', error);
+                showToast('Erreur lors de l\'ajout', 'error');
+            }
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function copyShift(employeeId, day, shiftId) {
+            try {
+                const employee = globalState.employees.find(emp => emp.id === employeeId);
+                if (!employee) return;
+                
+                const weekKey = getWeekKey();
+                if (employee.planning && employee.planning[weekKey] && employee.planning[weekKey][day]) {
+                    const shift = employee.planning[weekKey][day].find(s => s.id === shiftId);
+                    if (shift) {
+                        globalState.copiedShift = {
+                            type: shift.type,
+                            text: shift.text,
+                            hours: shift.hours,
+                            slot: shift.slot
+                        };
+                        showToast('Case copiée - Clic droit pour coller', 'success');
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur copy shift:', error);
+            }
+        }
+
+        function pasteShift(employeeId, day, dayCell) {
+            try {
+                if (!globalState.copiedShift) return;
+                
+                const employee = globalState.employees.find(emp => emp.id === employeeId);
+                if (!employee) return;
+                
+                if (!employee.planning) employee.planning = {};
+                const weekKey = getWeekKey();
+                if (!employee.planning[weekKey]) employee.planning[weekKey] = {};
+                if (!employee.planning[weekKey][day]) employee.planning[weekKey][day] = [];
+                
+                const newShift = {
+                    id: generateId(),
+                    type: globalState.copiedShift.type,
+                    text: globalState.copiedShift.text,
+                    hours: globalState.copiedShift.hours,
+                    slot: globalState.copiedShift.slot
+                };
+                
+                employee.planning[weekKey][day].push(newShift);
+                
+                const shiftCard = createShiftCard(newShift, employeeId, day);
+                dayCell.appendChild(shiftCard);
+                
+                updateSummary();
+                saveData();
+                showToast('Case collée', 'success');
+            } catch (error) {
+                console.error('Erreur paste shift:', error);
+            }
+        }
+
+        function removeShift(employeeId, day, shiftId) {
+            try {
+                const employee = globalState.employees.find(emp => emp.id === employeeId);
+                if (!employee) return;
+                
+                const weekKey = getWeekKey();
+                if (employee.planning && employee.planning[weekKey] && employee.planning[weekKey][day]) {
+                    employee.planning[weekKey][day] = employee.planning[weekKey][day].filter(shift => shift.id !== shiftId);
+                    
+                    if (employee.planning[weekKey][day].length === 0) {
+                        delete employee.planning[weekKey][day];
+                    }
+                }
+                
+                renderPlanning();
+                updateSummary();
+                saveData();
+                showToast('Créneau supprimé', 'success');
+            } catch (error) {
+                console.error('Erreur remove shift:', error);
+            }
+        }
+
+        function calculateHours(startTime, endTime) {
+            try {
+                const [startHour, startMin] = startTime.split(':').map(Number);
+                const [endHour, endMin] = endTime.split(':').map(Number);
+                
+                const startDecimal = startHour + (startMin / 60);
+                const endDecimal = endHour + (endMin / 60);
+                
+                let hours = endDecimal - startDecimal;
+                if (hours < 0) hours += 24;
+                
+                // Déduction pause déjeuner si > 6h
+                if (hours > 6) hours -= 1;
+                
+                return Math.max(0, hours);
+            } catch (error) {
+                console.error('Erreur calculate hours:', error);
+                return 8;
+            }
+        }
+
+        function copyEmployeeWeek(employeeId) {
+            try {
+                const employee = globalState.employees.find(emp => emp.id === employeeId);
+                if (!employee) return;
+                
+                const weekKey = getWeekKey();
+                if (employee.planning && employee.planning[weekKey]) {
+                    globalState.copiedWeek = JSON.parse(JSON.stringify(employee.planning[weekKey]));
+                    showToast(`Semaine de ${employee.name} copiée`, 'success');
+                } else {
+                    showToast('Aucun planning à copier', 'error');
+                }
+            } catch (error) {
+                console.error('Erreur copy employee week:', error);
+            }
+        }
+
+        function pasteEmployeeWeek(targetEmployeeId) {
+            try {
+                if (!globalState.copiedWeek) {
+                    showToast('Aucune semaine copiée', 'error');
+                    return;
+                }
+                
+                const employee = globalState.employees.find(emp => emp.id === targetEmployeeId);
+                if (!employee) return;
+                
+                if (confirm(`Coller la semaine sur ${employee.name} ?`)) {
+                    if (!employee.planning) employee.planning = {};
+                    const weekKey = getWeekKey();
+                    
+                    employee.planning[weekKey] = {};
+                    Object.keys(globalState.copiedWeek).forEach(day => {
+                        employee.planning[weekKey][day] = globalState.copiedWeek[day].map(shift => ({
+                            ...shift,
+                            id: generateId()
+                        }));
+                    });
+                    
+                    renderPlanning();
+                    updateSummary();
+                    saveData();
+                    showToast(`Semaine collée sur ${employee.name}`, 'success');
+                }
+            } catch (error) {
+                console.error('Erreur paste employee week:', error);
+            }
+        }
+
+        function removeEmployee(employeeId) {
+            try {
+                const employee = globalState.employees.find(emp => emp.id === employeeId);
+                if (!employee) return;
+                
+                if (confirm(`Supprimer ${employee.name} ?`)) {
+                    globalState.employees = globalState.employees.filter(emp => emp.id !== employeeId);
+                    renderPlanning();
+                    updateSummary();
+                    saveData();
+                    showToast('Employé supprimé', 'success');
+                }
+            } catch (error) {
+                console.error('Erreur remove employee:', error);
             }
         }
 
         function updateSummary() {
             try {
-                document.getElementById('empCount').textContent = globalState.employees?.length || 0;
-                document.getElementById('shiftCount').textContent = '0';
-                document.getElementById('occupationRate').textContent = '0%';
+                const empCount = globalState.employees?.length || 0;
+                let totalShifts = 0;
+                let totalHours = 0;
+                
+                const weekKey = getWeekKey();
+                if (Array.isArray(globalState.employees)) {
+                    globalState.employees.forEach(employee => {
+                        if (employee.planning && employee.planning[weekKey]) {
+                            Object.values(employee.planning[weekKey]).forEach(dayShifts => {
+                                totalShifts += dayShifts.length;
+                                dayShifts.forEach(shift => {
+                                    if (shift.type === 'work' && shift.hours) {
+                                        const hours = parseFloat(shift.hours.replace('h', ''));
+                                        totalHours += hours;
+                                    }
+                                });
+                            });
+                        }
+                    });
+                }
+                
+                const occupationRate = empCount > 0 ? Math.round((totalShifts / (empCount * 7)) * 100) : 0;
+                
+                document.getElementById('empCount').textContent = empCount;
+                document.getElementById('shiftCount').textContent = totalShifts;
+                document.getElementById('occupationRate').textContent = occupationRate + '%';
+                
+                updateEmployeeRecap();
             } catch (error) {
                 console.error('Erreur update summary:', error);
+                document.getElementById('empCount').textContent = '0';
+                document.getElementById('shiftCount').textContent = '0';
+                document.getElementById('occupationRate').textContent = '0%';
+            }
+        }
+
+        function updateEmployeeRecap() {
+            try {
+                const container = document.getElementById('employeeRecap');
+                if (!container || !globalState.isAdminMode) return;
+                
+                container.innerHTML = '';
+                
+                const weekKey = getWeekKey();
+                
+                if (Array.isArray(globalState.employees)) {
+                    globalState.employees.forEach(employee => {
+                        let workHours = 0;
+                        let workDays = 0;
+                        let absences = 0;
+                        let conges = 0;
+                        let repos = 0;
+                        let cours = 0;
+                        
+                        if (employee.planning && employee.planning[weekKey]) {
+                            Object.values(employee.planning[weekKey]).forEach(dayShifts => {
+                                let hasWork = false;
+                                dayShifts.forEach(shift => {
+                                    switch(shift.type) {
+                                        case 'work':
+                                            if (shift.hours) {
+                                                const hours = parseFloat(shift.hours.replace('h', ''));
+                                                workHours += hours;
+                                                hasWork = true;
+                                            }
+                                            break;
+                                        case 'absent':
+                                            absences++;
+                                            break;
+                                        case 'conges':
+                                            conges++;
+                                            break;
+                                        case 'repos':
+                                            repos++;
+                                            break;
+                                        case 'cours':
+                                            cours++;
+                                            break;
+                                    }
+                                });
+                                if (hasWork) workDays++;
+                            });
+                        }
+                        
+                        const overtime = Math.max(0, workHours - 35);
+                        
+                        const recapCard = document.createElement('div');
+                        recapCard.style.cssText = `
+                            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
+                            padding: 20px;
+                            border-radius: 16px;
+                            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+                            border: 1px solid rgba(255, 255, 255, 0.3);
+                        `;
+                        
+                        recapCard.innerHTML = `
+                            <h4 style="color: #374151; margin-bottom: 15px; font-size: 1.2em; font-weight: 700;">${employee.name}</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
+                                <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(102, 126, 234, 0.1); border-radius: 8px;">
+                                    <span style="font-weight: 600;">⏰ Heures travail:</span>
+                                    <span style="font-weight: 700; color: ${workHours > 35 ? '#ef4444' : '#10b981'};">${workHours.toFixed(1)}h</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
+                                    <span style="font-weight: 600;">⚡ Heures sup:</span>
+                                    <span style="font-weight: 700; color: #ef4444;">${overtime.toFixed(1)}h</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(107, 114, 128, 0.1); border-radius: 8px;">
+                                    <span style="font-weight: 600;">📅 Jours travail:</span>
+                                    <span style="font-weight: 700; color: #6b7280;">${workDays}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(16, 185, 129, 0.1); border-radius: 8px;">
+                                    <span style="font-weight: 600;">🏖️ Congés:</span>
+                                    <span style="font-weight: 700; color: #10b981;">${conges}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
+                                    <span style="font-weight: 600;">❌ Absences:</span>
+                                    <span style="font-weight: 700; color: #ef4444;">${absences}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(245, 158, 11, 0.1); border-radius: 8px;">
+                                    <span style="font-weight: 600;">😴 Repos:</span>
+                                    <span style="font-weight: 700; color: #6b7280;">${repos}</span>
+                                </div>
+                            </div>
+                        `;
+                        
+                        container.appendChild(recapCard);
+                    });
+                }
+            } catch (error) {
+                console.error('Erreur update employee recap:', error);
             }
         }
 
@@ -1362,21 +1881,30 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             border-radius: 12px;
             text-shadow: 0 1px 2px rgba(0,0,0,0.2);
             box-shadow: 0 4px 12px rgba(55, 65, 81, 0.3);
             position: relative;
+            min-height: 120px;
         }
 
         .employee-name {
             font-weight: 800;
             margin-bottom: 4px;
+            font-size: 16px;
         }
 
         .employee-role {
-            font-size: 11px;
+            font-size: 12px;
             opacity: 0.8;
+            margin-bottom: 4px;
+        }
+
+        .employee-hours {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-top: auto;
         }
 
         .remove-emp {
