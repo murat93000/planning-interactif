@@ -474,6 +474,14 @@
                     modeBtn.className = 'btn admin';
                     adminPanels.forEach(panel => panel.style.display = 'block');
                     addDeleteButtonsToTemplates();
+                    
+                    // Vérifier si on doit afficher la toolbar
+                    setTimeout(() => {
+                        if (window.scrollY > 150) {
+                            toolbar.classList.add('show');
+                            updateFloatingContent();
+                        }
+                    }, 100);
                 } else {
                     modeBtn.textContent = '🔒 Mode Lecture';
                     modeBtn.className = 'btn';
@@ -563,6 +571,14 @@
             }
         }
 
+        // Système de sauvegarde cloud-like sécurisé
+        const CLOUD_STORAGE_KEY = 'planning_cloud_data_v2';
+        const BACKUP_URLS = [
+            'planning_backup_1',
+            'planning_backup_2', 
+            'planning_backup_3'
+        ];
+
         function saveData() {
             try {
                 const dataToSave = {
@@ -570,11 +586,51 @@
                     customTemplates: globalState.customTemplates || [],
                     timeSlots: globalState.timeSlots || [],
                     weekTemplates: globalState.weekTemplates || [],
-                    lastSave: new Date().toISOString()
+                    lastSave: new Date().toISOString(),
+                    version: '2.0'
                 };
                 
-                localStorage.setItem('planning_data', JSON.stringify(dataToSave));
-                showToast('Sauvegardé', 'success');
+                const dataString = JSON.stringify(dataToSave);
+                
+                // Sauvegarde principale localStorage
+                try {
+                    localStorage.setItem('planning_data', dataString);
+                } catch (e) {
+                    console.warn('localStorage non disponible');
+                }
+                
+                // Sauvegarde sessionStorage
+                try {
+                    sessionStorage.setItem('planning_session', dataString);
+                } catch (e) {
+                    console.warn('sessionStorage non disponible');
+                }
+                
+                // Sauvegarde dans l'URL (pour partage)
+                try {
+                    const compressedData = btoa(encodeURIComponent(JSON.stringify({
+                        v: '2.0',
+                        d: dataToSave
+                    })));
+                    
+                    // Mettre à jour l'URL sans recharger
+                    const newUrl = new URL(window.location);
+                    newUrl.searchParams.set('data', compressedData);
+                    window.history.replaceState({}, '', newUrl);
+                } catch (e) {
+                    console.warn('Sauvegarde URL échouée');
+                }
+                
+                // Sauvegarde multiple pour redondance
+                BACKUP_URLS.forEach((key, index) => {
+                    try {
+                        localStorage.setItem(key, dataString);
+                    } catch (e) {
+                        console.warn(`Backup ${index} échoué`);
+                    }
+                });
+                
+                showToast('Données sauvegardées (multi-support)', 'success');
             } catch (error) {
                 console.error('Erreur sauvegarde:', error);
                 showToast('Erreur de sauvegarde', 'error');
@@ -583,18 +639,76 @@
 
         function loadData() {
             try {
-                const savedData = localStorage.getItem('planning_data');
-                if (savedData) {
-                    const data = JSON.parse(savedData);
-                    
-                    if (Array.isArray(data.employees)) {
-                        globalState.employees = data.employees;
+                let loadedData = null;
+                let source = 'nouveau';
+                
+                // 1. Essayer de charger depuis l'URL (priorité max)
+                try {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const urlData = urlParams.get('data');
+                    if (urlData) {
+                        const decodedData = JSON.parse(decodeURIComponent(atob(urlData)));
+                        if (decodedData.v === '2.0' && decodedData.d) {
+                            loadedData = decodedData.d;
+                            source = 'URL partagée';
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Chargement URL échoué');
+                }
+                
+                // 2. Essayer localStorage
+                if (!loadedData) {
+                    try {
+                        const localData = localStorage.getItem('planning_data');
+                        if (localData) {
+                            loadedData = JSON.parse(localData);
+                            source = 'localStorage';
+                        }
+                    } catch (e) {
+                        console.warn('localStorage non disponible');
+                    }
+                }
+                
+                // 3. Essayer sessionStorage
+                if (!loadedData) {
+                    try {
+                        const sessionData = sessionStorage.getItem('planning_session');
+                        if (sessionData) {
+                            loadedData = JSON.parse(sessionData);
+                            source = 'sessionStorage';
+                        }
+                    } catch (e) {
+                        console.warn('sessionStorage non disponible');
+                    }
+                }
+                
+                // 4. Essayer les backups
+                if (!loadedData) {
+                    for (const backupKey of BACKUP_URLS) {
+                        try {
+                            const backupData = localStorage.getItem(backupKey);
+                            if (backupData) {
+                                loadedData = JSON.parse(backupData);
+                                source = 'backup';
+                                break;
+                            }
+                        } catch (e) {
+                            continue;
+                        }
+                    }
+                }
+                
+                if (loadedData) {
+                    // Valider et appliquer les données
+                    if (Array.isArray(loadedData.employees)) {
+                        globalState.employees = loadedData.employees;
                     }
                     
-                    if (Array.isArray(data.customTemplates)) {
-                        globalState.customTemplates = data.customTemplates;
+                    if (Array.isArray(loadedData.customTemplates)) {
+                        globalState.customTemplates = loadedData.customTemplates;
                         
-                        data.customTemplates.forEach(template => {
+                        loadedData.customTemplates.forEach(template => {
                             const customTemplate = document.createElement('div');
                             customTemplate.className = 'template custom';
                             customTemplate.draggable = true;
@@ -611,19 +725,19 @@
                         });
                     }
                     
-                    if (Array.isArray(data.timeSlots)) {
-                        globalState.timeSlots = data.timeSlots;
+                    if (Array.isArray(loadedData.timeSlots)) {
+                        globalState.timeSlots = loadedData.timeSlots;
                         renderTimeSlots();
                     }
                     
-                    if (Array.isArray(data.weekTemplates)) {
-                        globalState.weekTemplates = data.weekTemplates;
+                    if (Array.isArray(loadedData.weekTemplates)) {
+                        globalState.weekTemplates = loadedData.weekTemplates;
                         updateWeekTemplateSelect();
                     }
                     
                     renderPlanning();
                     updateSummary();
-                    showToast('Planning chargé', 'success');
+                    showToast(`Planning chargé depuis ${source}`, 'success');
                 } else {
                     createDefaultData();
                 }
@@ -632,6 +746,60 @@
                 createDefaultData();
             }
         }
+
+        // Fonction pour partager le planning
+        function shareOpening() {
+            try {
+                // S'assurer que les données sont dans l'URL
+                saveData();
+                
+                const currentUrl = window.location.href;
+                
+                // Copier dans le presse-papier si possible
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(currentUrl).then(() => {
+                        showToast('Lien de partage copié ! Le planning sera accessible partout.', 'success');
+                    }).catch(() => {
+                        showShareFallback(currentUrl);
+                    });
+                } else {
+                    showShareFallback(currentUrl);
+                }
+            } catch (error) {
+                console.error('Erreur partage:', error);
+                showToast('Erreur lors du partage', 'error');
+            }
+        }
+
+        function showShareFallback(url) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'block';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h2>🔗 Partager le Planning</h2>
+                    <p>Copiez ce lien pour accéder au planning depuis n'importe quel navigateur :</p>
+                    <textarea readonly style="width: 100%; height: 100px; padding: 10px; border-radius: 8px; border: 2px solid #e5e7eb; margin: 15px 0;">${url}</textarea>
+                    <div class="form-actions">
+                        <button class="btn" onclick="this.closest('.modal').remove()">Fermer</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            // Sélectionner le texte
+            const textarea = modal.querySelector('textarea');
+            textarea.select();
+            
+            showToast('Lien prêt à copier manuellement', 'success');
+        }
+
+        // Auto-sauvegarde périodique
+        setInterval(() => {
+            if (globalState.employees && globalState.employees.length > 0) {
+                saveData();
+            }
+        }, 60000); // Toutes les minutes
 
         function showToast(message, type = 'success') {
             try {
