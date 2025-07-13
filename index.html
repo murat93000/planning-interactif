@@ -454,12 +454,41 @@
         }
 
         function toggleMode() {
-            if (globalState.isAdminMode) {
-                globalState.isAdminMode = false;
-                updateModeDisplay();
-                showToast('Mode lecture activé', 'success');
-            } else {
-                openModal('passwordModal');
+            try {
+                console.log('toggleMode appelé, mode actuel:', globalState.isAdminMode);
+                
+                if (globalState.isAdminMode) {
+                    globalState.isAdminMode = false;
+                    updateModeDisplay();
+                    showToast('Mode lecture activé', 'success');
+                } else {
+                    // Ouvrir directement le modal de mot de passe
+                    const modal = document.getElementById('passwordModal');
+                    if (modal) {
+                        modal.style.display = 'block';
+                        // Focus sur le champ mot de passe
+                        setTimeout(() => {
+                            const passwordInput = document.getElementById('adminPassword');
+                            if (passwordInput) {
+                                passwordInput.focus();
+                            }
+                        }, 100);
+                    } else {
+                        console.error('Modal passwordModal non trouvé');
+                        // Fallback avec prompt si modal non trouvé
+                        const password = prompt('Mot de passe administrateur:');
+                        if (password === ADMIN_PASSWORD) {
+                            globalState.isAdminMode = true;
+                            updateModeDisplay();
+                            showToast('Mode admin activé', 'success');
+                        } else if (password !== null) {
+                            showToast('Mot de passe incorrect', 'error');
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur toggle mode:', error);
+                showToast('Erreur changement de mode', 'error');
             }
         }
 
@@ -1387,23 +1416,41 @@
             }
         }
 
-        // Modal functions
         function openModal(modalId) {
             try {
+                console.log('Tentative ouverture modal:', modalId);
                 const modal = document.getElementById(modalId);
                 if (modal) {
                     modal.style.display = 'block';
+                    console.log('Modal ouvert:', modalId);
+                    
+                    // Focus automatique sur le premier input
+                    const firstInput = modal.querySelector('input');
+                    if (firstInput) {
+                        setTimeout(() => firstInput.focus(), 100);
+                    }
+                } else {
+                    console.error('Modal non trouvé:', modalId);
+                    showToast('Erreur d\'ouverture du modal', 'error');
                 }
             } catch (error) {
                 console.error('Erreur open modal:', error);
+                showToast('Erreur d\'interface', 'error');
             }
         }
 
         function closeModal() {
             try {
-                document.querySelectorAll('.modal').forEach(modal => {
+                const modals = document.querySelectorAll('.modal');
+                modals.forEach(modal => {
                     modal.style.display = 'none';
                 });
+                
+                // Nettoyer les champs
+                const passwordInput = document.getElementById('adminPassword');
+                if (passwordInput) {
+                    passwordInput.value = '';
+                }
             } catch (error) {
                 console.error('Erreur close modal:', error);
             }
@@ -1412,20 +1459,34 @@
         function handlePasswordSubmit(e) {
             try {
                 e.preventDefault();
+                console.log('Soumission mot de passe...');
                 
-                const password = document.getElementById('adminPassword').value;
+                const passwordInput = document.getElementById('adminPassword');
+                if (!passwordInput) {
+                    console.error('Input mot de passe non trouvé');
+                    showToast('Erreur d\'interface', 'error');
+                    return;
+                }
+                
+                const password = passwordInput.value;
+                console.log('Mot de passe saisi:', password.length, 'caractères');
                 
                 if (password === ADMIN_PASSWORD) {
                     globalState.isAdminMode = true;
                     updateModeDisplay();
                     closeModal();
-                    document.getElementById('adminPassword').value = '';
-                    showToast('Mode admin activé', 'success');
+                    passwordInput.value = '';
+                    showToast('Mode administrateur activé', 'success');
+                    console.log('Mode admin activé avec succès');
                 } else {
-                    showToast('Mot de passe incorrect', 'error');
+                    showToast('Mot de passe incorrect (utilisez: admin123)', 'error');
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                    console.log('Mot de passe incorrect');
                 }
             } catch (error) {
                 console.error('Erreur password submit:', error);
+                showToast('Erreur de connexion', 'error');
             }
         }
 
@@ -2518,6 +2579,7 @@
             <div class="admin-panel" style="margin-top: 15px;">
                 <button class="btn admin" onclick="openEmployeeModal()">👤 Ajouter Employé</button>
                 <button class="btn warning" onclick="saveData()">💾 Sauvegarder</button>
+                <button class="btn" onclick="shareOpening()">🔗 Partager Planning</button>
                 <button class="btn danger" onclick="clearAll()">🗑️ Vider Planning</button>
             </div>
         </div>
