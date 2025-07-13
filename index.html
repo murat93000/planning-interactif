@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planning Interactif - Système Sécurisé</title>
+    <title>Planning Interactif - Version Fixée</title>
     <style>
         * {
             margin: 0;
@@ -38,7 +38,6 @@
             text-align: center;
             color: #2c3e50;
             margin-bottom: 20px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .control-panel {
@@ -72,16 +71,6 @@
             color: white;
         }
 
-        .btn-danger {
-            background: linear-gradient(45deg, #f44336, #d32f2f);
-            color: white;
-        }
-
-        .btn-warning {
-            background: linear-gradient(45deg, #ff9800, #f57c00);
-            color: white;
-        }
-
         .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
@@ -106,20 +95,6 @@
             background: rgba(76, 175, 80, 0.1);
             border-radius: 20px;
             font-weight: 600;
-        }
-
-        .status-indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #4CAF50;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.2); opacity: 0.7; }
-            100% { transform: scale(1); opacity: 1; }
         }
 
         .planning-container {
@@ -154,30 +129,48 @@
             color: #2c3e50;
         }
 
-        .employee-stats {
+        .draggable-items {
             display: flex;
-            gap: 20px;
-            align-items: center;
-        }
-
-        .stat-item {
-            text-align: center;
-            padding: 10px 15px;
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 20px;
             background: rgba(255, 255, 255, 0.9);
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            flex-wrap: wrap;
         }
 
-        .stat-value {
-            font-size: 1.5em;
-            font-weight: 700;
-            color: #4CAF50;
+        .draggable-item {
+            cursor: move;
+            padding: 15px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            text-align: center;
+            min-width: 100px;
         }
 
-        .stat-label {
-            font-size: 0.9em;
-            color: #666;
-            margin-top: 5px;
+        .draggable-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .draggable-item.repos {
+            background: linear-gradient(45deg, #9E9E9E, #757575);
+        }
+
+        .draggable-item.conges {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+        }
+
+        .draggable-item.cours {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+        }
+
+        .draggable-item.custom {
+            background: linear-gradient(45deg, #9C27B0, #7B1FA2);
         }
 
         .week-grid {
@@ -248,11 +241,6 @@
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
         }
 
-        .schedule-item.dragging {
-            opacity: 0.5;
-            transform: rotate(5deg);
-        }
-
         .schedule-item.repos {
             background: linear-gradient(45deg, #9E9E9E, #757575);
         }
@@ -267,78 +255,6 @@
 
         .schedule-item.custom {
             background: linear-gradient(45deg, #9C27B0, #7B1FA2);
-        }
-
-        .item-actions {
-            position: absolute;
-            top: -10px;
-            right: -10px;
-            display: flex;
-            gap: 5px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .schedule-item:hover .item-actions {
-            opacity: 1;
-        }
-
-        .action-btn {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            color: white;
-            transition: all 0.3s ease;
-        }
-
-        .action-btn.edit {
-            background: #2196F3;
-        }
-
-        .action-btn.duplicate {
-            background: #4CAF50;
-        }
-
-        .action-btn.delete {
-            background: #f44336;
-        }
-
-        .action-btn:hover {
-            transform: scale(1.2);
-        }
-
-        .draggable-items {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            flex-wrap: wrap;
-        }
-
-        .draggable-item {
-            cursor: move;
-            padding: 15px 20px;
-            border-radius: 12px;
-            font-weight: 600;
-            color: white;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            transition: all 0.3s ease;
-            text-align: center;
-            min-width: 100px;
-        }
-
-        .draggable-item:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
         }
 
         .modal {
@@ -380,7 +296,7 @@
             color: #2c3e50;
         }
 
-        .form-group input, .form-group select {
+        .form-group input {
             width: 100%;
             padding: 12px;
             border: 2px solid #ddd;
@@ -389,7 +305,7 @@
             transition: border-color 0.3s ease;
         }
 
-        .form-group input:focus, .form-group select:focus {
+        .form-group input:focus {
             outline: none;
             border-color: #4CAF50;
         }
@@ -419,53 +335,8 @@
             background: linear-gradient(45deg, #f44336, #d32f2f);
         }
 
-        .toast.warning {
-            background: linear-gradient(45deg, #ff9800, #f57c00);
-        }
-
         .admin-panel {
             display: none;
-        }
-
-        .readonly-mode {
-            pointer-events: none;
-            opacity: 0.7;
-        }
-
-        .backup-section {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-        }
-
-        .backup-controls {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .sync-status {
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-weight: 600;
-            margin-left: auto;
-        }
-
-        .sync-status.synced {
-            background: rgba(76, 175, 80, 0.2);
-            color: #4CAF50;
-        }
-
-        .sync-status.syncing {
-            background: rgba(255, 152, 0, 0.2);
-            color: #ff9800;
-        }
-
-        .sync-status.error {
-            background: rgba(244, 67, 54, 0.2);
-            color: #f44336;
         }
 
         @media (max-width: 768px) {
@@ -487,58 +358,32 @@
                 flex-direction: column;
                 gap: 10px;
             }
-            
-            .employee-stats {
-                flex-direction: column;
-                gap: 10px;
-            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>📅 Planning Interactif - Système Sécurisé</h1>
+            <h1>📅 Planning Interactif - Version Corrigée</h1>
             <div class="control-panel">
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                     <button class="btn btn-secondary" onclick="toggleMode()">
                         <span id="mode-text">🔒 Mode Lecture</span>
                     </button>
                     <button class="btn btn-primary admin-panel" onclick="addEmployee()">👤 Ajouter Employé</button>
-                    <button class="btn btn-warning admin-panel" onclick="openWeekTemplates()">📋 Semaines Types</button>
-                </div>
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <button class="btn btn-secondary admin-panel" onclick="exportData()">💾 Export</button>
-                    <button class="btn btn-primary admin-panel" onclick="importData()">📥 Import</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="backup-section">
-            <h3>🔐 Sécurité & Sauvegarde</h3>
-            <div class="backup-controls">
-                <button class="btn btn-primary" onclick="createBackup()">💾 Sauvegarde</button>
-                <button class="btn btn-warning" onclick="restoreBackup()">🔄 Restaurer</button>
-                <button class="btn btn-secondary" onclick="forceSync()">🔄 Sync Forcée</button>
-                <div class="sync-status synced" id="syncStatus">
-                    <span class="status-indicator"></span>
-                    Synchronisé
                 </div>
             </div>
         </div>
 
         <div class="status-bar">
             <div class="status-item">
-                <span class="status-indicator"></span>
                 <span>Employés: <strong id="employeeCount">0</strong></span>
             </div>
             <div class="status-item">
-                <span class="status-indicator"></span>
                 <span>Heures/Semaine: <strong id="totalHours">0h</strong></span>
             </div>
             <div class="status-item">
-                <span class="status-indicator"></span>
-                <span>Dernière sauvegarde: <strong id="lastSave">Jamais</strong></span>
+                <span>Statut: <strong>Opérationnel</strong></span>
             </div>
         </div>
 
@@ -559,7 +404,10 @@
             </div>
 
             <div id="employeeList">
-                <!-- Les employés seront ajoutés ici dynamiquement -->
+                <div style="text-align: center; padding: 40px; color: #666;">
+                    <h3>Aucun employé ajouté</h3>
+                    <p>Passez en mode administrateur pour commencer</p>
+                </div>
             </div>
         </div>
     </div>
@@ -602,204 +450,64 @@
         </div>
     </div>
 
-    <!-- Modal pour éditer un item -->
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <h2>✏️ Modifier l'élément</h2>
-            <form id="editForm">
-                <div class="form-group">
-                    <label for="editText">Texte:</label>
-                    <input type="text" id="editText" required>
-                </div>
-                <div class="form-group">
-                    <label for="editType">Type:</label>
-                    <select id="editType">
-                        <option value="repos">Repos</option>
-                        <option value="conges">Congés</option>
-                        <option value="cours">Cours</option>
-                        <option value="custom">Personnalisé</option>
-                    </select>
-                </div>
-                <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('editModal')">Annuler</button>
-                    <button type="submit" class="btn btn-primary">Sauvegarder</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal pour semaines types -->
-    <div id="weekTemplateModal" class="modal">
-        <div class="modal-content">
-            <h2>📋 Semaines Types</h2>
-            <div id="weekTemplateList"></div>
-            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-                <button type="button" class="btn btn-secondary" onclick="closeModal('weekTemplateModal')">Fermer</button>
-            </div>
-        </div>
-    </div>
-
     <script>
-        // Configuration système
-        const CONFIG = {
-            ADMIN_PASSWORD: 'admin123',
-            AUTO_SAVE_INTERVAL: 30000, // 30 secondes
-            BACKUP_RETENTION: 10,
-            ENCRYPTION_KEY: 'planning-secure-key-2024'
-        };
+        // Configuration
+        const ADMIN_PASSWORD = 'admin123';
 
-        // État global sécurisé
+        // État global
         let globalState = {
             employees: [],
-            weekTemplates: [],
-            isAdminMode: false,
-            lastSync: null,
-            currentEditingItem: null,
-            syncStatus: 'synced'
+            isAdminMode: false
         };
 
-        // Système de sauvegarde sécurisé
-        class SecureStorage {
-            static encrypt(data) {
-                try {
-                    const encrypted = btoa(JSON.stringify(data));
-                    return encrypted;
-                } catch (e) {
-                    console.error('Erreur de chiffrement:', e);
-                    return null;
-                }
-            }
-
-            static decrypt(encrypted) {
-                try {
-                    const decrypted = JSON.parse(atob(encrypted));
-                    return decrypted;
-                } catch (e) {
-                    console.error('Erreur de déchiffrement:', e);
-                    return null;
-                }
-            }
-
-            static save(key, data) {
-                try {
-                    const encrypted = this.encrypt(data);
-                    if (encrypted) {
-                        localStorage.setItem(key, encrypted);
-                        localStorage.setItem(key + '_timestamp', Date.now().toString());
-                        this.updateSyncStatus('synced');
-                        return true;
-                    }
-                } catch (e) {
-                    console.error('Erreur de sauvegarde:', e);
-                    this.updateSyncStatus('error');
-                }
-                return false;
-            }
-
-            static load(key) {
-                try {
-                    const encrypted = localStorage.getItem(key);
-                    if (encrypted) {
-                        return this.decrypt(encrypted);
-                    }
-                } catch (e) {
-                    console.error('Erreur de chargement:', e);
-                }
-                return null;
-            }
-
-            static createBackup() {
-                const backups = JSON.parse(localStorage.getItem('planning_backups') || '[]');
-                const newBackup = {
-                    id: Date.now(),
-                    timestamp: new Date().toISOString(),
-                    data: globalState
-                };
-                
-                backups.push(newBackup);
-                
-                // Garder seulement les 10 dernières sauvegardes
-                if (backups.length > CONFIG.BACKUP_RETENTION) {
-                    backups.splice(0, backups.length - CONFIG.BACKUP_RETENTION);
-                }
-                
-                localStorage.setItem('planning_backups', JSON.stringify(backups));
-                showToast('Sauvegarde créée avec succès', 'success');
-                return newBackup.id;
-            }
-
-            static restoreBackup(backupId) {
-                const backups = JSON.parse(localStorage.getItem('planning_backups') || '[]');
-                const backup = backups.find(b => b.id === backupId);
-                
-                if (backup) {
-                    globalState = backup.data;
-                    this.save('planning_data', globalState);
-                    renderEmployeeList();
-                    updateStats();
-                    showToast('Sauvegarde restaurée avec succès', 'success');
-                    return true;
-                }
-                return false;
-            }
-
-            static updateSyncStatus(status) {
-                globalState.syncStatus = status;
-                const statusElement = document.getElementById('syncStatus');
-                const statusText = {
-                    'synced': 'Synchronisé',
-                    'syncing': 'Synchronisation...',
-                    'error': 'Erreur de sync'
-                };
-                
-                statusElement.textContent = statusText[status];
-                statusElement.className = `sync-status ${status}`;
-            }
-        }
-
         // Fonctions principales
-        function initializeApp() {
-            // Chargement des données
-            const savedData = SecureStorage.load('planning_data');
-            if (savedData) {
-                globalState = { ...globalState, ...savedData };
+        function toggleMode() {
+            if (globalState.isAdminMode) {
+                globalState.isAdminMode = false;
+                updateModeDisplay();
+                showToast('Mode lecture activé', 'success');
+            } else {
+                openModal('passwordModal');
+            }
+        }
+
+        function updateModeDisplay() {
+            const modeText = document.getElementById('mode-text');
+            const adminPanels = document.querySelectorAll('.admin-panel');
+            
+            if (globalState.isAdminMode) {
+                modeText.textContent = '🔓 Mode Admin';
+                adminPanels.forEach(panel => panel.style.display = 'inline-block');
+            } else {
+                modeText.textContent = '🔒 Mode Lecture';
+                adminPanels.forEach(panel => panel.style.display = 'none');
+            }
+            
+            renderEmployeeList();
+        }
+
+        function addEmployee() {
+            openModal('employeeModal');
+        }
+
+        function renderEmployeeList() {
+            const container = document.getElementById('employeeList');
+            
+            if (globalState.employees.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #666;">
+                        <h3>Aucun employé ajouté</h3>
+                        <p>${globalState.isAdminMode ? 'Cliquez sur "Ajouter Employé" pour commencer' : 'Passez en mode administrateur pour commencer'}</p>
+                    </div>
+                `;
+                return;
             }
 
-            // Initialisation de l'interface
-            renderEmployeeList();
-            updateStats();
-            setupEventListeners();
-            
-            // Sauvegarde automatique
-            setInterval(autoSave, CONFIG.AUTO_SAVE_INTERVAL);
-            
-            // Mise à jour de la dernière sauvegarde
-            updateLastSaveTime();
-            
-            showToast('Application initialisée avec succès', 'success');
-        }
-
-        function setupEventListeners() {
-            // Drag and drop pour les éléments draggables
-            const draggableItems = document.querySelectorAll('.draggable-item');
-            draggableItems.forEach(item => {
-                item.addEventListener('dragstart', handleDragStart);
+            container.innerHTML = '';
+            globalState.employees.forEach(employee => {
+                const section = createEmployeeSection(employee);
+                container.appendChild(section);
             });
-
-            // Formulaires
-            document.getElementById('employeeForm').addEventListener('submit', handleEmployeeSubmit);
-            document.getElementById('passwordForm').addEventListener('submit', handlePasswordSubmit);
-            document.getElementById('editForm').addEventListener('submit', handleEditSubmit);
-        }
-
-        function handleDragStart(e) {
-            if (!globalState.isAdminMode) return;
-            
-            e.dataTransfer.setData('text/plain', JSON.stringify({
-                type: e.target.dataset.type,
-                text: e.target.textContent.trim()
-            }));
-            e.target.classList.add('dragging');
         }
 
         function createEmployeeSection(employee) {
@@ -808,21 +516,10 @@
             section.innerHTML = `
                 <div class="employee-header">
                     <div class="employee-name">${employee.name}</div>
-                    <div class="employee-stats">
-                        <div class="stat-item">
-                            <div class="stat-value">${calculateEmployeeHours(employee)}h</div>
-                            <div class="stat-label">Cette semaine</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">${employee.targetHours || 35}h</div>
-                            <div class="stat-label">Objectif</div>
-                        </div>
+                    <div>
                         ${globalState.isAdminMode ? `
-                            <button class="btn btn-danger" onclick="removeEmployee('${employee.id}')">
+                            <button class="btn btn-secondary" onclick="removeEmployee('${employee.id}')">
                                 🗑️ Supprimer
-                            </button>
-                            <button class="btn btn-secondary" onclick="duplicateWeek('${employee.id}')">
-                                📋 Dupliquer
                             </button>
                         ` : ''}
                     </div>
@@ -843,7 +540,7 @@
         }
 
         function generateTimeSlots(employee) {
-            const timeSlots = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'];
+            const timeSlots = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
             const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
             
             let html = '';
@@ -855,15 +552,214 @@
                     const existingItem = employee.schedule && employee.schedule[cellId];
                     
                     html += `
-                        <div class="planning-cell ${globalState.isAdminMode ? '' : 'readonly-mode'}" 
+                        <div class="planning-cell" 
                              data-employee="${employee.id}" 
                              data-day="${day}" 
                              data-time="${time}"
                              ondrop="handleDrop(event)" 
                              ondragover="handleDragOver(event)"
                              ondragleave="handleDragLeave(event)">
-                            ${existingItem ? createScheduleItem(existingItem, cellId) : ''}
+                            ${existingItem ? createScheduleItem(existingItem) : ''}
                         </div>
                     `;
                 });
             });
+            
+            return html;
+        }
+
+        function createScheduleItem(item) {
+            const typeEmojis = {
+                'repos': '😴',
+                'conges': '🏖️',
+                'cours': '📚',
+                'custom': '⚙️'
+            };
+            
+            return `
+                <div class="schedule-item ${item.type}">
+                    ${typeEmojis[item.type] || '⚙️'} ${item.text}
+                </div>
+            `;
+        }
+
+        function handleDrop(e) {
+            if (!globalState.isAdminMode) return;
+            
+            e.preventDefault();
+            e.target.classList.remove('drag-over');
+            
+            const cell = e.target.closest('.planning-cell');
+            if (!cell || cell.querySelector('.schedule-item')) {
+                showToast('Cette cellule contient déjà un élément', 'error');
+                return;
+            }
+            
+            try {
+                const dragData = JSON.parse(e.dataTransfer.getData('text/plain'));
+                const employeeId = cell.dataset.employee;
+                const day = cell.dataset.day;
+                const time = cell.dataset.time;
+                const cellId = `${employeeId}-${day}-${time}`;
+                
+                const employee = globalState.employees.find(emp => emp.id === employeeId);
+                if (!employee.schedule) employee.schedule = {};
+                
+                const newItem = {
+                    type: dragData.type,
+                    text: dragData.text
+                };
+                
+                employee.schedule[cellId] = newItem;
+                cell.innerHTML = createScheduleItem(newItem);
+                
+                showToast('Élément ajouté avec succès', 'success');
+                updateStats();
+                
+            } catch (error) {
+                showToast('Erreur lors de l\'ajout', 'error');
+            }
+        }
+
+        function handleDragOver(e) {
+            if (!globalState.isAdminMode) return;
+            e.preventDefault();
+            e.target.closest('.planning-cell').classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            if (!globalState.isAdminMode) return;
+            e.target.closest('.planning-cell').classList.remove('drag-over');
+        }
+
+        function removeEmployee(employeeId) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cet employé ?')) {
+                globalState.employees = globalState.employees.filter(emp => emp.id !== employeeId);
+                renderEmployeeList();
+                updateStats();
+                showToast('Employé supprimé avec succès', 'success');
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('employeeCount').textContent = globalState.employees.length;
+            
+            let totalHours = 0;
+            globalState.employees.forEach(employee => {
+                if (employee.schedule) {
+                    Object.values(employee.schedule).forEach(item => {
+                        if (item.type === 'cours') {
+                            totalHours += 1;
+                        }
+                    });
+                }
+            });
+            
+            document.getElementById('totalHours').textContent = totalHours + 'h';
+        }
+
+        // Gestion des modals
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Gestion des formulaires
+        function handleEmployeeSubmit(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('employeeName').value.trim();
+            const hours = parseInt(document.getElementById('employeeHours').value);
+            
+            if (!name) {
+                showToast('Le nom est requis', 'error');
+                return;
+            }
+            
+            const newEmployee = {
+                id: 'emp_' + Date.now(),
+                name: name,
+                targetHours: hours,
+                schedule: {}
+            };
+            
+            globalState.employees.push(newEmployee);
+            renderEmployeeList();
+            updateStats();
+            
+            closeModal('employeeModal');
+            document.getElementById('employeeForm').reset();
+            showToast('Employé ajouté avec succès', 'success');
+        }
+
+        function handlePasswordSubmit(e) {
+            e.preventDefault();
+            
+            const password = document.getElementById('adminPassword').value;
+            
+            if (password === ADMIN_PASSWORD) {
+                globalState.isAdminMode = true;
+                updateModeDisplay();
+                closeModal('passwordModal');
+                document.getElementById('passwordForm').reset();
+                showToast('Mode administrateur activé', 'success');
+            } else {
+                showToast('Mot de passe incorrect', 'error');
+            }
+        }
+
+        // Utilitaires
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function generateId() {
+            return 'emp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // Setup des événements drag and drop
+        function setupDragAndDrop() {
+            const draggableItems = document.querySelectorAll('.draggable-item');
+            draggableItems.forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    if (!globalState.isAdminMode) return;
+                    
+                    e.dataTransfer.setData('text/plain', JSON.stringify({
+                        type: item.dataset.type,
+                        text: item.textContent.trim()
+                    }));
+                });
+            });
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Setup des formulaires
+            document.getElementById('employeeForm').addEventListener('submit', handleEmployeeSubmit);
+            document.getElementById('passwordForm').addEventListener('submit', handlePasswordSubmit);
+            
+            // Setup drag and drop
+            setupDragAndDrop();
+            
+            // Stats initiales
+            updateStats();
+            
+            showToast('Application initialisée avec succès', 'success');
+        });
+
+        // Fermeture des modals en cliquant à l'extérieur
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
