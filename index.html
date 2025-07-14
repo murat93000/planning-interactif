@@ -1015,7 +1015,8 @@
             <div class="admin-panel" style="margin-top: 15px;">
                 <button class="btn admin" onclick="openEmployeeModal()">👤 Ajouter Employé</button>
                 <button class="btn warning" onclick="saveData()">💾 Sauvegarder</button>
-                <button class="btn" onclick="shareOpening()">🔗 Partager Planning</button>
+                <button class="btn" onclick="shareOpening()">📤 Exporter Planning</button>
+                <button class="btn" onclick="triggerImport()">📥 Importer Planning</button>
                 <button class="btn danger" onclick="clearAll()">🗑️ Vider Planning</button>
             </div>
         </div>
@@ -1177,6 +1178,8 @@
         // Initialisation sécurisée
         document.addEventListener('DOMContentLoaded', function() {
             try {
+                // NETTOYER L'URL au démarrage
+                cleanUrlOnStartup();
                 initializeApp();
             } catch (error) {
                 console.error('Erreur initialisation:', error);
@@ -1184,6 +1187,22 @@
                 createDefaultData();
             }
         });
+
+        function cleanUrlOnStartup() {
+            try {
+                // Nettoyer immédiatement l'URL pour éviter "URI Too Long"
+                const newUrl = new URL(window.location);
+                if (newUrl.searchParams.has('data')) {
+                    newUrl.searchParams.delete('data');
+                    window.history.replaceState({}, '', newUrl);
+                    console.log('✅ URL nettoyée au démarrage');
+                }
+            } catch (error) {
+                console.error('Erreur nettoyage URL:', error);
+                // Fallback : recharger sans paramètres
+                window.location.href = window.location.origin + window.location.pathname;
+            }
+        }
 
         function initializeApp() {
             const today = new Date();
