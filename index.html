@@ -119,8 +119,7 @@
             }
         });
 
-        // Fonction de réinitialisation d'urgence améliorée
-        window.resetPlanning = function() {
+        function resetPlanning() {
             if (confirm('⚠️ ATTENTION: Cela va supprimer toutes les données (employés, plannings, cases personnalisées). Continuer ?')) {
                 try {
                     // Supprimer toutes les sauvegardes
@@ -154,7 +153,7 @@
                     location.reload();
                 }
             }
-        };
+        }
 
         console.log(`
 🎉 Planning Hebdomadaire Multi-Appareils Initialisé !
@@ -2382,7 +2381,7 @@
             }
         }
 
-        // Système de sauvegarde multi-plateforme amélioré
+        // Système de sauvegarde simplifié (sans URL)
         const CLOUD_STORAGE_KEY = 'planning_cloud_data_v3';
         
         function saveData() {
@@ -2414,22 +2413,7 @@
                     console.warn('sessionStorage non disponible');
                 }
                 
-                // 3. Sauvegarde dans l'URL (partage multi-appareil)
-                try {
-                    const compressedData = btoa(encodeURIComponent(JSON.stringify({
-                        v: '3.0',
-                        d: dataToSave
-                    })));
-                    
-                    // Mettre à jour l'URL sans recharger la page
-                    const newUrl = new URL(window.location);
-                    newUrl.searchParams.set('data', compressedData);
-                    window.history.replaceState({}, '', newUrl);
-                } catch (e) {
-                    console.warn('Sauvegarde URL échouée');
-                }
-                
-                // 4. Sauvegarde multiple pour redondance
+                // 3. Sauvegarde multiple pour redondance
                 const backupKeys = ['planning_backup_1', 'planning_backup_2', 'planning_backup_3'];
                 backupKeys.forEach((key, index) => {
                     try {
@@ -2439,7 +2423,7 @@
                     }
                 });
                 
-                showToast('✅ Données sauvegardées (multi-appareils)', 'success');
+                showToast('✅ Données sauvegardées', 'success');
             } catch (error) {
                 console.error('Erreur sauvegarde:', error);
                 showToast('❌ Erreur de sauvegarde', 'error');
