@@ -66,57 +66,22 @@
             }
         }
 
-        // Fonction pour partager le planning (multi-appareils)
-        function shareOpening() {
-            try {
-                // S'assurer que les données sont dans l'URL
-                saveData();
-                
-                const currentUrl = window.location.href;
-                
-                // Copier dans le presse-papier si possible
-                if (navigator.clipboard) {
-                    navigator.clipboard.writeText(currentUrl).then(() => {
-                        showToast('🔗 Lien de partage copié ! Fonctionne sur tous vos appareils.', 'success');
-                        
-                        // Afficher des instructions détaillées
-                        setTimeout(() => {
-                            showShareInstructions(currentUrl);
-                        }, 1000);
-                    }).catch(() => {
-                        showShareFallback(currentUrl);
-                    });
-                } else {
-                    showShareFallback(currentUrl);
-                }
-            } catch (error) {
-                console.error('Erreur partage:', error);
-                showToast('Erreur lors du partage', 'error');
-            }
-        }
+        // Supprimer la fonction showShareInstructions qui causait l'affichage automatique
 
-        function showShareInstructions(url) {
+        function showShareFallback(url) {
             const modal = document.createElement('div');
             modal.className = 'modal';
             modal.style.display = 'block';
             modal.innerHTML = `
-                <div class="modal-content" style="max-width: 600px;">
-                    <h2>🚀 Planning Partagé - Multi-Appareils</h2>
-                    <div style="background: rgba(16, 185, 129, 0.1); padding: 15px; border-radius: 12px; margin: 15px 0;">
-                        <h3 style="color: #10b981; margin-bottom: 10px;">✅ Votre planning est maintenant accessible partout !</h3>
-                        <ul style="margin: 10px 0; padding-left: 20px; color: #374151;">
-                            <li>📱 <strong>Mobile/Tablette</strong>: Collez le lien dans Safari, Chrome, etc.</li>
-                            <li>💻 <strong>Autres PC</strong>: Ouvrez le lien dans n'importe quel navigateur</li>
-                            <li>👥 <strong>Équipe</strong>: Partagez le lien par email, WhatsApp, Slack...</li>
-                            <li>🔄 <strong>Synchronisation</strong>: Les modifications se sauvegardent automatiquement</li>
-                        </ul>
+                <div class="modal-content">
+                    <h2>🔗 Lien de Partage Multi-Appareils</h2>
+                    <p>Copiez ce lien pour accéder au planning depuis tous vos appareils :</p>
+                    <textarea readonly style="width: 100%; height: 80px; padding: 10px; border-radius: 8px; border: 2px solid #10b981; margin: 15px 0; font-family: monospace; font-size: 12px;">${url}</textarea>
+                    <div style="background: rgba(16, 185, 129, 0.1); padding: 10px; border-radius: 8px; margin: 10px 0; font-size: 14px;">
+                        <strong>💡 Utilisation :</strong> Collez ce lien dans n'importe quel navigateur (mobile, tablette, PC)
                     </div>
-                    <div style="background: rgba(245, 158, 11, 0.1); padding: 10px; border-radius: 8px; margin: 10px 0;">
-                        <strong>💡 Astuce:</strong> Ajoutez ce lien aux favoris de tous vos appareils !
-                    </div>
-                    <textarea readonly style="width: 100%; height: 100px; padding: 10px; border-radius: 8px; border: 2px solid #10b981; margin: 15px 0; font-size: 12px;">${url}</textarea>
                     <div class="form-actions">
-                        <button class="btn admin" onclick="navigator.clipboard.writeText('${url}'); showToast('Lien recopié !', 'success');">📋 Recopier le lien</button>
+                        <button class="btn admin" onclick="this.closest('.modal').remove(); showToast('Vous pouvez maintenant coller le lien !', 'success');">✅ J'ai copié</button>
                         <button class="btn" onclick="this.closest('.modal').remove()">Fermer</button>
                     </div>
                 </div>
@@ -126,29 +91,7 @@
             // Sélectionner automatiquement le texte
             const textarea = modal.querySelector('textarea');
             textarea.select();
-        }
-
-        function showShareFallback(url) {
-            const modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.style.display = 'block';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <h2>🔗 Partager le Planning</h2>
-                    <p>Copiez ce lien pour accéder au planning depuis n'importe quel appareil :</p>
-                    <textarea readonly style="width: 100%; height: 100px; padding: 10px; border-radius: 8px; border: 2px solid #e5e7eb; margin: 15px 0;">${url}</textarea>
-                    <div class="form-actions">
-                        <button class="btn" onclick="this.closest('.modal').remove()">Fermer</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-            
-            // Sélectionner le texte
-            const textarea = modal.querySelector('textarea');
-            textarea.select();
-            
-            showToast('Lien prêt à copier manuellement', 'success');
+            textarea.focus();
         }
 
         // Auto-sauvegarde intelligente (toutes les 30 secondes si changements)
@@ -1257,7 +1200,8 @@
             setupFloatingToolbar();
             loadData();
             
-            showToast('Planning initialisé avec succès', 'success');
+            // NE PAS afficher automatiquement le modal de partage
+            // showToast('Planning initialisé avec succès', 'success');
         }
 
         function setupEventListeners() {
@@ -2600,8 +2544,10 @@
                 saveData();
                 renderPlanning();
                 updateSummary();
+                renderTimeSlots();
                 
-                showToast('Planning initialisé - Passez en mode admin pour ajouter des employés', 'success');
+                // Message discret sans modal automatique
+                showToast('Planning initialisé - Cliquez sur "Mode Lecture" pour commencer', 'success');
             } catch (error) {
                 console.error('Erreur create default data:', error);
             }
