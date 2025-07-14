@@ -841,6 +841,7 @@
                 <button class="btn admin" onclick="openEmployeeModal()">👤 Ajouter Employé</button>
                 <button class="btn admin" onclick="openBulkFillModal()">📅 Remplissage par Date</button>
                 <button class="btn warning" onclick="saveToCloud()">☁️ Sauver sur Cloud</button>
+                <button class="btn warning" onclick="forceLoadFromCloud()">🔄 Recharger Cloud</button>
                 <button class="btn warning" onclick="saveData()">💾 Sauver Local</button>
                 <button class="btn" onclick="shareOpening()">🔗 Partager Planning</button>
                 <button class="btn danger" onclick="clearAll()">🗑️ Vider Planning</button>
@@ -1229,8 +1230,8 @@
         // ================================
 
         function saveToCloud() {
-            if (!isFirebaseEnabled || !currentUser || !db) {
-                showToast('Connexion Firebase requise', 'error');
+            if (!isFirebaseEnabled || !db) {
+                showToast('Firebase non disponible', 'error');
                 return;
             }
 
@@ -1242,17 +1243,18 @@
                     weekTemplates: globalState.weekTemplates || [],
                     lastSave: new Date().toISOString(),
                     version: '3.0',
-                    userId: currentUser.uid
+                    userId: currentUser ? currentUser.uid : 'shared'
                 };
 
-                db.collection('plannings').doc(currentUser.uid).set(dataToSave)
+                // Utiliser un document partagé "main" au lieu de l'uid utilisateur
+                db.collection('plannings').doc('main').set(dataToSave)
                     .then(() => {
                         showToast('☁️ Sauvegardé sur le cloud !', 'success');
-                        // PAS de double sauvegarde locale ici
+                        console.log('✅ Sauvegarde réussie dans document "main"');
                     })
                     .catch((error) => {
                         console.error('Erreur sauvegarde cloud:', error);
-                        showToast('Erreur sauvegarde cloud', 'error');
+                        showToast('Erreur sauvegarde cloud: ' + error.message, 'error');
                         // Fallback vers local seulement en cas d'erreur
                         saveDataLocal();
                     });
@@ -1263,42 +1265,46 @@
         }
 
         function loadFromCloud() {
-            if (!isFirebaseEnabled || !currentUser || !db) {
+            if (!isFirebaseEnabled || !db) {
                 return;
             }
 
-            db.collection('plannings').doc(currentUser.uid).get()
+            // Charger depuis le document partagé "main"
+            db.collection('plannings').doc('main').get()
                 .then((doc) => {
                     if (doc.exists) {
                         const cloudData = doc.data();
-                        console.log('Données cloud trouvées:', cloudData);
+                        console.log('📡 Données cloud trouvées (main):', cloudData);
 
                         // Merger avec les données locales ou utiliser les données cloud
                         if (cloudData.employees && Array.isArray(cloudData.employees)) {
                             globalState.employees = cloudData.employees;
+                            console.log('👥 Employés chargés:', globalState.employees.length);
                         }
 
                         if (cloudData.customTemplates && Array.isArray(cloudData.customTemplates)) {
                             globalState.customTemplates = cloudData.customTemplates;
                             loadCustomTemplates();
+                            console.log('🎨 Templates chargés:', globalState.customTemplates.length);
                         }
 
                         if (cloudData.timeSlots && Array.isArray(cloudData.timeSlots)) {
                             globalState.timeSlots = cloudData.timeSlots;
                             renderTimeSlots();
+                            console.log('⏰ Créneaux chargés:', globalState.timeSlots.length);
                         }
 
                         renderPlanning();
                         updateSummary();
                         showToast('📡 Données synchronisées depuis le cloud', 'success');
                     } else {
-                        console.log('Aucune donnée cloud trouvée');
+                        console.log('❌ Aucune donnée cloud trouvée dans "main"');
                         // Charger les données locales si disponibles
                         loadData();
                     }
                 })
                 .catch((error) => {
-                    console.error('Erreur chargement cloud:', error);
+                    console.error('❌ Erreur chargement cloud:', error);
                     showToast('Erreur chargement cloud, utilisation des données locales', 'error');
                     loadData();
                 });
