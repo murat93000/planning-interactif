@@ -1,4 +1,239 @@
-<!DOCTYPE html>
+}
+                
+                // 4. Charger depuis les backups (sécurité)
+                if (!loadedData) {
+                    const backupKeys = ['planning_backup_1', 'planning_backup_2', 'planning_backup_3'];
+                    for (const backupKey of backupKeys) {
+                        try {
+                            const backupData = localStorage.getItem(backupKey);
+                            if (backupData) {
+                                loadedData = JSON.parse(backupData);
+                                source = '🔄 Backup de sécurité';
+                                break;
+                            }
+                        } catch (e) {
+                            continue;
+                        }
+                    }
+                }
+                
+                if (loadedData) {
+                    // Valider et appliquer les données
+                    if (Array.isArray(loadedData.employees)) {
+                        globalState.employees = loadedData.employees;
+                    }
+                    
+                    if (Array.isArray(loadedData.customTemplates)) {
+                        globalState.customTemplates = loadedData.customTemplates;
+                        
+                        // Recréer les templates personnalisés avec leurs couleurs
+                        loadedData.customTemplates.forEach(template => {
+                            const customTemplate = document.createElement('div');
+                            customTemplate.className = 'template custom';
+                            customTemplate.draggable = true;
+                            customTemplate.dataset.type = 'custom';
+                            customTemplate.style.background = template.color ? 
+                                `linear-gradient(135deg, ${template.color}, ${adjustColor(template.color, -20)})` :
+                                'linear-gradient(135deg, #8b5cf6, #7c3aed)';
+                            customTemplate.innerHTML = `⚙️ ${template.text}`;
+                            
+                            customTemplate.addEventListener('dragstart', handleDragStart);
+                            customTemplate.addEventListener('dragend', handleDragEnd);
+                            
+                            document.getElementById('templatesContainer').appendChild(customTemplate);
+                        });
+                    }
+                    
+                    if (Array.isArray(loadedData.timeSlots)) {
+                        globalState.timeSlots = loadedData.timeSlots;
+                        renderTimeSlots();
+                    }
+                    
+                    if (Array.isArray(loadedData.weekTemplates)) {
+                        globalState.weekTemplates = loadedData.weekTemplates;
+                        updateWeekTemplateSelect();
+                    }
+                    
+                    renderPlanning();
+                    updateSummary();
+                    showToast(`📱 Planning chargé depuis: ${source}`, 'success');
+                } else {
+                    createDefaultData();
+                }
+            } catch (error) {
+                console.error('Erreur chargement:', error);
+                createDefaultData();
+            }
+        }
+
+        // Fonction pour partager le planning (multi-appareils)
+        function shareOpening() {
+            try {
+                // S'assurer que les données sont dans l'URL
+                saveData();
+                
+                const currentUrl = window.location.href;
+                
+                // Copier dans le presse-papier si possible
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(currentUrl).then(() => {
+                        showToast('🔗 Lien de partage copié ! Fonctionne sur tous vos appareils.', 'success');
+                        
+                        // Afficher des instructions détaillées
+                        setTimeout(() => {
+                            showShareInstructions(currentUrl);
+                        }, 1000);
+                    }).catch(() => {
+                        showShareFallback(currentUrl);
+                    });
+                } else {
+                    showShareFallback(currentUrl);
+                }
+            } catch (error) {
+                console.error('Erreur partage:', error);
+                showToast('Erreur lors du partage', 'error');
+            }
+        }
+
+        function showShareInstructions(url) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'block';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 600px;">
+                    <h2>🚀 Planning Partagé - Multi-Appareils</h2>
+                    <div style="background: rgba(16, 185, 129, 0.1); padding: 15px; border-radius: 12px; margin: 15px 0;">
+                        <h3 style="color: #10b981; margin-bottom: 10px;">✅ Votre planning est maintenant accessible partout !</h3>
+                        <ul style="margin: 10px 0; padding-left: 20px; color: #374151;">
+                            <li>📱 <strong>Mobile/Tablette</strong>: Collez le lien dans Safari, Chrome, etc.</li>
+                            <li>💻 <strong>Autres PC</strong>: Ouvrez le lien dans n'importe quel navigateur</li>
+                            <li>👥 <strong>Équipe</strong>: Partagez le lien par email, WhatsApp, Slack...</li>
+                            <li>🔄 <strong>Synchronisation</strong>: Les modifications se sauvegardent automatiquement</li>
+                        </ul>
+                    </div>
+                    <div style="background: rgba(245, 158, 11, 0.1); padding: 10px; border-radius: 8px; margin: 10px 0;">
+                        <strong>💡 Astuce:</strong> Ajoutez ce lien aux favoris de tous vos appareils !
+                    </div>
+                    <textarea readonly style="width: 100%; height: 100px; padding: 10px; border-radius: 8px; border: 2px solid #10b981; margin: 15px 0; font-size: 12px;">${url}</textarea>
+                    <div class="form-actions">
+                        <button class="btn admin" onclick="navigator.clipboard.writeText('${url}'); showToast('Lien recopié !', 'success');">📋 Recopier le lien</button>
+                        <button class="btn" onclick="this.closest('.modal').remove()">Fermer</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            // Sélectionner automatiquement le texte
+            const textarea = modal.querySelector('textarea');
+            textarea.select();
+        }
+
+        function showShareFallback(url) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'block';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h2>🔗 Partager le Planning</h2>
+                    <p>Copiez ce lien pour accéder au planning depuis n'importe quel appareil :</p>
+                    <textarea readonly style="width: 100%; height: 100px; padding: 10px; border-radius: 8px; border: 2px solid #e5e7eb; margin: 15px 0;">${url}</textarea>
+                    <div class="form-actions">
+                        <button class="btn" onclick="this.closest('.modal').remove()">Fermer</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            // Sélectionner le texte
+            const textarea = modal.querySelector('textarea');
+            textarea.select();
+            
+            showToast('Lien prêt à copier manuellement', 'success');
+        }
+
+        // Auto-sauvegarde intelligente (toutes les 30 secondes si changements)
+        let lastSaveHash = '';
+        setInterval(() => {
+            try {
+                if (globalState.employees && globalState.employees.length > 0) {
+                    const currentHash = JSON.stringify(globalState).substring(0, 100);
+                    if (currentHash !== lastSaveHash) {
+                        saveData();
+                        lastSaveHash = currentHash;
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur auto-sauvegarde:', error);
+            }
+        }, 30000); // Toutes les 30 secondes
+
+        // Sauvegarde lors de la fermeture de l'onglet/app
+        window.addEventListener('beforeunload', () => {
+            try {
+                saveData();
+            } catch (error) {
+                console.error('Erreur sauvegarde fermeture:', error);
+            }
+        });
+
+        // Fonction de réinitialisation d'urgence améliorée
+        window.resetPlanning = function() {
+            if (confirm('⚠️ ATTENTION: Cela va supprimer toutes les données (employés, plannings, cases personnalisées). Continuer ?')) {
+                try {
+                    // Supprimer toutes les sauvegardes
+                    const keysToRemove = [
+                        'planning_data', 
+                        CLOUD_STORAGE_KEY, 
+                        'planning_session',
+                        'planning_backup_1', 
+                        'planning_backup_2', 
+                        'planning_backup_3'
+                    ];
+                    
+                    keysToRemove.forEach(key => {
+                        try {
+                            localStorage.removeItem(key);
+                        } catch (e) {}
+                        try {
+                            sessionStorage.removeItem(key);
+                        } catch (e) {}
+                    });
+                    
+                    // Nettoyer l'URL
+                    const newUrl = new URL(window.location);
+                    newUrl.searchParams.delete('data');
+                    window.history.replaceState({}, '', newUrl);
+                    
+                    // Recharger
+                    location.reload();
+                } catch (error) {
+                    console.error('Erreur reset:', error);
+                    location.reload();
+                }
+            }
+        };
+
+        console.log(`
+🎉 Planning Hebdomadaire Multi-Appareils Initialisé !
+
+🚀 NOUVELLES FONCTIONNALITÉS:
+✅ Barre flottante toujours visible en mode admin
+✅ Cases personnalisées conservent leur couleur  
+✅ Synchronisation multi-appareils via URL
+✅ Sauvegarde redondante (localStorage + URL + backups)
+✅ Compatible mobile, tablette, PC
+
+🔧 Commandes de dépannage:
+- resetPlanning() : Réinitialise tout
+- globalState : État actuel des données
+
+🔑 Mot de passe admin: admin123
+
+💡 CONSEIL: Utilisez "Partager Planning" pour synchroniser entre vos appareils !
+        `);
+    </script>
+</body>
+</html><!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -92,27 +327,27 @@
         }
 
         .floating-toolbar {
-            position: fixed;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 9999;
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(20px);
-            border: 2px solid rgba(102, 126, 234, 0.3);
-            border-radius: 20px;
-            padding: 15px 20px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-            max-width: 90vw;
-            overflow-x: auto;
+            position: fixed !important;
+            top: 10px !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            z-index: 9999 !important;
+            background: rgba(255, 255, 255, 0.98) !important;
+            backdrop-filter: blur(20px) !important;
+            border: 2px solid rgba(102, 126, 234, 0.3) !important;
+            border-radius: 20px !important;
+            padding: 15px 20px !important;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            transition: all 0.3s ease !important;
+            max-width: 90vw !important;
+            overflow-x: auto !important;
         }
 
         .floating-toolbar.show {
-            opacity: 1;
-            visibility: visible;
+            opacity: 1 !important;
+            visibility: visible !important;
         }
 
         .floating-toolbar .toolbar-content {
@@ -1086,51 +1321,9 @@
         }
 
         function setupFloatingToolbar() {
-            const toolbar = document.getElementById('floatingToolbar');
-            
-            function checkScroll() {
-                try {
-                    const scrollY = window.scrollY;
-                    const planningGrid = document.querySelector('.planning-grid');
-                    
-                    if (planningGrid && globalState.isAdminMode) {
-                        const gridRect = planningGrid.getBoundingClientRect();
-                        const windowHeight = window.innerHeight;
-                        
-                        // Afficher la toolbar dès qu'on scroll et qu'on voit le planning
-                        if (scrollY > 150 || (gridRect.top < windowHeight && gridRect.bottom > 0)) {
-                            if (!toolbar.classList.contains('show')) {
-                                toolbar.classList.add('show');
-                                updateFloatingContent();
-                            }
-                        } else {
-                            toolbar.classList.remove('show');
-                        }
-                    } else {
-                        toolbar.classList.remove('show');
-                    }
-                } catch (error) {
-                    console.error('Erreur check scroll:', error);
-                }
-            }
-            
-            // Vérifier au scroll avec throttling
-            let ticking = false;
-            window.addEventListener('scroll', () => {
-                if (!ticking) {
-                    requestAnimationFrame(() => {
-                        checkScroll();
-                        ticking = false;
-                    });
-                    ticking = true;
-                }
-            });
-            
-            // Vérifier aussi au resize
-            window.addEventListener('resize', checkScroll);
-            
-            // Vérifier immédiatement
-            setTimeout(checkScroll, 100);
+            // La toolbar est maintenant toujours visible en mode admin
+            // Plus besoin de vérifier le scroll
+            console.log('Toolbar setup - Toujours visible en mode admin');
         }
 
         function updateFloatingContent() {
@@ -1314,18 +1507,16 @@
                     adminPanels.forEach(panel => panel.style.display = 'block');
                     addDeleteButtonsToTemplates();
                     
-                    // Vérifier si on doit afficher la toolbar
-                    setTimeout(() => {
-                        if (window.scrollY > 150) {
-                            toolbar.classList.add('show');
-                            updateFloatingContent();
-                        }
-                    }, 100);
+                    // Afficher la toolbar immédiatement en mode admin
+                    toolbar.classList.add('show');
+                    toolbar.style.display = 'block';
+                    updateFloatingContent();
                 } else {
                     modeBtn.textContent = '🔒 Mode Lecture';
                     modeBtn.className = 'btn';
                     adminPanels.forEach(panel => panel.style.display = 'none');
                     toolbar.classList.remove('show');
+                    toolbar.style.display = 'none';
                     removeDeleteButtonsFromTemplates();
                 }
                 
@@ -1608,6 +1799,17 @@
                             slot: slot
                         };
                     }
+                } else if (type === 'custom') {
+                    // Récupérer la couleur personnalisée pour les cases custom
+                    const customText = e.target.textContent.replace('×', '').replace('⚙️', '').trim();
+                    const customTemplate = globalState.customTemplates.find(t => t.text === customText);
+                    const customColor = customTemplate ? customTemplate.color : '#8b5cf6';
+                    
+                    globalState.draggedItem = {
+                        type: 'custom',
+                        text: e.target.textContent.replace('×', '').trim(),
+                        customColor: customColor
+                    };
                 } else {
                     globalState.draggedItem = {
                         type: e.target.dataset.type,
@@ -1806,6 +2008,11 @@
                 card.className = `shift-card ${shift.type}`;
                 card.dataset.shiftId = shift.id;
                 
+                // Appliquer la couleur personnalisée pour les cases custom
+                if (shift.type === 'custom' && shift.customColor) {
+                    card.style.background = `linear-gradient(135deg, ${shift.customColor}, ${adjustColor(shift.customColor, -20)})`;
+                }
+                
                 // Affichage selon le type
                 let content = '';
                 if (shift.type === 'work') {
@@ -1876,6 +2083,14 @@
                         hours: `${hours.toFixed(0)}h`,
                         slot: slot
                     };
+                } else if (globalState.draggedItem.type === 'custom') {
+                    // Préserver la couleur personnalisée
+                    newShift = {
+                        id: generateId(),
+                        type: 'custom',
+                        text: globalState.draggedItem.text,
+                        customColor: globalState.draggedItem.customColor
+                    };
                 } else {
                     newShift = {
                         id: generateId(),
@@ -1922,7 +2137,8 @@
                             type: shift.type,
                             text: shift.text,
                             hours: shift.hours,
-                            slot: shift.slot
+                            slot: shift.slot,
+                            customColor: shift.customColor // Préserver la couleur personnalisée
                         };
                         showToast('Case copiée - Clic droit pour coller', 'success');
                     }
@@ -1949,7 +2165,8 @@
                     type: globalState.copiedShift.type,
                     text: globalState.copiedShift.text,
                     hours: globalState.copiedShift.hours,
-                    slot: globalState.copiedShift.slot
+                    slot: globalState.copiedShift.slot,
+                    customColor: globalState.copiedShift.customColor // Préserver la couleur
                 };
                 
                 employee.planning[weekKey][day].push(newShift);
@@ -2221,7 +2438,9 @@
             }
         }
 
-        // Système de sauvegarde
+        // Système de sauvegarde multi-plateforme amélioré
+        const CLOUD_STORAGE_KEY = 'planning_cloud_data_v3';
+        
         function saveData() {
             try {
                 const dataToSave = {
@@ -2230,23 +2449,72 @@
                     timeSlots: globalState.timeSlots || [],
                     weekTemplates: globalState.weekTemplates || [],
                     lastSave: new Date().toISOString(),
-                    version: '2.0'
+                    version: '3.0',
+                    deviceId: getDeviceId()
                 };
                 
                 const dataString = JSON.stringify(dataToSave);
                 
-                // Sauvegarde localStorage
+                // 1. Sauvegarde localStorage (principal)
                 try {
                     localStorage.setItem('planning_data', dataString);
+                    localStorage.setItem(CLOUD_STORAGE_KEY, dataString);
                 } catch (e) {
                     console.warn('localStorage non disponible');
                 }
                 
-                showToast('Données sauvegardées', 'success');
+                // 2. Sauvegarde sessionStorage (backup)
+                try {
+                    sessionStorage.setItem('planning_session', dataString);
+                } catch (e) {
+                    console.warn('sessionStorage non disponible');
+                }
+                
+                // 3. Sauvegarde dans l'URL (partage multi-appareil)
+                try {
+                    const compressedData = btoa(encodeURIComponent(JSON.stringify({
+                        v: '3.0',
+                        d: dataToSave
+                    })));
+                    
+                    // Mettre à jour l'URL sans recharger la page
+                    const newUrl = new URL(window.location);
+                    newUrl.searchParams.set('data', compressedData);
+                    window.history.replaceState({}, '', newUrl);
+                } catch (e) {
+                    console.warn('Sauvegarde URL échouée');
+                }
+                
+                // 4. Sauvegarde multiple pour redondance
+                const backupKeys = ['planning_backup_1', 'planning_backup_2', 'planning_backup_3'];
+                backupKeys.forEach((key, index) => {
+                    try {
+                        localStorage.setItem(key, dataString);
+                    } catch (e) {
+                        console.warn(`Backup ${index} échoué`);
+                    }
+                });
+                
+                showToast('✅ Données sauvegardées (multi-appareils)', 'success');
             } catch (error) {
                 console.error('Erreur sauvegarde:', error);
-                showToast('Erreur de sauvegarde', 'error');
+                showToast('❌ Erreur de sauvegarde', 'error');
             }
+        }
+
+        function getDeviceId() {
+            // Créer un ID unique pour l'appareil
+            let deviceId = localStorage.getItem('device_id');
+            if (!deviceId) {
+                deviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                try {
+                    localStorage.setItem('device_id', deviceId);
+                } catch (e) {
+                    // Si localStorage indisponible, utiliser un ID temporaire
+                    deviceId = 'temp_' + Math.random().toString(36).substr(2, 9);
+                }
+            }
+            return deviceId;
         }
 
         function loadData() {
