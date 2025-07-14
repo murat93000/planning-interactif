@@ -1,4 +1,897 @@
-<select id="weekTemplateSelect" style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; min-width: 200px;">
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planning Hebdomadaire - Version Corrigée</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            padding: 20px;
+            animation: gradientShift 15s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%); }
+            33% { background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #4facfe 100%); }
+            66% { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 50%, #764ba2 100%); }
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.8em;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .auth-section {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            padding: 12px 24px;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn.admin {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        .btn.warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .floating-toolbar {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 20px;
+            padding: 15px 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            max-width: 90vw;
+            overflow-x: auto;
+        }
+
+        .floating-toolbar.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .floating-toolbar .toolbar-content {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .floating-toolbar .toolbar-section {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .floating-toolbar .toolbar-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #374151;
+            margin-right: 8px;
+            white-space: nowrap;
+        }
+
+        .floating-toolbar .template,
+        .floating-toolbar .time-slot-template {
+            padding: 6px 12px;
+            font-size: 11px;
+            border-radius: 12px;
+            cursor: move;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .floating-toolbar .template:hover,
+        .floating-toolbar .time-slot-template:hover {
+            transform: translateY(-2px) scale(1.05);
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: #374151;
+            font-size: 12px;
+        }
+
+        .control-group input {
+            padding: 10px 15px;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.9);
+            transition: all 0.3s ease;
+            min-width: 150px;
+        }
+
+        .control-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .time-slots-config {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .time-slots-list {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .time-slot-template {
+            padding: 10px 16px;
+            border-radius: 16px;
+            cursor: move;
+            font-size: 12px;
+            font-weight: 700;
+            color: white;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            transition: all 0.3s ease;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            position: relative;
+        }
+
+        .time-slot-template:hover {
+            transform: translateY(-4px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .time-slot-template .delete-slot {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            display: none;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .time-slot-template:hover .delete-slot {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .time-slot-template .delete-slot:hover {
+            background: #dc2626;
+            transform: scale(1.2);
+        }
+
+        .time-slot-creator {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .templates-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .templates-title {
+            text-align: center;
+            font-weight: 700;
+            color: #374151;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .templates {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .template {
+            padding: 12px 20px;
+            border-radius: 20px;
+            cursor: move;
+            font-size: 13px;
+            font-weight: 700;
+            color: white;
+            transition: all 0.3s ease;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            position: relative;
+        }
+
+        .template.repos {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+        }
+
+        .template.absent {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        .template.cours {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .template.conges {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .template.custom {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        }
+
+        .template:hover {
+            transform: translateY(-4px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+        }
+
+        .template.dragging {
+            opacity: 0.7;
+            transform: rotate(8deg) scale(0.95);
+        }
+
+        .template .delete-template {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            display: none;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .template:hover .delete-template {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .template .delete-template:hover {
+            background: #dc2626;
+            transform: scale(1.2);
+        }
+
+        .custom-template-creator {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .color-picker {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .color-picker:hover {
+            transform: scale(1.1);
+            border-color: #667eea;
+        }
+
+        .week-templates {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .week-template-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .week-nav {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .current-week {
+            font-weight: 700;
+            min-width: 250px;
+            text-align: center;
+            color: #374151;
+            font-size: 16px;
+        }
+
+        .planning-grid {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            margin-bottom: 30px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 200px repeat(7, 1fr);
+            gap: 2px;
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 8px;
+        }
+
+        .grid-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 16px 8px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 14px;
+            border-radius: 12px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .employee-cell {
+            background: linear-gradient(135deg, #374151, #1f2937);
+            color: white;
+            padding: 16px 12px;
+            font-weight: 600;
+            font-size: 13px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            border-radius: 12px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(55, 65, 81, 0.3);
+            position: relative;
+            min-height: 120px;
+        }
+
+        .employee-name {
+            font-weight: 800;
+            margin-bottom: 4px;
+            font-size: 16px;
+        }
+
+        .employee-role {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 4px;
+        }
+
+        .employee-hours {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-top: auto;
+        }
+
+        .remove-emp {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .employee-cell:hover .remove-emp {
+            opacity: 1;
+        }
+
+        .copy-week-btn {
+            position: absolute;
+            bottom: 4px;
+            left: 4px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 2px 6px;
+            font-size: 9px;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .employee-cell:hover .copy-week-btn {
+            opacity: 1;
+        }
+
+        .paste-week-btn {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 2px 6px;
+            font-size: 9px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .day-cell {
+            background: white;
+            min-height: 80px;
+            padding: 8px;
+            border: 2px dashed #e5e7eb;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .day-cell:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .day-cell.drag-over {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            border-style: solid;
+            transform: scale(1.02);
+        }
+
+        .shift-card {
+            padding: 8px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            color: white;
+            position: relative;
+            cursor: move;
+            transition: all 0.3s ease;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            text-align: center;
+            user-select: none;
+        }
+
+        .shift-card.work {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .shift-card.repos {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+        }
+
+        .shift-card.absent {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        .shift-card.cours {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .shift-card.conges {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .shift-card.custom {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        }
+
+        .shift-card:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+        }
+
+        .shift-card .actions {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            display: none;
+            gap: 2px;
+        }
+
+        .shift-card:hover .actions {
+            display: flex;
+        }
+
+        .shift-card .action-btn {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            font-size: 9px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .shift-card .action-btn.copy {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .shift-card .action-btn.delete {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        .shift-card .action-btn.paste {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .summary-card h4 {
+            margin-bottom: 10px;
+            color: #374151;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .summary-card .value {
+            font-size: 2em;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .employee-recap {
+            margin-top: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal h2 {
+            margin-bottom: 20px;
+            text-align: center;
+            color: #374151;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            z-index: 1001;
+            animation: toastSlide 0.3s ease;
+        }
+
+        .toast.success {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .toast.error {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        @keyframes toastSlide {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .admin-panel {
+            display: none;
+        }
+
+        @media (max-width: 1200px) {
+            .grid {
+                grid-template-columns: 180px repeat(7, 1fr);
+            }
+        }
+
+        @media (max-width: 900px) {
+            .grid {
+                grid-template-columns: 150px repeat(7, 1fr);
+                font-size: 12px;
+            }
+            
+            .floating-toolbar {
+                position: relative;
+                top: auto;
+                left: auto;
+                transform: none;
+                margin-bottom: 20px;
+                opacity: 1;
+                visibility: visible;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .grid {
+                grid-template-columns: 120px repeat(7, 1fr);
+                font-size: 10px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Barre flottante -->
+        <div class="floating-toolbar admin-panel" id="floatingToolbar">
+            <div class="toolbar-content">
+                <div class="toolbar-section">
+                    <span class="toolbar-title">⏰ Créneaux:</span>
+                    <div id="floatingTimeSlots"></div>
+                </div>
+                <div class="toolbar-section">
+                    <span class="toolbar-title">🎨 Cases:</span>
+                    <div id="floatingTemplates"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="header">
+            <h1>📅 Planning Hebdomadaire Complet</h1>
+            <p>Système de gestion d'équipe moderne avec créneaux personnalisables</p>
+        </div>
+
+        <div class="auth-section">
+            <button class="btn" id="modeBtn" onclick="toggleMode()">🔒 Mode Lecture</button>
+            <div class="admin-panel" style="margin-top: 15px;">
+                <button class="btn admin" onclick="openEmployeeModal()">👤 Ajouter Employé</button>
+                <button class="btn warning" onclick="saveData()">💾 Sauvegarder</button>
+                <button class="btn" onclick="shareOpening()">🔗 Partager Planning</button>
+                <button class="btn danger" onclick="clearAll()">🗑️ Vider Planning</button>
+            </div>
+        </div>
+
+        <div class="controls admin-panel">
+            <div class="control-group">
+                <label>👤 Nom employé</label>
+                <input type="text" id="empName" placeholder="Nom complet">
+            </div>
+            <div class="control-group">
+                <label>💼 Poste</label>
+                <input type="text" id="empRole" placeholder="Fonction">
+            </div>
+            <button class="btn" onclick="addEmployee()">➕ Ajouter</button>
+        </div>
+
+        <!-- Configuration des créneaux horaires -->
+        <div class="time-slots-config admin-panel">
+            <div class="templates-title">⏰ Créneaux Horaires - Glissez dans le planning</div>
+            <div class="time-slots-list" id="timeSlotsContainer">
+                <!-- Les créneaux seront générés ici -->
+            </div>
+            <div class="time-slot-creator">
+                <input type="text" id="slotName" placeholder="Nom du créneau (ex: Journée A)" style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; width: 150px;">
+                <input type="time" id="slotStart" value="09:00" style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px;">
+                <span style="font-weight: bold; color: #374151;">-</span>
+                <input type="time" id="slotEnd" value="18:30" style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px;">
+                <button class="btn" onclick="addTimeSlot()">✨ Créer Créneau</button>
+            </div>
+        </div>
+
+        <!-- Templates types -->
+        <div class="templates-section admin-panel">
+            <div class="templates-title">🎨 Cases Types - Glissez dans le planning</div>
+            <div class="templates" id="templatesContainer">
+                <div class="template repos" draggable="true" data-type="repos">😴 Repos</div>
+                <div class="template absent" draggable="true" data-type="absent">❌ Absent</div>
+                <div class="template cours" draggable="true" data-type="cours">📚 Cours</div>
+                <div class="template conges" draggable="true" data-type="conges">🏖️ Congés</div>
+            </div>
+            
+            <div class="custom-template-creator">
+                <input type="text" id="customText" placeholder="Case personnalisée..." style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px;">
+                <input type="color" id="customColor" class="color-picker" value="#8b5cf6" title="Choisir couleur">
+                <button class="btn" onclick="addCustomTemplate()">✨ Créer Case</button>
+            </div>
+        </div>
+
+        <!-- Gestion des semaines types -->
+        <div class="week-templates admin-panel">
+            <div class="templates-title">📋 Semaines Types</div>
+            <div class="week-template-controls">
+                <select id="weekTemplateSelect" style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; min-width: 200px;">
                     <option value="">Sélectionner une semaine type...</option>
                 </select>
                 <button class="btn" onclick="saveWeekTemplate()">💾 Sauver Semaine Type</button>
@@ -134,21 +1027,61 @@
 
         function setupEventListeners() {
             try {
-                document.getElementById('employeeForm').addEventListener('submit', handleEmployeeSubmit);
-                document.getElementById('passwordForm').addEventListener('submit', handlePasswordSubmit);
+                // Événements pour les formulaires
+                const employeeForm = document.getElementById('employeeForm');
+                const passwordForm = document.getElementById('passwordForm');
                 
+                if (employeeForm) {
+                    employeeForm.addEventListener('submit', handleEmployeeSubmit);
+                }
+                
+                if (passwordForm) {
+                    passwordForm.addEventListener('submit', handlePasswordSubmit);
+                }
+                
+                // Événements pour les templates
                 document.querySelectorAll('.template').forEach(template => {
                     template.addEventListener('dragstart', handleDragStart);
                     template.addEventListener('dragend', handleDragEnd);
                 });
                 
+                // Fermer modal en cliquant à l'extérieur
                 window.addEventListener('click', (e) => {
                     if (e.target.classList.contains('modal')) {
                         closeModal();
                     }
                 });
+                
+                // Raccourcis clavier
+                document.addEventListener('keydown', handleKeyboardShortcuts);
+                
             } catch (error) {
                 console.error('Erreur setup événements:', error);
+            }
+        }
+
+        function handleKeyboardShortcuts(e) {
+            try {
+                if (e.ctrlKey || e.metaKey) {
+                    switch(e.key) {
+                        case 's':
+                            e.preventDefault();
+                            saveData();
+                            break;
+                        case 'a':
+                            if (globalState.isAdminMode) {
+                                e.preventDefault();
+                                openEmployeeModal();
+                            }
+                            break;
+                    }
+                }
+                
+                if (e.key === 'Escape') {
+                    closeModal();
+                }
+            } catch (error) {
+                console.error('Erreur raccourcis clavier:', error);
             }
         }
 
@@ -230,6 +1163,245 @@
             } catch (error) {
                 console.error('Erreur update floating content:', error);
             }
+        }
+
+        function toggleMode() {
+            try {
+                console.log('toggleMode appelé, mode actuel:', globalState.isAdminMode);
+                
+                if (globalState.isAdminMode) {
+                    globalState.isAdminMode = false;
+                    updateModeDisplay();
+                    showToast('Mode lecture activé', 'success');
+                } else {
+                    // Ouvrir le modal de mot de passe
+                    openModal('passwordModal');
+                }
+            } catch (error) {
+                console.error('Erreur toggle mode:', error);
+                showToast('Erreur changement de mode', 'error');
+            }
+        }
+
+        function openModal(modalId) {
+            try {
+                console.log('Tentative ouverture modal:', modalId);
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.style.display = 'block';
+                    console.log('Modal ouvert:', modalId);
+                    
+                    // Focus automatique sur le premier input
+                    const firstInput = modal.querySelector('input');
+                    if (firstInput) {
+                        setTimeout(() => firstInput.focus(), 100);
+                    }
+                } else {
+                    console.error('Modal non trouvé:', modalId);
+                    showToast('Erreur d\'ouverture du modal', 'error');
+                }
+            } catch (error) {
+                console.error('Erreur open modal:', error);
+                showToast('Erreur d\'interface', 'error');
+            }
+        }
+
+        function closeModal() {
+            try {
+                const modals = document.querySelectorAll('.modal');
+                modals.forEach(modal => {
+                    modal.style.display = 'none';
+                });
+                
+                // Nettoyer les champs
+                const passwordInput = document.getElementById('adminPassword');
+                if (passwordInput) {
+                    passwordInput.value = '';
+                }
+                
+                const empNameInput = document.getElementById('modalEmpName');
+                const empRoleInput = document.getElementById('modalEmpRole');
+                if (empNameInput) empNameInput.value = '';
+                if (empRoleInput) empRoleInput.value = '';
+            } catch (error) {
+                console.error('Erreur close modal:', error);
+            }
+        }
+
+        function handlePasswordSubmit(e) {
+            try {
+                e.preventDefault();
+                console.log('Soumission mot de passe...');
+                
+                const passwordInput = document.getElementById('adminPassword');
+                if (!passwordInput) {
+                    console.error('Input mot de passe non trouvé');
+                    showToast('Erreur d\'interface', 'error');
+                    return;
+                }
+                
+                const password = passwordInput.value;
+                console.log('Mot de passe saisi:', password.length, 'caractères');
+                
+                if (password === ADMIN_PASSWORD) {
+                    globalState.isAdminMode = true;
+                    updateModeDisplay();
+                    closeModal();
+                    showToast('Mode administrateur activé', 'success');
+                    console.log('Mode admin activé avec succès');
+                } else {
+                    showToast('Mot de passe incorrect (utilisez: admin123)', 'error');
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                    console.log('Mot de passe incorrect');
+                }
+            } catch (error) {
+                console.error('Erreur password submit:', error);
+                showToast('Erreur de connexion', 'error');
+            }
+        }
+
+        function handleEmployeeSubmit(e) {
+            try {
+                e.preventDefault();
+                
+                const name = document.getElementById('modalEmpName').value.trim();
+                const role = document.getElementById('modalEmpRole').value.trim();
+                
+                if (!name) {
+                    showToast('Le nom est requis', 'error');
+                    return;
+                }
+                
+                if (!Array.isArray(globalState.employees)) {
+                    globalState.employees = [];
+                }
+                
+                if (globalState.employees.find(emp => emp.name.toLowerCase() === name.toLowerCase())) {
+                    showToast('Un employé avec ce nom existe déjà', 'error');
+                    return;
+                }
+                
+                const newEmployee = {
+                    id: generateId(),
+                    name: name,
+                    role: role || 'Employé',
+                    planning: {}
+                };
+                
+                globalState.employees.push(newEmployee);
+                
+                closeModal();
+                renderPlanning();
+                updateSummary();
+                saveData();
+                showToast('Employé ajouté avec succès', 'success');
+            } catch (error) {
+                console.error('Erreur employee submit:', error);
+                showToast('Erreur lors de l\'ajout', 'error');
+            }
+        }
+
+        function updateModeDisplay() {
+            try {
+                const modeBtn = document.getElementById('modeBtn');
+                const adminPanels = document.querySelectorAll('.admin-panel');
+                const toolbar = document.getElementById('floatingToolbar');
+                
+                if (globalState.isAdminMode) {
+                    modeBtn.textContent = '🔓 Mode Admin';
+                    modeBtn.className = 'btn admin';
+                    adminPanels.forEach(panel => panel.style.display = 'block');
+                    addDeleteButtonsToTemplates();
+                    
+                    // Vérifier si on doit afficher la toolbar
+                    setTimeout(() => {
+                        if (window.scrollY > 150) {
+                            toolbar.classList.add('show');
+                            updateFloatingContent();
+                        }
+                    }, 100);
+                } else {
+                    modeBtn.textContent = '🔒 Mode Lecture';
+                    modeBtn.className = 'btn';
+                    adminPanels.forEach(panel => panel.style.display = 'none');
+                    toolbar.classList.remove('show');
+                    removeDeleteButtonsFromTemplates();
+                }
+                
+                renderPlanning();
+            } catch (error) {
+                console.error('Erreur update mode display:', error);
+            }
+        }
+
+        function addDeleteButtonsToTemplates() {
+            try {
+                const templates = document.querySelectorAll('.template');
+                templates.forEach(template => {
+                    if (template.querySelector('.delete-template')) return;
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-template';
+                    deleteBtn.innerHTML = '×';
+                    deleteBtn.title = 'Supprimer';
+                    deleteBtn.onclick = () => removeTemplate(deleteBtn);
+                    
+                    template.appendChild(deleteBtn);
+                });
+            } catch (error) {
+                console.error('Erreur add delete buttons:', error);
+            }
+        }
+
+        function removeDeleteButtonsFromTemplates() {
+            try {
+                const deleteButtons = document.querySelectorAll('.delete-template');
+                deleteButtons.forEach(btn => btn.remove());
+            } catch (error) {
+                console.error('Erreur remove delete buttons:', error);
+            }
+        }
+
+        // Fonctions de base du planning
+        function openEmployeeModal() { 
+            openModal('employeeModal'); 
+        }
+
+        function addEmployee() {
+            const name = document.getElementById('empName').value.trim();
+            const role = document.getElementById('empRole').value.trim();
+            
+            if (!name) {
+                showToast('Le nom est requis', 'error');
+                return;
+            }
+            
+            if (!Array.isArray(globalState.employees)) {
+                globalState.employees = [];
+            }
+            
+            if (globalState.employees.find(emp => emp.name.toLowerCase() === name.toLowerCase())) {
+                showToast('Un employé avec ce nom existe déjà', 'error');
+                return;
+            }
+            
+            const newEmployee = {
+                id: generateId(),
+                name: name,
+                role: role || 'Employé',
+                planning: {}
+            };
+            
+            globalState.employees.push(newEmployee);
+            
+            document.getElementById('empName').value = '';
+            document.getElementById('empRole').value = '';
+            
+            renderPlanning();
+            updateSummary();
+            saveData();
+            showToast('Employé ajouté avec succès', 'success');
         }
 
         function renderTimeSlots() {
@@ -453,136 +1625,7 @@
             e.target.classList.remove('dragging');
         }
 
-        function toggleMode() {
-            try {
-                console.log('toggleMode appelé, mode actuel:', globalState.isAdminMode);
-                
-                if (globalState.isAdminMode) {
-                    globalState.isAdminMode = false;
-                    updateModeDisplay();
-                    showToast('Mode lecture activé', 'success');
-                } else {
-                    // Ouvrir directement le modal de mot de passe
-                    const modal = document.getElementById('passwordModal');
-                    if (modal) {
-                        modal.style.display = 'block';
-                        // Focus sur le champ mot de passe
-                        setTimeout(() => {
-                            const passwordInput = document.getElementById('adminPassword');
-                            if (passwordInput) {
-                                passwordInput.focus();
-                            }
-                        }, 100);
-                    } else {
-                        console.error('Modal passwordModal non trouvé');
-                        // Fallback avec prompt si modal non trouvé
-                        const password = prompt('Mot de passe administrateur:');
-                        if (password === ADMIN_PASSWORD) {
-                            globalState.isAdminMode = true;
-                            updateModeDisplay();
-                            showToast('Mode admin activé', 'success');
-                        } else if (password !== null) {
-                            showToast('Mot de passe incorrect', 'error');
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error('Erreur toggle mode:', error);
-                showToast('Erreur changement de mode', 'error');
-            }
-        }
-
-        function updateModeDisplay() {
-            try {
-                const modeBtn = document.getElementById('modeBtn');
-                const adminPanels = document.querySelectorAll('.admin-panel');
-                const toolbar = document.getElementById('floatingToolbar');
-                
-                if (globalState.isAdminMode) {
-                    modeBtn.textContent = '🔓 Mode Admin';
-                    modeBtn.className = 'btn admin';
-                    adminPanels.forEach(panel => panel.style.display = 'block');
-                    addDeleteButtonsToTemplates();
-                    
-                    // Vérifier si on doit afficher la toolbar
-                    setTimeout(() => {
-                        if (window.scrollY > 150) {
-                            toolbar.classList.add('show');
-                            updateFloatingContent();
-                        }
-                    }, 100);
-                } else {
-                    modeBtn.textContent = '🔒 Mode Lecture';
-                    modeBtn.className = 'btn';
-                    adminPanels.forEach(panel => panel.style.display = 'none');
-                    toolbar.classList.remove('show');
-                    removeDeleteButtonsFromTemplates();
-                }
-                
-                renderPlanning();
-            } catch (error) {
-                console.error('Erreur update mode display:', error);
-            }
-        }
-
-        function addDeleteButtonsToTemplates() {
-            try {
-                const templates = document.querySelectorAll('.template');
-                templates.forEach(template => {
-                    if (template.querySelector('.delete-template')) return;
-                    
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.className = 'delete-template';
-                    deleteBtn.innerHTML = '×';
-                    deleteBtn.title = 'Supprimer';
-                    deleteBtn.onclick = () => removeTemplate(deleteBtn);
-                    
-                    template.appendChild(deleteBtn);
-                });
-            } catch (error) {
-                console.error('Erreur add delete buttons:', error);
-            }
-        }
-
-        function removeDeleteButtonsFromTemplates() {
-            try {
-                const deleteButtons = document.querySelectorAll('.delete-template');
-                deleteButtons.forEach(btn => btn.remove());
-            } catch (error) {
-                console.error('Erreur remove delete buttons:', error);
-            }
-        }
-
-        function createDefaultData() {
-            try {
-                globalState = {
-                    employees: [],
-                    currentWeek: new Date(),
-                    isAdminMode: false,
-                    draggedItem: null,
-                    customTemplates: [],
-                    timeSlots: [
-                        { id: 'journeeA', name: 'Journée A', start: '09:00', end: '18:30' },
-                        { id: 'journeeB', name: 'Journée B', start: '10:30', end: '19:30' },
-                        { id: 'journeeC', name: 'Journée C', start: '07:00', end: '15:00' }
-                    ],
-                    weekTemplates: [],
-                    copiedShift: null,
-                    copiedWeek: null
-                };
-                
-                // PAS de données de démonstration
-                saveData();
-                renderPlanning();
-                updateSummary();
-                
-                showToast('Planning initialisé - Passez en mode admin pour ajouter des employés', 'success');
-            } catch (error) {
-                console.error('Erreur create default data:', error);
-            }
-        }
-
-        // Fonctions utilitaires sécurisées
+        // Fonctions utilitaires
         function generateId() {
             return 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         }
@@ -600,255 +1643,6 @@
             }
         }
 
-        // Système de sauvegarde cloud-like sécurisé
-        const CLOUD_STORAGE_KEY = 'planning_cloud_data_v2';
-        const BACKUP_URLS = [
-            'planning_backup_1',
-            'planning_backup_2', 
-            'planning_backup_3'
-        ];
-
-        function saveData() {
-            try {
-                const dataToSave = {
-                    employees: globalState.employees || [],
-                    customTemplates: globalState.customTemplates || [],
-                    timeSlots: globalState.timeSlots || [],
-                    weekTemplates: globalState.weekTemplates || [],
-                    lastSave: new Date().toISOString(),
-                    version: '2.0'
-                };
-                
-                const dataString = JSON.stringify(dataToSave);
-                
-                // Sauvegarde principale localStorage
-                try {
-                    localStorage.setItem('planning_data', dataString);
-                } catch (e) {
-                    console.warn('localStorage non disponible');
-                }
-                
-                // Sauvegarde sessionStorage
-                try {
-                    sessionStorage.setItem('planning_session', dataString);
-                } catch (e) {
-                    console.warn('sessionStorage non disponible');
-                }
-                
-                // Sauvegarde dans l'URL (pour partage)
-                try {
-                    const compressedData = btoa(encodeURIComponent(JSON.stringify({
-                        v: '2.0',
-                        d: dataToSave
-                    })));
-                    
-                    // Mettre à jour l'URL sans recharger
-                    const newUrl = new URL(window.location);
-                    newUrl.searchParams.set('data', compressedData);
-                    window.history.replaceState({}, '', newUrl);
-                } catch (e) {
-                    console.warn('Sauvegarde URL échouée');
-                }
-                
-                // Sauvegarde multiple pour redondance
-                BACKUP_URLS.forEach((key, index) => {
-                    try {
-                        localStorage.setItem(key, dataString);
-                    } catch (e) {
-                        console.warn(`Backup ${index} échoué`);
-                    }
-                });
-                
-                showToast('Données sauvegardées (multi-support)', 'success');
-            } catch (error) {
-                console.error('Erreur sauvegarde:', error);
-                showToast('Erreur de sauvegarde', 'error');
-            }
-        }
-
-        function loadData() {
-            try {
-                let loadedData = null;
-                let source = 'nouveau';
-                
-                // 1. Essayer de charger depuis l'URL (priorité max)
-                try {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const urlData = urlParams.get('data');
-                    if (urlData) {
-                        const decodedData = JSON.parse(decodeURIComponent(atob(urlData)));
-                        if (decodedData.v === '2.0' && decodedData.d) {
-                            loadedData = decodedData.d;
-                            source = 'URL partagée';
-                        }
-                    }
-                } catch (e) {
-                    console.warn('Chargement URL échoué');
-                }
-                
-                // 2. Essayer localStorage
-                if (!loadedData) {
-                    try {
-                        const localData = localStorage.getItem('planning_data');
-                        if (localData) {
-                            loadedData = JSON.parse(localData);
-                            source = 'localStorage';
-                        }
-                    } catch (e) {
-                        console.warn('localStorage non disponible');
-                    }
-                }
-                
-                // 3. Essayer sessionStorage
-                if (!loadedData) {
-                    try {
-                        const sessionData = sessionStorage.getItem('planning_session');
-                        if (sessionData) {
-                            loadedData = JSON.parse(sessionData);
-                            source = 'sessionStorage';
-                        }
-                    } catch (e) {
-                        console.warn('sessionStorage non disponible');
-                    }
-                }
-                
-                // 4. Essayer les backups
-                if (!loadedData) {
-                    for (const backupKey of BACKUP_URLS) {
-                        try {
-                            const backupData = localStorage.getItem(backupKey);
-                            if (backupData) {
-                                loadedData = JSON.parse(backupData);
-                                source = 'backup';
-                                break;
-                            }
-                        } catch (e) {
-                            continue;
-                        }
-                    }
-                }
-                
-                if (loadedData) {
-                    // Valider et appliquer les données
-                    if (Array.isArray(loadedData.employees)) {
-                        globalState.employees = loadedData.employees;
-                    }
-                    
-                    if (Array.isArray(loadedData.customTemplates)) {
-                        globalState.customTemplates = loadedData.customTemplates;
-                        
-                        loadedData.customTemplates.forEach(template => {
-                            const customTemplate = document.createElement('div');
-                            customTemplate.className = 'template custom';
-                            customTemplate.draggable = true;
-                            customTemplate.dataset.type = 'custom';
-                            customTemplate.style.background = template.color ? 
-                                `linear-gradient(135deg, ${template.color}, ${adjustColor(template.color, -20)})` :
-                                'linear-gradient(135deg, #8b5cf6, #7c3aed)';
-                            customTemplate.innerHTML = `⚙️ ${template.text}`;
-                            
-                            customTemplate.addEventListener('dragstart', handleDragStart);
-                            customTemplate.addEventListener('dragend', handleDragEnd);
-                            
-                            document.getElementById('templatesContainer').appendChild(customTemplate);
-                        });
-                    }
-                    
-                    if (Array.isArray(loadedData.timeSlots)) {
-                        globalState.timeSlots = loadedData.timeSlots;
-                        renderTimeSlots();
-                    }
-                    
-                    if (Array.isArray(loadedData.weekTemplates)) {
-                        globalState.weekTemplates = loadedData.weekTemplates;
-                        updateWeekTemplateSelect();
-                    }
-                    
-                    renderPlanning();
-                    updateSummary();
-                    showToast(`Planning chargé depuis ${source}`, 'success');
-                } else {
-                    createDefaultData();
-                }
-            } catch (error) {
-                console.error('Erreur chargement:', error);
-                createDefaultData();
-            }
-        }
-
-        // Fonction pour partager le planning
-        function shareOpening() {
-            try {
-                // S'assurer que les données sont dans l'URL
-                saveData();
-                
-                const currentUrl = window.location.href;
-                
-                // Copier dans le presse-papier si possible
-                if (navigator.clipboard) {
-                    navigator.clipboard.writeText(currentUrl).then(() => {
-                        showToast('Lien de partage copié ! Le planning sera accessible partout.', 'success');
-                    }).catch(() => {
-                        showShareFallback(currentUrl);
-                    });
-                } else {
-                    showShareFallback(currentUrl);
-                }
-            } catch (error) {
-                console.error('Erreur partage:', error);
-                showToast('Erreur lors du partage', 'error');
-            }
-        }
-
-        function showShareFallback(url) {
-            const modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.style.display = 'block';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <h2>🔗 Partager le Planning</h2>
-                    <p>Copiez ce lien pour accéder au planning depuis n'importe quel navigateur :</p>
-                    <textarea readonly style="width: 100%; height: 100px; padding: 10px; border-radius: 8px; border: 2px solid #e5e7eb; margin: 15px 0;">${url}</textarea>
-                    <div class="form-actions">
-                        <button class="btn" onclick="this.closest('.modal').remove()">Fermer</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-            
-            // Sélectionner le texte
-            const textarea = modal.querySelector('textarea');
-            textarea.select();
-            
-            showToast('Lien prêt à copier manuellement', 'success');
-        }
-
-        // Auto-sauvegarde périodique
-        setInterval(() => {
-            if (globalState.employees && globalState.employees.length > 0) {
-                saveData();
-            }
-        }, 60000); // Toutes les minutes
-
-        function showToast(message, type = 'success') {
-            try {
-                const toast = document.createElement('div');
-                toast.className = `toast ${type}`;
-                toast.textContent = message;
-                
-                document.body.appendChild(toast);
-                
-                setTimeout(() => {
-                    if (toast.parentNode) {
-                        toast.remove();
-                    }
-                }, 3000);
-            } catch (error) {
-                console.error('Erreur show toast:', error);
-            }
-        }
-
-        // Stubs pour les autres fonctions
         function updateWeekDisplay() {
             try {
                 const start = new Date(globalState.currentWeek);
@@ -866,6 +1660,17 @@
                 }
             } catch (error) {
                 console.error('Erreur update week display:', error);
+            }
+        }
+
+        function changeWeek(direction) {
+            try {
+                globalState.currentWeek.setDate(globalState.currentWeek.getDate() + (direction * 7));
+                updateWeekDisplay();
+                renderPlanning();
+                saveData();
+            } catch (error) {
+                console.error('Erreur change week:', error);
             }
         }
 
@@ -1416,162 +2221,147 @@
             }
         }
 
-        function openModal(modalId) {
+        // Système de sauvegarde
+        function saveData() {
             try {
-                console.log('Tentative ouverture modal:', modalId);
-                const modal = document.getElementById(modalId);
-                if (modal) {
-                    modal.style.display = 'block';
-                    console.log('Modal ouvert:', modalId);
-                    
-                    // Focus automatique sur le premier input
-                    const firstInput = modal.querySelector('input');
-                    if (firstInput) {
-                        setTimeout(() => firstInput.focus(), 100);
-                    }
-                } else {
-                    console.error('Modal non trouvé:', modalId);
-                    showToast('Erreur d\'ouverture du modal', 'error');
-                }
-            } catch (error) {
-                console.error('Erreur open modal:', error);
-                showToast('Erreur d\'interface', 'error');
-            }
-        }
-
-        function closeModal() {
-            try {
-                const modals = document.querySelectorAll('.modal');
-                modals.forEach(modal => {
-                    modal.style.display = 'none';
-                });
-                
-                // Nettoyer les champs
-                const passwordInput = document.getElementById('adminPassword');
-                if (passwordInput) {
-                    passwordInput.value = '';
-                }
-            } catch (error) {
-                console.error('Erreur close modal:', error);
-            }
-        }
-
-        function handlePasswordSubmit(e) {
-            try {
-                e.preventDefault();
-                console.log('Soumission mot de passe...');
-                
-                const passwordInput = document.getElementById('adminPassword');
-                if (!passwordInput) {
-                    console.error('Input mot de passe non trouvé');
-                    showToast('Erreur d\'interface', 'error');
-                    return;
-                }
-                
-                const password = passwordInput.value;
-                console.log('Mot de passe saisi:', password.length, 'caractères');
-                
-                if (password === ADMIN_PASSWORD) {
-                    globalState.isAdminMode = true;
-                    updateModeDisplay();
-                    closeModal();
-                    passwordInput.value = '';
-                    showToast('Mode administrateur activé', 'success');
-                    console.log('Mode admin activé avec succès');
-                } else {
-                    showToast('Mot de passe incorrect (utilisez: admin123)', 'error');
-                    passwordInput.value = '';
-                    passwordInput.focus();
-                    console.log('Mot de passe incorrect');
-                }
-            } catch (error) {
-                console.error('Erreur password submit:', error);
-                showToast('Erreur de connexion', 'error');
-            }
-        }
-
-        function handleEmployeeSubmit(e) {
-            try {
-                e.preventDefault();
-                
-                const name = document.getElementById('modalEmpName').value.trim();
-                const role = document.getElementById('modalEmpRole').value.trim();
-                
-                if (!name) {
-                    showToast('Le nom est requis', 'error');
-                    return;
-                }
-                
-                if (!Array.isArray(globalState.employees)) {
-                    globalState.employees = [];
-                }
-                
-                if (globalState.employees.find(emp => emp.name.toLowerCase() === name.toLowerCase())) {
-                    showToast('Un employé avec ce nom existe déjà', 'error');
-                    return;
-                }
-                
-                const newEmployee = {
-                    id: generateId(),
-                    name: name,
-                    role: role || 'Employé',
-                    planning: {}
+                const dataToSave = {
+                    employees: globalState.employees || [],
+                    customTemplates: globalState.customTemplates || [],
+                    timeSlots: globalState.timeSlots || [],
+                    weekTemplates: globalState.weekTemplates || [],
+                    lastSave: new Date().toISOString(),
+                    version: '2.0'
                 };
                 
-                globalState.employees.push(newEmployee);
+                const dataString = JSON.stringify(dataToSave);
                 
-                document.getElementById('modalEmpName').value = '';
-                document.getElementById('modalEmpRole').value = '';
+                // Sauvegarde localStorage
+                try {
+                    localStorage.setItem('planning_data', dataString);
+                } catch (e) {
+                    console.warn('localStorage non disponible');
+                }
                 
-                closeModal();
-                renderPlanning();
-                updateSummary();
-                saveData();
-                showToast('Employé ajouté avec succès', 'success');
+                showToast('Données sauvegardées', 'success');
             } catch (error) {
-                console.error('Erreur employee submit:', error);
-                showToast('Erreur lors de l\'ajout', 'error');
+                console.error('Erreur sauvegarde:', error);
+                showToast('Erreur de sauvegarde', 'error');
             }
         }
 
-        // Stubs pour les autres fonctions nécessaires
-        function openEmployeeModal() { openModal('employeeModal'); }
-        function addEmployee() {
-            const name = document.getElementById('empName').value.trim();
-            const role = document.getElementById('empRole').value.trim();
-            
-            if (!name) {
-                showToast('Le nom est requis', 'error');
-                return;
+        function loadData() {
+            try {
+                let loadedData = null;
+                
+                // Charger depuis localStorage
+                try {
+                    const localData = localStorage.getItem('planning_data');
+                    if (localData) {
+                        loadedData = JSON.parse(localData);
+                    }
+                } catch (e) {
+                    console.warn('localStorage non disponible');
+                }
+                
+                if (loadedData) {
+                    // Valider et appliquer les données
+                    if (Array.isArray(loadedData.employees)) {
+                        globalState.employees = loadedData.employees;
+                    }
+                    
+                    if (Array.isArray(loadedData.customTemplates)) {
+                        globalState.customTemplates = loadedData.customTemplates;
+                        
+                        loadedData.customTemplates.forEach(template => {
+                            const customTemplate = document.createElement('div');
+                            customTemplate.className = 'template custom';
+                            customTemplate.draggable = true;
+                            customTemplate.dataset.type = 'custom';
+                            customTemplate.style.background = template.color ? 
+                                `linear-gradient(135deg, ${template.color}, ${adjustColor(template.color, -20)})` :
+                                'linear-gradient(135deg, #8b5cf6, #7c3aed)';
+                            customTemplate.innerHTML = `⚙️ ${template.text}`;
+                            
+                            customTemplate.addEventListener('dragstart', handleDragStart);
+                            customTemplate.addEventListener('dragend', handleDragEnd);
+                            
+                            document.getElementById('templatesContainer').appendChild(customTemplate);
+                        });
+                    }
+                    
+                    if (Array.isArray(loadedData.timeSlots)) {
+                        globalState.timeSlots = loadedData.timeSlots;
+                        renderTimeSlots();
+                    }
+                    
+                    if (Array.isArray(loadedData.weekTemplates)) {
+                        globalState.weekTemplates = loadedData.weekTemplates;
+                        updateWeekTemplateSelect();
+                    }
+                    
+                    renderPlanning();
+                    updateSummary();
+                    showToast('Planning chargé', 'success');
+                } else {
+                    createDefaultData();
+                }
+            } catch (error) {
+                console.error('Erreur chargement:', error);
+                createDefaultData();
             }
-            
-            if (!Array.isArray(globalState.employees)) {
-                globalState.employees = [];
-            }
-            
-            if (globalState.employees.find(emp => emp.name.toLowerCase() === name.toLowerCase())) {
-                showToast('Un employé avec ce nom existe déjà', 'error');
-                return;
-            }
-            
-            const newEmployee = {
-                id: generateId(),
-                name: name,
-                role: role || 'Employé',
-                planning: {}
-            };
-            
-            globalState.employees.push(newEmployee);
-            
-            document.getElementById('empName').value = '';
-            document.getElementById('empRole').value = '';
-            
-            renderPlanning();
-            updateSummary();
-            saveData();
-            showToast('Employé ajouté avec succès', 'success');
         }
-        
+
+        function createDefaultData() {
+            try {
+                globalState = {
+                    employees: [],
+                    currentWeek: new Date(),
+                    isAdminMode: false,
+                    draggedItem: null,
+                    customTemplates: [],
+                    timeSlots: [
+                        { id: 'journeeA', name: 'Journée A', start: '09:00', end: '18:30' },
+                        { id: 'journeeB', name: 'Journée B', start: '10:30', end: '19:30' },
+                        { id: 'journeeC', name: 'Journée C', start: '07:00', end: '15:00' }
+                    ],
+                    weekTemplates: [],
+                    copiedShift: null,
+                    copiedWeek: null
+                };
+                
+                saveData();
+                renderPlanning();
+                updateSummary();
+                
+                showToast('Planning initialisé - Passez en mode admin pour ajouter des employés', 'success');
+            } catch (error) {
+                console.error('Erreur create default data:', error);
+            }
+        }
+
+        function shareOpening() {
+            try {
+                const currentUrl = window.location.href;
+                
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(currentUrl).then(() => {
+                        showToast('Lien copié dans le presse-papier !', 'success');
+                    }).catch(() => {
+                        showShareFallback(currentUrl);
+                    });
+                } else {
+                    showShareFallback(currentUrl);
+                }
+            } catch (error) {
+                console.error('Erreur partage:', error);
+                showToast('Erreur lors du partage', 'error');
+            }
+        }
+
+        function showShareFallback(url) {
+            alert(`Copiez ce lien pour partager le planning :\n\n${url}`);
+        }
+
         function clearAll() { 
             if (confirm('Vider tous les plannings ?')) {
                 if (Array.isArray(globalState.employees)) {
@@ -1585,109 +2375,36 @@
                 showToast('Plannings vidés', 'success');
             }
         }
-        
-        function changeWeek(direction) {
+
+        function showToast(message, type = 'success') {
             try {
-                globalState.currentWeek.setDate(globalState.currentWeek.getDate() + (direction * 7));
-                updateWeekDisplay();
-                renderPlanning();
-                saveData();
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.textContent = message;
+                
+                document.body.appendChild(toast);
+                
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.remove();
+                    }
+                }, 3000);
             } catch (error) {
-                console.error('Erreur change week:', error);
+                console.error('Erreur show toast:', error);
             }
         }
-        
+
+        // Stubs pour les fonctions non implémentées
         function saveWeekTemplate() { showToast('Fonctionnalité en développement', 'error'); }
         function applyWeekTemplate() { showToast('Fonctionnalité en développement', 'error'); }
-        function deleteWeekTemplate() { showToast('Fonctionnalité en développement', 'error'); }alité en développement', 'error'); }
-        
-        // Gestion des raccourcis clavier
-        document.addEventListener('keydown', (e) => {
-            try {
-                if (e.ctrlKey || e.metaKey) {
-                    switch(e.key) {
-                        case 's':
-                            e.preventDefault();
-                            saveData();
-                            break;
-                        case 'a':
-                            if (globalState.isAdminMode) {
-                                e.preventDefault();
-                                openEmployeeModal();
-                            }
-                            break;
-                    }
-                }
-                
-                if (e.key === 'Escape') {
-                    closeModal();
-                }
-            } catch (error) {
-                console.error('Erreur raccourcis clavier:', error);
-            }
-        });
+        function deleteWeekTemplate() { showToast('Fonctionnalité en développement', 'error'); }
 
-        // Gestion du clic droit
-        document.addEventListener('contextmenu', (e) => {
-            try {
-                if (!globalState.isAdminMode) return;
-                
-                if (e.target.closest('.day-cell') || e.target.closest('.employee-cell')) {
-                    e.preventDefault();
-                }
-            } catch (error) {
-                console.error('Erreur clic droit:', error);
-            }
-        });
-
-        // Validation et nettoyage automatique des données
-        function validateAndCleanData() {
-            try {
-                if (!globalState) {
-                    globalState = {};
-                }
-                
-                if (!Array.isArray(globalState.employees)) {
-                    globalState.employees = [];
-                }
-                
-                if (!Array.isArray(globalState.timeSlots)) {
-                    globalState.timeSlots = [
-                        { id: 'journeeA', name: 'Journée A', start: '09:00', end: '18:30' },
-                        { id: 'journeeB', name: 'Journée B', start: '10:30', end: '19:30' },
-                        { id: 'journeeC', name: 'Journée C', start: '07:00', end: '15:00' }
-                    ];
-                }
-                
-                if (!Array.isArray(globalState.customTemplates)) {
-                    globalState.customTemplates = [];
-                }
-                
-                if (!Array.isArray(globalState.weekTemplates)) {
-                    globalState.weekTemplates = [];
-                }
-                
-                if (!globalState.currentWeek || !(globalState.currentWeek instanceof Date)) {
-                    globalState.currentWeek = new Date();
-                }
-                
-                if (typeof globalState.isAdminMode !== 'boolean') {
-                    globalState.isAdminMode = false;
-                }
-            } catch (error) {
-                console.error('Erreur validation données:', error);
-                createDefaultData();
-            }
-        }
-
-        // Auto-validation périodique
+        // Auto-sauvegarde périodique
         setInterval(() => {
-            try {
-                validateAndCleanData();
-            } catch (error) {
-                console.error('Erreur validation périodique:', error);
+            if (globalState.employees && globalState.employees.length > 0) {
+                saveData();
             }
-        }, 30000); // Toutes les 30 secondes
+        }, 60000); // Toutes les minutes
 
         // Fonction de réinitialisation d'urgence
         window.resetPlanning = function() {
@@ -1701,935 +2418,15 @@
             }
         };
 
-        // Message d'aide
-        window.showHelp = function() {
-            alert(`
-🔧 AIDE - Planning Interactif
-
-🔑 Mot de passe admin: admin123
-
-✨ Fonctionnalités principales:
-- Mode lecture: Consultation sécurisée
-- Mode admin: Modification avec mot de passe
-- Barre flottante: Apparaît en scrollant (mode admin)
-- Créneaux personnalisables: Avec choix de couleur
-- Sauvegarde automatique: Dans le navigateur
-
-🚨 En cas de problème:
-- Actualisez la page (F5)
-- Tapez resetPlanning() dans la console
-- Changez de navigateur
-
-💡 Raccourcis:
-- Ctrl+S: Sauvegarder
-- Echap: Fermer les popups
-            `);
-        };
-
         console.log(`
 🎉 Planning Hebdomadaire Initialisé avec succès!
 
 🔧 Commandes de dépannage disponibles:
 - resetPlanning() : Réinitialise tout
-- showHelp() : Affiche l'aide
 - globalState : État actuel des données
 
 🔑 Mot de passe admin: admin123
         `);
     </script>
 </body>
-</html><!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planning Hebdomadaire - Version Finale</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-            min-height: 100vh;
-            padding: 20px;
-            animation: gradientShift 15s ease infinite;
-        }
-
-        @keyframes gradientShift {
-            0%, 100% { background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%); }
-            33% { background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #4facfe 100%); }
-            66% { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 50%, #764ba2 100%); }
-        }
-
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 24px;
-            padding: 30px;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .header h1 {
-            font-size: 2.8em;
-            font-weight: 800;
-            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 10px;
-        }
-
-        .auth-section {
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .btn {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            padding: 12px 24px;
-            border-radius: 16px;
-            transition: all 0.3s ease;
-            font-size: 14px;
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
-            margin: 5px;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn.admin {
-            background: linear-gradient(135deg, #10b981, #059669);
-        }
-
-        .btn.danger {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-        }
-
-        .btn.warning {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-        }
-
-        /* Barre flottante VRAIMENT FIXE */
-        .floating-toolbar {
-            position: fixed !important;
-            top: 10px !important;
-            left: 50% !important;
-            transform: translateX(-50%) !important;
-            z-index: 9999 !important;
-            background: rgba(255, 255, 255, 0.98) !important;
-            backdrop-filter: blur(20px) !important;
-            border: 2px solid rgba(102, 126, 234, 0.3) !important;
-            border-radius: 20px !important;
-            padding: 15px 20px !important;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
-            opacity: 0 !important;
-            visibility: hidden !important;
-            transition: all 0.3s ease !important;
-            max-width: 90vw !important;
-            overflow-x: auto !important;
-        }
-
-        .floating-toolbar.show {
-            opacity: 1 !important;
-            visibility: visible !important;
-        }
-
-        .floating-toolbar .toolbar-content {
-            display: flex !important;
-            gap: 15px !important;
-            align-items: center !important;
-            flex-wrap: wrap !important;
-            justify-content: center !important;
-        }
-
-        .floating-toolbar .toolbar-section {
-            display: flex !important;
-            gap: 8px !important;
-            align-items: center !important;
-            flex-wrap: wrap !important;
-        }
-
-        .floating-toolbar .toolbar-title {
-            font-size: 12px !important;
-            font-weight: 700 !important;
-            color: #374151 !important;
-            margin-right: 8px !important;
-            white-space: nowrap !important;
-        }
-
-        .floating-toolbar .template,
-        .floating-toolbar .time-slot-template {
-            padding: 6px 12px !important;
-            font-size: 11px !important;
-            border-radius: 12px !important;
-            cursor: move !important;
-            transition: all 0.3s ease !important;
-            white-space: nowrap !important;
-        }
-
-        .floating-toolbar .template:hover,
-        .floating-toolbar .time-slot-template:hover {
-            transform: translateY(-2px) scale(1.05) !important;
-        }
-
-        .controls {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 30px;
-            align-items: center;
-            justify-content: center;
-            flex-wrap: wrap;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .control-group label {
-            font-weight: 600;
-            color: #374151;
-            font-size: 12px;
-        }
-
-        .control-group input {
-            padding: 10px 15px;
-            border: 2px solid rgba(102, 126, 234, 0.3);
-            border-radius: 12px;
-            font-size: 14px;
-            background: rgba(255, 255, 255, 0.9);
-            transition: all 0.3s ease;
-            min-width: 150px;
-        }
-
-        .control-group input:focus {
-            outline: none;
-            border-color: #667eea;
-            background: white;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .time-slots-config {
-            margin-bottom: 20px;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .time-slots-list {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-bottom: 15px;
-        }
-
-        .time-slot-template {
-            padding: 10px 16px;
-            border-radius: 16px;
-            cursor: move;
-            font-size: 12px;
-            font-weight: 700;
-            color: white;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            transition: all 0.3s ease;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-            position: relative;
-        }
-
-        .time-slot-template:hover {
-            transform: translateY(-4px) scale(1.05);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-        }
-
-        .time-slot-template .delete-slot {
-            position: absolute;
-            top: -6px;
-            right: -6px;
-            background: #ef4444 !important;
-            color: white !important;
-            border: none !important;
-            border-radius: 50% !important;
-            width: 20px !important;
-            height: 20px !important;
-            font-size: 12px !important;
-            cursor: pointer !important;
-            display: none !important;
-            transition: all 0.3s ease !important;
-            z-index: 10 !important;
-        }
-
-        .time-slot-template:hover .delete-slot {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-        }
-
-        .time-slot-template .delete-slot:hover {
-            background: #dc2626 !important;
-            transform: scale(1.2) !important;
-        }
-
-        .time-slot-creator {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .templates-section {
-            margin-bottom: 30px;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .templates-title {
-            text-align: center;
-            font-weight: 700;
-            color: #374151;
-            margin-bottom: 15px;
-            font-size: 16px;
-        }
-
-        .templates {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-bottom: 15px;
-        }
-
-        .template {
-            padding: 12px 20px;
-            border-radius: 20px;
-            cursor: move;
-            font-size: 13px;
-            font-weight: 700;
-            color: white;
-            transition: all 0.3s ease;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            position: relative;
-        }
-
-        .template.repos {
-            background: linear-gradient(135deg, #6b7280, #4b5563);
-        }
-
-        .template.absent {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-        }
-
-        .template.cours {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-        }
-
-        .template.conges {
-            background: linear-gradient(135deg, #10b981, #059669);
-        }
-
-        .template.custom {
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-        }
-
-        .template:hover {
-            transform: translateY(-4px) scale(1.05);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
-        }
-
-        .template.dragging {
-            opacity: 0.7;
-            transform: rotate(8deg) scale(0.95);
-        }
-
-        .template .delete-template {
-            position: absolute;
-            top: -6px;
-            right: -6px;
-            background: #ef4444 !important;
-            color: white !important;
-            border: none !important;
-            border-radius: 50% !important;
-            width: 20px !important;
-            height: 20px !important;
-            font-size: 12px !important;
-            cursor: pointer !important;
-            display: none !important;
-            transition: all 0.3s ease !important;
-            z-index: 10 !important;
-        }
-
-        .template:hover .delete-template {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-        }
-
-        .template .delete-template:hover {
-            background: #dc2626 !important;
-            transform: scale(1.2) !important;
-        }
-
-        .custom-template-creator {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .color-picker {
-            width: 40px;
-            height: 40px;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .color-picker:hover {
-            transform: scale(1.1);
-            border-color: #667eea;
-        }
-
-        .week-templates {
-            margin-bottom: 20px;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .week-template-controls {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .week-nav {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 24px;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .current-week {
-            font-weight: 700;
-            min-width: 250px;
-            text-align: center;
-            color: #374151;
-            font-size: 16px;
-        }
-
-        .planning-grid {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            margin-bottom: 30px;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: 200px repeat(7, 1fr);
-            gap: 2px;
-            background: #f8fafc;
-            border-radius: 16px;
-            padding: 8px;
-        }
-
-        .grid-header {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            padding: 16px 8px;
-            text-align: center;
-            font-weight: 700;
-            font-size: 14px;
-            border-radius: 12px;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-
-        .employee-cell {
-            background: linear-gradient(135deg, #374151, #1f2937);
-            color: white;
-            padding: 16px 12px;
-            font-weight: 600;
-            font-size: 13px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: flex-start;
-            border-radius: 12px;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-            box-shadow: 0 4px 12px rgba(55, 65, 81, 0.3);
-            position: relative;
-            min-height: 120px;
-        }
-
-        .employee-name {
-            font-weight: 800;
-            margin-bottom: 4px;
-            font-size: 16px;
-        }
-
-        .employee-role {
-            font-size: 12px;
-            opacity: 0.8;
-            margin-bottom: 4px;
-        }
-
-        .employee-hours {
-            font-size: 10px;
-            opacity: 0.7;
-            margin-top: auto;
-        }
-
-        .remove-emp {
-            position: absolute;
-            top: 4px;
-            right: 4px;
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            font-size: 12px;
-            cursor: pointer;
-            opacity: 0;
-            transition: all 0.3s ease;
-        }
-
-        .employee-cell:hover .remove-emp {
-            opacity: 1;
-        }
-
-        .copy-week-btn {
-            position: absolute;
-            bottom: 4px;
-            left: 4px;
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 2px 6px;
-            font-size: 9px;
-            cursor: pointer;
-            opacity: 0;
-            transition: all 0.3s ease;
-        }
-
-        .employee-cell:hover .copy-week-btn {
-            opacity: 1;
-        }
-
-        .paste-week-btn {
-            position: absolute;
-            bottom: 4px;
-            right: 4px;
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 2px 6px;
-            font-size: 9px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .day-cell {
-            background: white;
-            min-height: 80px;
-            padding: 8px;
-            border: 2px dashed #e5e7eb;
-            border-radius: 12px;
-            transition: all 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .day-cell:hover {
-            border-color: #667eea;
-            background: rgba(102, 126, 234, 0.05);
-        }
-
-        .day-cell.drag-over {
-            border-color: #667eea;
-            background: rgba(102, 126, 234, 0.1);
-            border-style: solid;
-            transform: scale(1.02);
-        }
-
-        .shift-card {
-            padding: 8px 10px;
-            border-radius: 8px;
-            font-size: 11px;
-            font-weight: 700;
-            color: white;
-            position: relative;
-            cursor: move;
-            transition: all 0.3s ease;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-            text-align: center;
-            user-select: none;
-        }
-
-        .shift-card.work {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-        }
-
-        .shift-card.repos {
-            background: linear-gradient(135deg, #6b7280, #4b5563);
-        }
-
-        .shift-card.absent {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-        }
-
-        .shift-card.cours {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-        }
-
-        .shift-card.conges {
-            background: linear-gradient(135deg, #10b981, #059669);
-        }
-
-        .shift-card.custom {
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-        }
-
-        .shift-card:hover {
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-        }
-
-        .shift-card .actions {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            display: none;
-            gap: 2px;
-        }
-
-        .shift-card:hover .actions {
-            display: flex;
-        }
-
-        .shift-card .action-btn {
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 16px;
-            height: 16px;
-            font-size: 9px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .shift-card .action-btn.copy {
-            background: linear-gradient(135deg, #10b981, #059669);
-        }
-
-        .shift-card .action-btn.delete {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-        }
-
-        .shift-card .action-btn.paste {
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-        }
-
-        .summary {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-        }
-
-        .summary-card {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
-            padding: 20px;
-            border-radius: 16px;
-            text-align: center;
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        }
-
-        .summary-card h4 {
-            margin-bottom: 10px;
-            color: #374151;
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .summary-card .value {
-            font-size: 2em;
-            font-weight: 800;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .employee-recap {
-            margin-top: 30px;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 1000;
-            backdrop-filter: blur(10px);
-        }
-
-        .modal-content {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            max-width: 400px;
-            width: 90%;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
-        }
-
-        .modal h2 {
-            margin-bottom: 20px;
-            text-align: center;
-            color: #374151;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #374151;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .form-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            margin-top: 20px;
-        }
-
-        .toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 25px;
-            border-radius: 10px;
-            color: white;
-            font-weight: 600;
-            z-index: 1001;
-            animation: toastSlide 0.3s ease;
-        }
-
-        .toast.success {
-            background: linear-gradient(135deg, #10b981, #059669);
-        }
-
-        .toast.error {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-        }
-
-        @keyframes toastSlide {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        .admin-panel {
-            display: none;
-        }
-
-        @media (max-width: 1200px) {
-            .grid {
-                grid-template-columns: 180px repeat(7, 1fr);
-            }
-        }
-
-        @media (max-width: 900px) {
-            .grid {
-                grid-template-columns: 150px repeat(7, 1fr);
-                font-size: 12px;
-            }
-            
-            .floating-toolbar {
-                position: relative;
-                top: auto;
-                left: auto;
-                transform: none;
-                margin-bottom: 20px;
-                opacity: 1;
-                visibility: visible;
-            }
-        }
-
-        @media (max-width: 600px) {
-            .container {
-                padding: 15px;
-            }
-            
-            .grid {
-                grid-template-columns: 120px repeat(7, 1fr);
-                font-size: 10px;
-            }
-            
-            .controls {
-                flex-direction: column;
-                align-items: stretch;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <!-- Barre flottante CORRIGÉE -->
-        <div class="floating-toolbar admin-panel" id="floatingToolbar">
-            <div class="toolbar-content">
-                <div class="toolbar-section">
-                    <span class="toolbar-title">⏰ Créneaux:</span>
-                    <div id="floatingTimeSlots"></div>
-                </div>
-                <div class="toolbar-section">
-                    <span class="toolbar-title">🎨 Cases:</span>
-                    <div id="floatingTemplates"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="header">
-            <h1>📅 Planning Hebdomadaire Complet</h1>
-            <p>Système de gestion d'équipe moderne avec créneaux personnalisables</p>
-        </div>
-
-        <div class="auth-section">
-            <button class="btn" id="modeBtn" onclick="toggleMode()">🔒 Mode Lecture</button>
-            <div class="admin-panel" style="margin-top: 15px;">
-                <button class="btn admin" onclick="openEmployeeModal()">👤 Ajouter Employé</button>
-                <button class="btn warning" onclick="saveData()">💾 Sauvegarder</button>
-                <button class="btn" onclick="shareOpening()">🔗 Partager Planning</button>
-                <button class="btn danger" onclick="clearAll()">🗑️ Vider Planning</button>
-            </div>
-        </div>
-
-        <div class="controls admin-panel">
-            <div class="control-group">
-                <label>👤 Nom employé</label>
-                <input type="text" id="empName" placeholder="Nom complet">
-            </div>
-            <div class="control-group">
-                <label>💼 Poste</label>
-                <input type="text" id="empRole" placeholder="Fonction">
-            </div>
-            <button class="btn" onclick="addEmployee()">➕ Ajouter</button>
-        </div>
-
-        <!-- Configuration des créneaux horaires -->
-        <div class="time-slots-config admin-panel">
-            <div class="templates-title">⏰ Créneaux Horaires - Glissez dans le planning</div>
-            <div class="time-slots-list" id="timeSlotsContainer">
-                <!-- Les créneaux seront générés ici -->
-            </div>
-            <div class="time-slot-creator">
-                <input type="text" id="slotName" placeholder="Nom du créneau (ex: Journée A)" style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; width: 150px;">
-                <input type="time" id="slotStart" value="09:00" style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px;">
-                <span style="font-weight: bold; color: #374151;">-</span>
-                <input type="time" id="slotEnd" value="18:30" style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px;">
-                <button class="btn" onclick="addTimeSlot()">✨ Créer Créneau</button>
-            </div>
-        </div>
-
-        <!-- Templates types -->
-        <div class="templates-section admin-panel">
-            <div class="templates-title">🎨 Cases Types - Glissez dans le planning</div>
-            <div class="templates" id="templatesContainer">
-                <div class="template repos" draggable="true" data-type="repos">😴 Repos</div>
-                <div class="template absent" draggable="true" data-type="absent">❌ Absent</div>
-                <div class="template cours" draggable="true" data-type="cours">📚 Cours</div>
-                <div class="template conges" draggable="true" data-type="conges">🏖️ Congés</div>
-            </div>
-            
-            <div class="custom-template-creator">
-                <input type="text" id="customText" placeholder="Case personnalisée..." style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px;">
-                <input type="color" id="customColor" class="color-picker" value="#8b5cf6" title="Choisir couleur">
-                <button class="btn" onclick="addCustomTemplate()">✨ Créer Case</button>
-            </div>
-        </div>
-
-        <!-- Gestion des semaines types -->
-        <div class="week-templates admin-panel">
-            <div class="templates-title">📋 Semaines Types</div>
-            <div class="week-template-controls">
-                <select id="weekTemplateSelect" style="padding: 8px 12
+</html>
