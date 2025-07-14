@@ -1580,9 +1580,14 @@
                         };
                     }
                 } else {
+                    // Capturer la couleur de fond pour les cases personnalisées
+                    const computedStyle = window.getComputedStyle(e.target);
+                    const backgroundColor = computedStyle.background || computedStyle.backgroundColor;
+                    
                     globalState.draggedItem = {
                         type: e.target.dataset.type,
-                        text: e.target.textContent.replace('×', '').trim()
+                        text: e.target.textContent.replace('×', '').trim(),
+                        backgroundColor: backgroundColor
                     };
                 }
                 
@@ -1777,6 +1782,11 @@
                 card.className = `shift-card ${shift.type}`;
                 card.dataset.shiftId = shift.id;
                 
+                // Appliquer la couleur personnalisée si elle existe
+                if (shift.backgroundColor) {
+                    card.style.background = shift.backgroundColor;
+                }
+                
                 // Affichage selon le type
                 let content = '';
                 if (shift.type === 'work') {
@@ -1851,7 +1861,8 @@
                     newShift = {
                         id: generateId(),
                         type: globalState.draggedItem.type,
-                        text: globalState.draggedItem.text
+                        text: globalState.draggedItem.text,
+                        backgroundColor: globalState.draggedItem.backgroundColor
                     };
                 }
                 
@@ -1893,7 +1904,8 @@
                             type: shift.type,
                             text: shift.text,
                             hours: shift.hours,
-                            slot: shift.slot
+                            slot: shift.slot,
+                            backgroundColor: shift.backgroundColor
                         };
                         showToast('Case copiée - Clic droit pour coller', 'success');
                     }
@@ -1920,7 +1932,8 @@
                     type: globalState.copiedShift.type,
                     text: globalState.copiedShift.text,
                     hours: globalState.copiedShift.hours,
-                    slot: globalState.copiedShift.slot
+                    slot: globalState.copiedShift.slot,
+                    backgroundColor: globalState.copiedShift.backgroundColor
                 };
                 
                 employee.planning[weekKey][day].push(newShift);
