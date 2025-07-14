@@ -830,6 +830,7 @@
             <button class="btn" id="modeBtn" onclick="toggleMode()">🔒 Mode Lecture</button>
             <div class="admin-panel" style="margin-top: 15px;">
                 <button class="btn admin" onclick="openEmployeeModal()">👤 Ajouter Employé</button>
+                <button class="btn admin" onclick="openBulkFillModal()">📅 Remplissage par Date</button>
                 <button class="btn warning" onclick="saveData()">💾 Sauvegarder</button>
                 <button class="btn" onclick="shareOpening()">🔗 Partager Planning</button>
                 <button class="btn danger" onclick="clearAll()">🗑️ Vider Planning</button>
@@ -967,6 +968,91 @@
         </div>
     </div>
 
+    <!-- Modal pour remplissage par date -->
+    <div id="bulkFillModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <h2>📅 Remplissage Automatique par Date</h2>
+            <form id="bulkFillForm">
+                <div class="form-group">
+                    <label>👤 Employé :</label>
+                    <select id="bulkEmployeeSelect" required style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                        <option value="">Sélectionner un employé...</option>
+                        <option value="ALL">🌟 TOUS LES EMPLOYÉS</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>📅 Date de début :</label>
+                    <input type="date" id="bulkStartDate" required style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                </div>
+                
+                <div class="form-group">
+                    <label>📅 Date de fin :</label>
+                    <input type="date" id="bulkEndDate" required style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                </div>
+                
+                <div class="form-group">
+                    <label>🎯 Type de case :</label>
+                    <select id="bulkCaseType" required style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                        <option value="">Sélectionner un type...</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>📋 Créneaux horaires (pour les jours de travail) :</label>
+                    <select id="bulkTimeSlot" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                        <option value="">Aucun créneau spécifique</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>📆 Jours de la semaine :</label>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 8px;">
+                        <label style="display: flex; align-items: center; gap: 5px; font-weight: normal;">
+                            <input type="checkbox" id="dayMon" checked> Lundi
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; font-weight: normal;">
+                            <input type="checkbox" id="dayTue" checked> Mardi
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; font-weight: normal;">
+                            <input type="checkbox" id="dayWed" checked> Mercredi
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; font-weight: normal;">
+                            <input type="checkbox" id="dayThu" checked> Jeudi
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; font-weight: normal;">
+                            <input type="checkbox" id="dayFri" checked> Vendredi
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; font-weight: normal;">
+                            <input type="checkbox" id="daySat"> Samedi
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; font-weight: normal;">
+                            <input type="checkbox" id="daySun"> Dimanche
+                        </label>
+                        <button type="button" onclick="toggleAllDays()" style="grid-column: 1 / -1; padding: 8px; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                            🔄 Tout cocher/décocher
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                        <input type="checkbox" id="replaceExisting">
+                        ⚠️ Remplacer les cases existantes
+                    </label>
+                    <small style="color: #6b7280; font-size: 12px; margin-top: 4px; display: block;">
+                        Si décoché, les nouvelles cases s'ajouteront aux existantes
+                    </small>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn" onclick="closeModal()">Annuler</button>
+                    <button type="submit" class="btn admin">🚀 Remplir Planning</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Modal pour mot de passe admin -->
     <div id="passwordModal" class="modal">
         <div class="modal-content">
@@ -1039,6 +1125,7 @@
                 // Événements pour les formulaires
                 const employeeForm = document.getElementById('employeeForm');
                 const passwordForm = document.getElementById('passwordForm');
+                const bulkFillForm = document.getElementById('bulkFillForm');
                 
                 if (employeeForm) {
                     employeeForm.addEventListener('submit', handleEmployeeSubmit);
@@ -1046,6 +1133,10 @@
                 
                 if (passwordForm) {
                     passwordForm.addEventListener('submit', handlePasswordSubmit);
+                }
+                
+                if (bulkFillForm) {
+                    bulkFillForm.addEventListener('submit', handleBulkFillSubmit);
                 }
                 
                 // Événements pour les templates
@@ -1331,6 +1422,237 @@
         // Fonctions de base du planning
         function openEmployeeModal() { 
             openModal('employeeModal'); 
+        }
+
+        function openBulkFillModal() {
+            try {
+                // Peupler la liste des employés
+                const employeeSelect = document.getElementById('bulkEmployeeSelect');
+                if (employeeSelect) {
+                    // Garder les options par défaut et ajouter les employés
+                    const defaultOptions = employeeSelect.innerHTML;
+                    employeeSelect.innerHTML = defaultOptions;
+                    
+                    if (Array.isArray(globalState.employees)) {
+                        globalState.employees.forEach(employee => {
+                            const option = document.createElement('option');
+                            option.value = employee.id;
+                            option.textContent = `${employee.name} (${employee.role})`;
+                            employeeSelect.appendChild(option);
+                        });
+                    }
+                }
+                
+                // Peupler les types de cases
+                const caseTypeSelect = document.getElementById('bulkCaseType');
+                if (caseTypeSelect) {
+                    caseTypeSelect.innerHTML = `
+                        <option value="">Sélectionner un type...</option>
+                        <option value="repos" data-bg="linear-gradient(135deg, #6b7280, #4b5563)">😴 Repos</option>
+                        <option value="absent" data-bg="linear-gradient(135deg, #ef4444, #dc2626)">❌ Absent</option>
+                        <option value="cours" data-bg="linear-gradient(135deg, #f59e0b, #d97706)">📚 Cours</option>
+                        <option value="conges" data-bg="linear-gradient(135deg, #10b981, #059669)">🏖️ Congés</option>
+                    `;
+                    
+                    // Ajouter les cases personnalisées
+                    if (Array.isArray(globalState.customTemplates)) {
+                        globalState.customTemplates.forEach(template => {
+                            const option = document.createElement('option');
+                            option.value = 'custom';
+                            option.dataset.customText = template.text;
+                            option.dataset.bg = template.color ? 
+                                `linear-gradient(135deg, ${template.color}, ${adjustColor(template.color, -20)})` :
+                                'linear-gradient(135deg, #8b5cf6, #7c3aed)';
+                            option.textContent = `⚙️ ${template.text}`;
+                            caseTypeSelect.appendChild(option);
+                        });
+                    }
+                }
+                
+                // Peupler les créneaux horaires
+                const timeSlotSelect = document.getElementById('bulkTimeSlot');
+                if (timeSlotSelect) {
+                    timeSlotSelect.innerHTML = '<option value="">Aucun créneau spécifique</option>';
+                    
+                    if (Array.isArray(globalState.timeSlots)) {
+                        globalState.timeSlots.forEach(slot => {
+                            const option = document.createElement('option');
+                            option.value = slot.id;
+                            option.dataset.slot = JSON.stringify(slot);
+                            option.textContent = `${slot.name} (${slot.start} - ${slot.end})`;
+                            timeSlotSelect.appendChild(option);
+                        });
+                    }
+                }
+                
+                // Définir la date d'aujourd'hui par défaut
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('bulkStartDate').value = today;
+                document.getElementById('bulkEndDate').value = today;
+                
+                openModal('bulkFillModal');
+            } catch (error) {
+                console.error('Erreur ouverture bulk fill modal:', error);
+                showToast('Erreur d\'ouverture du modal', 'error');
+            }
+        }
+
+        function toggleAllDays() {
+            try {
+                const checkboxes = ['dayMon', 'dayTue', 'dayWed', 'dayThu', 'dayFri', 'daySat', 'daySun'];
+                const firstChecked = document.getElementById('dayMon').checked;
+                
+                checkboxes.forEach(id => {
+                    const checkbox = document.getElementById(id);
+                    if (checkbox) {
+                        checkbox.checked = !firstChecked;
+                    }
+                });
+            } catch (error) {
+                console.error('Erreur toggle all days:', error);
+            }
+        }
+
+        function handleBulkFillSubmit(e) {
+            try {
+                e.preventDefault();
+                
+                const employeeId = document.getElementById('bulkEmployeeSelect').value;
+                const startDate = new Date(document.getElementById('bulkStartDate').value);
+                const endDate = new Date(document.getElementById('bulkEndDate').value);
+                const caseType = document.getElementById('bulkCaseType').value;
+                const timeSlotId = document.getElementById('bulkTimeSlot').value;
+                const replaceExisting = document.getElementById('replaceExisting').checked;
+                
+                // Validation
+                if (!employeeId || !caseType || isNaN(startDate) || isNaN(endDate)) {
+                    showToast('Veuillez remplir tous les champs obligatoires', 'error');
+                    return;
+                }
+                
+                if (startDate > endDate) {
+                    showToast('La date de début doit être antérieure à la date de fin', 'error');
+                    return;
+                }
+                
+                // Récupérer les jours sélectionnés
+                const selectedDays = [];
+                ['dayMon', 'dayTue', 'dayWed', 'dayThu', 'dayFri', 'daySat', 'daySun'].forEach((id, index) => {
+                    if (document.getElementById(id).checked) {
+                        selectedDays.push(index === 6 ? 0 : index + 1); // Dimanche = 0, Lundi = 1, etc.
+                    }
+                });
+                
+                if (selectedDays.length === 0) {
+                    showToast('Sélectionnez au moins un jour de la semaine', 'error');
+                    return;
+                }
+                
+                // Préparer les données de la case
+                const caseTypeSelect = document.getElementById('bulkCaseType');
+                const selectedOption = caseTypeSelect.options[caseTypeSelect.selectedIndex];
+                const backgroundColor = selectedOption.dataset.bg;
+                const customText = selectedOption.dataset.customText;
+                
+                let shiftData = {
+                    type: caseType,
+                    text: customText || selectedOption.textContent.trim(),
+                    backgroundColor: backgroundColor
+                };
+                
+                // Si un créneau horaire est sélectionné
+                if (timeSlotId) {
+                    const timeSlotSelect = document.getElementById('bulkTimeSlot');
+                    const slotOption = timeSlotSelect.options[timeSlotSelect.selectedIndex];
+                    const slotData = JSON.parse(slotOption.dataset.slot);
+                    
+                    const hours = calculateHours(slotData.start, slotData.end);
+                    shiftData = {
+                        type: 'work',
+                        text: `${slotData.start} - ${slotData.end}`,
+                        hours: `${hours.toFixed(0)}h`,
+                        slot: slotData
+                    };
+                }
+                
+                // Appliquer le remplissage
+                let affectedDays = 0;
+                const currentDate = new Date(startDate);
+                
+                while (currentDate <= endDate) {
+                    const dayOfWeek = currentDate.getDay();
+                    
+                    if (selectedDays.includes(dayOfWeek)) {
+                        if (employeeId === 'ALL') {
+                            // Appliquer à tous les employés
+                            globalState.employees.forEach(employee => {
+                                affectedDays += applyShiftToEmployeeDay(employee, new Date(currentDate), shiftData, replaceExisting);
+                            });
+                        } else {
+                            // Appliquer à un employé spécifique
+                            const employee = globalState.employees.find(emp => emp.id === employeeId);
+                            if (employee) {
+                                affectedDays += applyShiftToEmployeeDay(employee, new Date(currentDate), shiftData, replaceExisting);
+                            }
+                        }
+                    }
+                    
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+                
+                if (affectedDays > 0) {
+                    renderPlanning();
+                    updateSummary();
+                    saveData();
+                    closeModal();
+                    showToast(`${affectedDays} case(s) ajoutée(s) avec succès`, 'success');
+                } else {
+                    showToast('Aucune case n\'a été ajoutée', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Erreur bulk fill submit:', error);
+                showToast('Erreur lors du remplissage automatique', 'error');
+            }
+        }
+
+        function applyShiftToEmployeeDay(employee, date, shiftData, replaceExisting) {
+            try {
+                // Calculer la semaine et le jour
+                const weekStart = new Date(date);
+                weekStart.setDate(date.getDate() - date.getDay() + 1); // Lundi de la semaine
+                
+                const year = weekStart.getFullYear();
+                const firstDay = new Date(year, 0, 1);
+                const pastDays = (weekStart - firstDay) / 86400000;
+                const weekNumber = Math.ceil((pastDays + firstDay.getDay() + 1) / 7);
+                const weekKey = `${year}-W${weekNumber}`;
+                
+                const dayIndex = date.getDay() === 0 ? 6 : date.getDay() - 1; // Dimanche = 6, Lundi = 0
+                
+                // Initialiser la structure si nécessaire
+                if (!employee.planning) employee.planning = {};
+                if (!employee.planning[weekKey]) employee.planning[weekKey] = {};
+                if (!employee.planning[weekKey][dayIndex]) employee.planning[weekKey][dayIndex] = [];
+                
+                // Remplacer si demandé
+                if (replaceExisting) {
+                    employee.planning[weekKey][dayIndex] = [];
+                }
+                
+                // Ajouter la nouvelle case
+                const newShift = {
+                    id: generateId(),
+                    ...shiftData
+                };
+                
+                employee.planning[weekKey][dayIndex].push(newShift);
+                return 1; // Une case ajoutée
+                
+            } catch (error) {
+                console.error('Erreur apply shift to employee day:', error);
+                return 0;
+            }
         }
 
         function addEmployee() {
