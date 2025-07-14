@@ -1,181 +1,4 @@
-}
-                
-                // 4. Charger depuis les backups (sécurité)
-                if (!loadedData) {
-                    const backupKeys = ['planning_backup_1', 'planning_backup_2', 'planning_backup_3'];
-                    for (const backupKey of backupKeys) {
-                        try {
-                            const backupData = localStorage.getItem(backupKey);
-                            if (backupData) {
-                                loadedData = JSON.parse(backupData);
-                                source = '🔄 Backup de sécurité';
-                                break;
-                            }
-                        } catch (e) {
-                            continue;
-                        }
-                    }
-                }
-                
-                if (loadedData) {
-                    // Valider et appliquer les données
-                    if (Array.isArray(loadedData.employees)) {
-                        globalState.employees = loadedData.employees;
-                    }
-                    
-                    if (Array.isArray(loadedData.customTemplates)) {
-                        globalState.customTemplates = loadedData.customTemplates;
-                        
-                        // Recréer les templates personnalisés avec leurs couleurs
-                        loadedData.customTemplates.forEach(template => {
-                            const customTemplate = document.createElement('div');
-                            customTemplate.className = 'template custom';
-                            customTemplate.draggable = true;
-                            customTemplate.dataset.type = 'custom';
-                            customTemplate.style.background = template.color ? 
-                                `linear-gradient(135deg, ${template.color}, ${adjustColor(template.color, -20)})` :
-                                'linear-gradient(135deg, #8b5cf6, #7c3aed)';
-                            customTemplate.innerHTML = `⚙️ ${template.text}`;
-                            
-                            customTemplate.addEventListener('dragstart', handleDragStart);
-                            customTemplate.addEventListener('dragend', handleDragEnd);
-                            
-                            document.getElementById('templatesContainer').appendChild(customTemplate);
-                        });
-                    }
-                    
-                    if (Array.isArray(loadedData.timeSlots)) {
-                        globalState.timeSlots = loadedData.timeSlots;
-                        renderTimeSlots();
-                    }
-                    
-                    if (Array.isArray(loadedData.weekTemplates)) {
-                        globalState.weekTemplates = loadedData.weekTemplates;
-                        updateWeekTemplateSelect();
-                    }
-                    
-                    renderPlanning();
-                    updateSummary();
-                    showToast(`📱 Planning chargé depuis: ${source}`, 'success');
-                } else {
-                    createDefaultData();
-                }
-            } catch (error) {
-                console.error('Erreur chargement:', error);
-                createDefaultData();
-            }
-        }
-
-        // Supprimer la fonction showShareInstructions qui causait l'affichage automatique
-
-        function showShareFallback(url) {
-            const modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.style.display = 'block';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <h2>🔗 Lien de Partage Multi-Appareils</h2>
-                    <p>Copiez ce lien pour accéder au planning depuis tous vos appareils :</p>
-                    <textarea readonly style="width: 100%; height: 80px; padding: 10px; border-radius: 8px; border: 2px solid #10b981; margin: 15px 0; font-family: monospace; font-size: 12px;">${url}</textarea>
-                    <div style="background: rgba(16, 185, 129, 0.1); padding: 10px; border-radius: 8px; margin: 10px 0; font-size: 14px;">
-                        <strong>💡 Utilisation :</strong> Collez ce lien dans n'importe quel navigateur (mobile, tablette, PC)
-                    </div>
-                    <div class="form-actions">
-                        <button class="btn admin" onclick="this.closest('.modal').remove(); showToast('Vous pouvez maintenant coller le lien !', 'success');">✅ J'ai copié</button>
-                        <button class="btn" onclick="this.closest('.modal').remove()">Fermer</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-            
-            // Sélectionner automatiquement le texte
-            const textarea = modal.querySelector('textarea');
-            textarea.select();
-            textarea.focus();
-        }
-
-        // Auto-sauvegarde intelligente (toutes les 30 secondes si changements)
-        let lastSaveHash = '';
-        setInterval(() => {
-            try {
-                if (globalState.employees && globalState.employees.length > 0) {
-                    const currentHash = JSON.stringify(globalState).substring(0, 100);
-                    if (currentHash !== lastSaveHash) {
-                        saveData();
-                        lastSaveHash = currentHash;
-                    }
-                }
-            } catch (error) {
-                console.error('Erreur auto-sauvegarde:', error);
-            }
-        }, 30000); // Toutes les 30 secondes
-
-        // Sauvegarde lors de la fermeture de l'onglet/app
-        window.addEventListener('beforeunload', () => {
-            try {
-                saveData();
-            } catch (error) {
-                console.error('Erreur sauvegarde fermeture:', error);
-            }
-        });
-
-        function resetPlanning() {
-            if (confirm('⚠️ ATTENTION: Cela va supprimer toutes les données (employés, plannings, cases personnalisées). Continuer ?')) {
-                try {
-                    // Supprimer toutes les sauvegardes
-                    const keysToRemove = [
-                        'planning_data', 
-                        CLOUD_STORAGE_KEY, 
-                        'planning_session',
-                        'planning_backup_1', 
-                        'planning_backup_2', 
-                        'planning_backup_3'
-                    ];
-                    
-                    keysToRemove.forEach(key => {
-                        try {
-                            localStorage.removeItem(key);
-                        } catch (e) {}
-                        try {
-                            sessionStorage.removeItem(key);
-                        } catch (e) {}
-                    });
-                    
-                    // Nettoyer l'URL
-                    const newUrl = new URL(window.location);
-                    newUrl.searchParams.delete('data');
-                    window.history.replaceState({}, '', newUrl);
-                    
-                    // Recharger
-                    location.reload();
-                } catch (error) {
-                    console.error('Erreur reset:', error);
-                    location.reload();
-                }
-            }
-        }
-
-        console.log(`
-🎉 Planning Hebdomadaire Multi-Appareils Initialisé !
-
-🚀 NOUVELLES FONCTIONNALITÉS:
-✅ Barre flottante toujours visible en mode admin
-✅ Cases personnalisées conservent leur couleur  
-✅ Synchronisation multi-appareils via URL
-✅ Sauvegarde redondante (localStorage + URL + backups)
-✅ Compatible mobile, tablette, PC
-
-🔧 Commandes de dépannage:
-- resetPlanning() : Réinitialise tout
-- globalState : État actuel des données
-
-🔑 Mot de passe admin: admin123
-
-💡 CONSEIL: Utilisez "Partager Planning" pour synchroniser entre vos appareils !
-        `);
-    </script>
-</body>
-</html><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -269,27 +92,27 @@
         }
 
         .floating-toolbar {
-            position: fixed !important;
-            top: 10px !important;
-            left: 50% !important;
-            transform: translateX(-50%) !important;
-            z-index: 9999 !important;
-            background: rgba(255, 255, 255, 0.98) !important;
-            backdrop-filter: blur(20px) !important;
-            border: 2px solid rgba(102, 126, 234, 0.3) !important;
-            border-radius: 20px !important;
-            padding: 15px 20px !important;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
-            opacity: 1 !important;
-            visibility: visible !important;
-            transition: all 0.3s ease !important;
-            max-width: 90vw !important;
-            overflow-x: auto !important;
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 20px;
+            padding: 15px 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            max-width: 90vw;
+            overflow-x: auto;
         }
 
         .floating-toolbar.show {
-            opacity: 1 !important;
-            visibility: visible !important;
+            opacity: 1;
+            visibility: visible;
         }
 
         .floating-toolbar .toolbar-content {
@@ -1015,8 +838,7 @@
             <div class="admin-panel" style="margin-top: 15px;">
                 <button class="btn admin" onclick="openEmployeeModal()">👤 Ajouter Employé</button>
                 <button class="btn warning" onclick="saveData()">💾 Sauvegarder</button>
-                <button class="btn" onclick="shareOpening()">📤 Exporter Planning</button>
-                <button class="btn" onclick="triggerImport()">📥 Importer Planning</button>
+                <button class="btn" onclick="shareOpening()">🔗 Partager Planning</button>
                 <button class="btn danger" onclick="clearAll()">🗑️ Vider Planning</button>
             </div>
         </div>
@@ -1178,8 +1000,6 @@
         // Initialisation sécurisée
         document.addEventListener('DOMContentLoaded', function() {
             try {
-                // NETTOYER L'URL au démarrage
-                cleanUrlOnStartup();
                 initializeApp();
             } catch (error) {
                 console.error('Erreur initialisation:', error);
@@ -1187,22 +1007,6 @@
                 createDefaultData();
             }
         });
-
-        function cleanUrlOnStartup() {
-            try {
-                // Nettoyer immédiatement l'URL pour éviter "URI Too Long"
-                const newUrl = new URL(window.location);
-                if (newUrl.searchParams.has('data')) {
-                    newUrl.searchParams.delete('data');
-                    window.history.replaceState({}, '', newUrl);
-                    console.log('✅ URL nettoyée au démarrage');
-                }
-            } catch (error) {
-                console.error('Erreur nettoyage URL:', error);
-                // Fallback : recharger sans paramètres
-                window.location.href = window.location.origin + window.location.pathname;
-            }
-        }
 
         function initializeApp() {
             const today = new Date();
@@ -1218,8 +1022,7 @@
             setupFloatingToolbar();
             loadData();
             
-            // NE PAS afficher automatiquement le modal de partage
-            // showToast('Planning initialisé avec succès', 'success');
+            showToast('Planning initialisé avec succès', 'success');
         }
 
         function setupEventListeners() {
@@ -1283,9 +1086,51 @@
         }
 
         function setupFloatingToolbar() {
-            // La toolbar est maintenant toujours visible en mode admin
-            // Plus besoin de vérifier le scroll
-            console.log('Toolbar setup - Toujours visible en mode admin');
+            const toolbar = document.getElementById('floatingToolbar');
+            
+            function checkScroll() {
+                try {
+                    const scrollY = window.scrollY;
+                    const planningGrid = document.querySelector('.planning-grid');
+                    
+                    if (planningGrid && globalState.isAdminMode) {
+                        const gridRect = planningGrid.getBoundingClientRect();
+                        const windowHeight = window.innerHeight;
+                        
+                        // Afficher la toolbar dès qu'on scroll et qu'on voit le planning
+                        if (scrollY > 150 || (gridRect.top < windowHeight && gridRect.bottom > 0)) {
+                            if (!toolbar.classList.contains('show')) {
+                                toolbar.classList.add('show');
+                                updateFloatingContent();
+                            }
+                        } else {
+                            toolbar.classList.remove('show');
+                        }
+                    } else {
+                        toolbar.classList.remove('show');
+                    }
+                } catch (error) {
+                    console.error('Erreur check scroll:', error);
+                }
+            }
+            
+            // Vérifier au scroll avec throttling
+            let ticking = false;
+            window.addEventListener('scroll', () => {
+                if (!ticking) {
+                    requestAnimationFrame(() => {
+                        checkScroll();
+                        ticking = false;
+                    });
+                    ticking = true;
+                }
+            });
+            
+            // Vérifier aussi au resize
+            window.addEventListener('resize', checkScroll);
+            
+            // Vérifier immédiatement
+            setTimeout(checkScroll, 100);
         }
 
         function updateFloatingContent() {
@@ -1469,16 +1314,18 @@
                     adminPanels.forEach(panel => panel.style.display = 'block');
                     addDeleteButtonsToTemplates();
                     
-                    // Afficher la toolbar immédiatement en mode admin
-                    toolbar.classList.add('show');
-                    toolbar.style.display = 'block';
-                    updateFloatingContent();
+                    // Vérifier si on doit afficher la toolbar
+                    setTimeout(() => {
+                        if (window.scrollY > 150) {
+                            toolbar.classList.add('show');
+                            updateFloatingContent();
+                        }
+                    }, 100);
                 } else {
                     modeBtn.textContent = '🔒 Mode Lecture';
                     modeBtn.className = 'btn';
                     adminPanels.forEach(panel => panel.style.display = 'none');
                     toolbar.classList.remove('show');
-                    toolbar.style.display = 'none';
                     removeDeleteButtonsFromTemplates();
                 }
                 
@@ -1761,17 +1608,6 @@
                             slot: slot
                         };
                     }
-                } else if (type === 'custom') {
-                    // Récupérer la couleur personnalisée pour les cases custom
-                    const customText = e.target.textContent.replace('×', '').replace('⚙️', '').trim();
-                    const customTemplate = globalState.customTemplates.find(t => t.text === customText);
-                    const customColor = customTemplate ? customTemplate.color : '#8b5cf6';
-                    
-                    globalState.draggedItem = {
-                        type: 'custom',
-                        text: e.target.textContent.replace('×', '').trim(),
-                        customColor: customColor
-                    };
                 } else {
                     globalState.draggedItem = {
                         type: e.target.dataset.type,
@@ -1970,11 +1806,6 @@
                 card.className = `shift-card ${shift.type}`;
                 card.dataset.shiftId = shift.id;
                 
-                // Appliquer la couleur personnalisée pour les cases custom
-                if (shift.type === 'custom' && shift.customColor) {
-                    card.style.background = `linear-gradient(135deg, ${shift.customColor}, ${adjustColor(shift.customColor, -20)})`;
-                }
-                
                 // Affichage selon le type
                 let content = '';
                 if (shift.type === 'work') {
@@ -2045,14 +1876,6 @@
                         hours: `${hours.toFixed(0)}h`,
                         slot: slot
                     };
-                } else if (globalState.draggedItem.type === 'custom') {
-                    // Préserver la couleur personnalisée
-                    newShift = {
-                        id: generateId(),
-                        type: 'custom',
-                        text: globalState.draggedItem.text,
-                        customColor: globalState.draggedItem.customColor
-                    };
                 } else {
                     newShift = {
                         id: generateId(),
@@ -2099,8 +1922,7 @@
                             type: shift.type,
                             text: shift.text,
                             hours: shift.hours,
-                            slot: shift.slot,
-                            customColor: shift.customColor // Préserver la couleur personnalisée
+                            slot: shift.slot
                         };
                         showToast('Case copiée - Clic droit pour coller', 'success');
                     }
@@ -2127,8 +1949,7 @@
                     type: globalState.copiedShift.type,
                     text: globalState.copiedShift.text,
                     hours: globalState.copiedShift.hours,
-                    slot: globalState.copiedShift.slot,
-                    customColor: globalState.copiedShift.customColor // Préserver la couleur
+                    slot: globalState.copiedShift.slot
                 };
                 
                 employee.planning[weekKey][day].push(newShift);
@@ -2400,9 +2221,7 @@
             }
         }
 
-        // Système de sauvegarde simplifié (sans URL)
-        const CLOUD_STORAGE_KEY = 'planning_cloud_data_v3';
-        
+        // Système de sauvegarde
         function saveData() {
             try {
                 const dataToSave = {
@@ -2411,57 +2230,23 @@
                     timeSlots: globalState.timeSlots || [],
                     weekTemplates: globalState.weekTemplates || [],
                     lastSave: new Date().toISOString(),
-                    version: '3.0',
-                    deviceId: getDeviceId()
+                    version: '2.0'
                 };
                 
                 const dataString = JSON.stringify(dataToSave);
                 
-                // 1. Sauvegarde localStorage (principal)
+                // Sauvegarde localStorage
                 try {
                     localStorage.setItem('planning_data', dataString);
-                    localStorage.setItem(CLOUD_STORAGE_KEY, dataString);
                 } catch (e) {
                     console.warn('localStorage non disponible');
                 }
                 
-                // 2. Sauvegarde sessionStorage (backup)
-                try {
-                    sessionStorage.setItem('planning_session', dataString);
-                } catch (e) {
-                    console.warn('sessionStorage non disponible');
-                }
-                
-                // 3. Sauvegarde multiple pour redondance
-                const backupKeys = ['planning_backup_1', 'planning_backup_2', 'planning_backup_3'];
-                backupKeys.forEach((key, index) => {
-                    try {
-                        localStorage.setItem(key, dataString);
-                    } catch (e) {
-                        console.warn(`Backup ${index} échoué`);
-                    }
-                });
-                
-                showToast('✅ Données sauvegardées', 'success');
+                showToast('Données sauvegardées', 'success');
             } catch (error) {
                 console.error('Erreur sauvegarde:', error);
-                showToast('❌ Erreur de sauvegarde', 'error');
+                showToast('Erreur de sauvegarde', 'error');
             }
-        }
-
-        function getDeviceId() {
-            // Créer un ID unique pour l'appareil
-            let deviceId = localStorage.getItem('device_id');
-            if (!deviceId) {
-                deviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                try {
-                    localStorage.setItem('device_id', deviceId);
-                } catch (e) {
-                    // Si localStorage indisponible, utiliser un ID temporaire
-                    deviceId = 'temp_' + Math.random().toString(36).substr(2, 9);
-                }
-            }
-            return deviceId;
         }
 
         function loadData() {
@@ -2547,10 +2332,8 @@
                 saveData();
                 renderPlanning();
                 updateSummary();
-                renderTimeSlots();
                 
-                // Message discret sans modal automatique
-                showToast('Planning initialisé - Cliquez sur "Mode Lecture" pour commencer', 'success');
+                showToast('Planning initialisé - Passez en mode admin pour ajouter des employés', 'success');
             } catch (error) {
                 console.error('Erreur create default data:', error);
             }
