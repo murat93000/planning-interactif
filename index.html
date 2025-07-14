@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planning Hebdomadaire - Version Corrigée</title>
+    <title>Planning Hebdomadaire - Version Cloud</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <style>
         * {
             margin: 0;
@@ -822,16 +826,22 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📅 Planning Hebdomadaire Complet</h1>
-            <p>Système de gestion d'équipe moderne avec créneaux personnalisables</p>
+            <h1>📅 Planning Hebdomadaire Cloud</h1>
+            <p>Système de gestion d'équipe avec synchronisation cloud Firebase</p>
+            <div id="connectionStatus" style="margin-top: 10px; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600;">
+                <span id="statusText">🔄 Connexion en cours...</span>
+                <span id="userInfo" style="margin-left: 10px;"></span>
+            </div>
         </div>
 
         <div class="auth-section">
             <button class="btn" id="modeBtn" onclick="toggleMode()">🔒 Mode Lecture</button>
+            <button class="btn" id="authBtn" onclick="toggleAuth()">🔑 Se connecter</button>
             <div class="admin-panel" style="margin-top: 15px;">
                 <button class="btn admin" onclick="openEmployeeModal()">👤 Ajouter Employé</button>
                 <button class="btn admin" onclick="openBulkFillModal()">📅 Remplissage par Date</button>
-                <button class="btn warning" onclick="saveData()">💾 Sauvegarder</button>
+                <button class="btn warning" onclick="saveToCloud()">☁️ Sauver sur Cloud</button>
+                <button class="btn warning" onclick="saveData()">💾 Sauver Local</button>
                 <button class="btn" onclick="shareOpening()">🔗 Partager Planning</button>
                 <button class="btn danger" onclick="clearAll()">🗑️ Vider Planning</button>
             </div>
@@ -1071,6 +1081,266 @@
     </div>
 
     <script>
+        // ================================
+        // CONFIGURATION FIREBASE
+        // ================================
+        
+        // 🔥 VOS CLÉS FIREBASE CONFIGURÉES
+        const firebaseConfig = {
+            apiKey: "AIzaSyAfR_JWPDlpvSLA3NzmQbaznZ4F96eUJ9A",
+            authDomain: "planning-pro-o2.firebaseapp.com",
+            projectId: "planning-pro-o2",
+            storageBucket: "planning-pro-o2.firebasestorage.app",
+            messagingSenderId: "995287000230",
+            appId: "1:995287000230:web:a649b621b84ead3e1c4067"
+        };
+
+        // Variables Firebase
+        let db = null;
+        let auth = null;
+        let currentUser = null;
+        let isFirebaseEnabled = false;
+
+        // Initialisation Firebase
+        function initFirebase() {
+            try {
+                // Vérifier si les clés Firebase sont configurées
+                if (firebaseConfig.apiKey === "VOTRE_API_KEY") {
+                    console.warn("⚠️ Firebase non configuré - fonctionnement en mode local uniquement");
+                    updateConnectionStatus("local", "Firebase non configuré - Mode local");
+                    return false;
+                }
+
+                // Initialiser Firebase
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                auth = firebase.auth();
+                isFirebaseEnabled = true;
+
+                // Écouter les changements d'authentification
+                auth.onAuthStateChanged((user) => {
+                    currentUser = user;
+                    updateAuthDisplay();
+                    if (user) {
+                        updateConnectionStatus("connected", `Connecté: ${user.email}`);
+                        loadFromCloud();
+                    } else {
+                        updateConnectionStatus("disconnected", "Non connecté");
+                    }
+                });
+
+                updateConnectionStatus("ready", "Firebase prêt");
+                return true;
+            } catch (error) {
+                console.error("Erreur initialisation Firebase:", error);
+                updateConnectionStatus("error", "Erreur Firebase");
+                return false;
+            }
+        }
+
+        function updateConnectionStatus(status, message) {
+            const statusDiv = document.getElementById('connectionStatus');
+            const statusText = document.getElementById('statusText');
+            const userInfo = document.getElementById('userInfo');
+
+            if (!statusDiv || !statusText) return;
+
+            statusText.textContent = message;
+
+            // Styles selon le statut
+            switch(status) {
+                case 'connected':
+                    statusDiv.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                    statusDiv.style.color = 'white';
+                    break;
+                case 'disconnected':
+                case 'local':
+                    statusDiv.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+                    statusDiv.style.color = 'white';
+                    break;
+                case 'error':
+                    statusDiv.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                    statusDiv.style.color = 'white';
+                    break;
+                default:
+                    statusDiv.style.background = 'linear-gradient(135deg, #6b7280, #4b5563)';
+                    statusDiv.style.color = 'white';
+            }
+        }
+
+        function updateAuthDisplay() {
+            const authBtn = document.getElementById('authBtn');
+            if (!authBtn) return;
+
+            if (currentUser) {
+                authBtn.textContent = '🚪 Se déconnecter';
+                authBtn.className = 'btn danger';
+            } else {
+                authBtn.textContent = '🔑 Se connecter';
+                authBtn.className = 'btn';
+            }
+        }
+
+        // ================================
+        // FONCTIONS D'AUTHENTIFICATION
+        // ================================
+
+        function toggleAuth() {
+            if (!isFirebaseEnabled) {
+                showToast('Firebase non configuré', 'error');
+                return;
+            }
+
+            if (currentUser) {
+                signOut();
+            } else {
+                signInAnonymously();
+            }
+        }
+
+        function signInAnonymously() {
+            if (!auth) return;
+
+            auth.signInAnonymously()
+                .then(() => {
+                    showToast('Connexion réussie', 'success');
+                })
+                .catch((error) => {
+                    console.error('Erreur connexion:', error);
+                    showToast('Erreur de connexion', 'error');
+                });
+        }
+
+        function signOut() {
+            if (!auth) return;
+
+            auth.signOut()
+                .then(() => {
+                    showToast('Déconnexion réussie', 'success');
+                })
+                .catch((error) => {
+                    console.error('Erreur déconnexion:', error);
+                    showToast('Erreur de déconnexion', 'error');
+                });
+        }
+
+        // ================================
+        // FONCTIONS CLOUD
+        // ================================
+
+        function saveToCloud() {
+            if (!isFirebaseEnabled || !currentUser || !db) {
+                showToast('Connexion Firebase requise', 'error');
+                return;
+            }
+
+            try {
+                const dataToSave = {
+                    employees: globalState.employees || [],
+                    customTemplates: globalState.customTemplates || [],
+                    timeSlots: globalState.timeSlots || [],
+                    weekTemplates: globalState.weekTemplates || [],
+                    lastSave: new Date().toISOString(),
+                    version: '3.0',
+                    userId: currentUser.uid
+                };
+
+                db.collection('plannings').doc(currentUser.uid).set(dataToSave)
+                    .then(() => {
+                        showToast('💾 Sauvegardé sur le cloud !', 'success');
+                        // Sauvegarder aussi en local comme backup
+                        saveData();
+                    })
+                    .catch((error) => {
+                        console.error('Erreur sauvegarde cloud:', error);
+                        showToast('Erreur sauvegarde cloud', 'error');
+                    });
+            } catch (error) {
+                console.error('Erreur préparation données:', error);
+                showToast('Erreur préparation des données', 'error');
+            }
+        }
+
+        function loadFromCloud() {
+            if (!isFirebaseEnabled || !currentUser || !db) {
+                return;
+            }
+
+            db.collection('plannings').doc(currentUser.uid).get()
+                .then((doc) => {
+                    if (doc.exists) {
+                        const cloudData = doc.data();
+                        console.log('Données cloud trouvées:', cloudData);
+
+                        // Merger avec les données locales ou utiliser les données cloud
+                        if (cloudData.employees && Array.isArray(cloudData.employees)) {
+                            globalState.employees = cloudData.employees;
+                        }
+
+                        if (cloudData.customTemplates && Array.isArray(cloudData.customTemplates)) {
+                            globalState.customTemplates = cloudData.customTemplates;
+                            loadCustomTemplates();
+                        }
+
+                        if (cloudData.timeSlots && Array.isArray(cloudData.timeSlots)) {
+                            globalState.timeSlots = cloudData.timeSlots;
+                            renderTimeSlots();
+                        }
+
+                        renderPlanning();
+                        updateSummary();
+                        showToast('📡 Données synchronisées depuis le cloud', 'success');
+                    } else {
+                        console.log('Aucune donnée cloud trouvée');
+                        // Charger les données locales si disponibles
+                        loadData();
+                    }
+                })
+                .catch((error) => {
+                    console.error('Erreur chargement cloud:', error);
+                    showToast('Erreur chargement cloud, utilisation des données locales', 'error');
+                    loadData();
+                });
+        }
+
+        function loadCustomTemplates() {
+            // Nettoyer les templates personnalisés existants
+            document.querySelectorAll('.template.custom').forEach(el => el.remove());
+
+            // Recharger depuis globalState.customTemplates
+            if (Array.isArray(globalState.customTemplates)) {
+                globalState.customTemplates.forEach(template => {
+                    const customTemplate = document.createElement('div');
+                    customTemplate.className = 'template custom';
+                    customTemplate.draggable = true;
+                    customTemplate.dataset.type = 'custom';
+                    customTemplate.style.background = template.color ? 
+                        `linear-gradient(135deg, ${template.color}, ${adjustColor(template.color, -20)})` :
+                        'linear-gradient(135deg, #8b5cf6, #7c3aed)';
+                    customTemplate.innerHTML = `⚙️ ${template.text}`;
+                    
+                    customTemplate.addEventListener('dragstart', handleDragStart);
+                    customTemplate.addEventListener('dragend', handleDragEnd);
+                    
+                    document.getElementById('templatesContainer').appendChild(customTemplate);
+                });
+            }
+        }
+
+        // Auto-sauvegarde cloud
+        function enableAutoSaveCloud() {
+            if (!isFirebaseEnabled || !currentUser) return;
+
+            setInterval(() => {
+                if (globalState.employees && globalState.employees.length > 0) {
+                    saveToCloud();
+                }
+            }, 300000); // Toutes les 5 minutes
+        }
+
+        // ================================
+        // CODE EXISTANT MODIFIÉ
+        // ================================
         // Configuration sécurisée
         const ADMIN_PASSWORD = 'admin123';
         
@@ -1096,6 +1366,10 @@
         // Initialisation sécurisée
         document.addEventListener('DOMContentLoaded', function() {
             try {
+                // Initialiser Firebase en premier
+                initFirebase();
+                
+                // Puis initialiser l'application
                 initializeApp();
             } catch (error) {
                 console.error('Erreur initialisation:', error);
@@ -1115,7 +1389,16 @@
             renderPlanning();
             updateSummary();
             updateWeekTemplateSelect();
+            
+            // Charger les données (local d'abord, puis cloud si connecté)
             loadData();
+            
+            // Activer l'auto-sauvegarde cloud si possible
+            setTimeout(() => {
+                if (isFirebaseEnabled && currentUser) {
+                    enableAutoSaveCloud();
+                }
+            }, 2000);
             
             showToast('Planning initialisé avec succès', 'success');
         }
@@ -2527,7 +2810,7 @@
             }
         }
 
-        // Système de sauvegarde
+        // Système de sauvegarde amélioré
         function saveData() {
             try {
                 const dataToSave = {
@@ -2536,7 +2819,7 @@
                     timeSlots: globalState.timeSlots || [],
                     weekTemplates: globalState.weekTemplates || [],
                     lastSave: new Date().toISOString(),
-                    version: '2.0'
+                    version: '3.0'
                 };
                 
                 const dataString = JSON.stringify(dataToSave);
@@ -2544,11 +2827,17 @@
                 // Sauvegarde localStorage
                 try {
                     localStorage.setItem('planning_data', dataString);
+                    showToast('💾 Sauvegardé localement', 'success');
                 } catch (e) {
                     console.warn('localStorage non disponible');
+                    showToast('Erreur sauvegarde locale', 'error');
                 }
                 
-                showToast('Données sauvegardées', 'success');
+                // Auto-sauvegarde cloud si connecté
+                if (isFirebaseEnabled && currentUser) {
+                    setTimeout(() => saveToCloud(), 1000);
+                }
+                
             } catch (error) {
                 console.error('Erreur sauvegarde:', error);
                 showToast('Erreur de sauvegarde', 'error');
