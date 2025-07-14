@@ -1247,13 +1247,14 @@
 
                 db.collection('plannings').doc(currentUser.uid).set(dataToSave)
                     .then(() => {
-                        showToast('💾 Sauvegardé sur le cloud !', 'success');
-                        // Sauvegarder aussi en local comme backup
-                        saveData();
+                        showToast('☁️ Sauvegardé sur le cloud !', 'success');
+                        // PAS de double sauvegarde locale ici
                     })
                     .catch((error) => {
                         console.error('Erreur sauvegarde cloud:', error);
                         showToast('Erreur sauvegarde cloud', 'error');
+                        // Fallback vers local seulement en cas d'erreur
+                        saveDataLocal();
                     });
             } catch (error) {
                 console.error('Erreur préparation données:', error);
@@ -2812,6 +2813,17 @@
 
         // Système de sauvegarde amélioré
         function saveData() {
+            saveDataLocal();
+            
+            // Auto-sauvegarde cloud si connecté (mais sans message répétitif)
+            if (isFirebaseEnabled && currentUser) {
+                setTimeout(() => {
+                    saveToCloudSilent(); // Version silencieuse pour l'auto-save
+                }, 1000);
+            }
+        }
+
+        function saveDataLocal() {
             try {
                 const dataToSave = {
                     employees: globalState.employees || [],
@@ -2833,14 +2845,32 @@
                     showToast('Erreur sauvegarde locale', 'error');
                 }
                 
-                // Auto-sauvegarde cloud si connecté
-                if (isFirebaseEnabled && currentUser) {
-                    setTimeout(() => saveToCloud(), 1000);
-                }
-                
             } catch (error) {
                 console.error('Erreur sauvegarde:', error);
                 showToast('Erreur de sauvegarde', 'error');
+            }
+        }
+
+        function saveToCloudSilent() {
+            if (!isFirebaseEnabled || !currentUser || !db) return;
+
+            try {
+                const dataToSave = {
+                    employees: globalState.employees || [],
+                    customTemplates: globalState.customTemplates || [],
+                    timeSlots: globalState.timeSlots || [],
+                    weekTemplates: globalState.weekTemplates || [],
+                    lastSave: new Date().toISOString(),
+                    version: '3.0',
+                    userId: currentUser.uid
+                };
+
+                db.collection('plannings').doc(currentUser.uid).set(dataToSave)
+                    .catch((error) => {
+                        console.error('Erreur auto-sauvegarde cloud:', error);
+                    });
+            } catch (error) {
+                console.error('Erreur auto-sauvegarde:', error);
             }
         }
 
