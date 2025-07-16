@@ -3396,18 +3396,33 @@ globalState.employees.forEach(employee => {
             draggedEmployeeData = null;
         }
 
-        function setupEmployeeDropZones() {
+        let isCreatingDropZones = false; // Variable de protection
+
+function setupEmployeeDropZones() {
     const grid = document.getElementById('planningGrid');
     if (!grid) return;
+    
+    // Protection contre les appels multiples
+    if (isCreatingDropZones) {
+        console.log('⚠️ Création zones déjà en cours, ignoré');
+        return;
+    }
+    
+    isCreatingDropZones = true;
+    console.log('🎯 Création zones de drop...');
     
     // Nettoyer les anciennes zones
     cleanupEmployeeDropZones();
     
-    console.log('🎯 Création zones de drop...');
-    
     // Trouver toutes les cellules employés
     const employeeCells = grid.querySelectorAll('.employee-cell');
     console.log('👥 Employés trouvés:', employeeCells.length);
+    
+    if (employeeCells.length === 0) {
+        console.log('❌ Aucun employé trouvé');
+        isCreatingDropZones = false;
+        return;
+    }
     
     // Créer une zone AVANT chaque employé
     employeeCells.forEach((empCell, index) => {
@@ -3428,11 +3443,8 @@ globalState.employees.forEach(employee => {
         dropZone.addEventListener('dragleave', handleEmployeeDragLeave);
         dropZone.addEventListener('drop', (e) => handleEmployeeDrop(e, index));
         
-        // Insérer AVANT la ligne de l'employé (8 cellules par ligne)
-        const rowStartIndex = Array.from(grid.children).indexOf(empCell);
-        const rowFirstCell = grid.children[rowStartIndex];
-        
-        grid.insertBefore(dropZone, rowFirstCell);
+        // Insérer AVANT la ligne de l'employé
+        grid.insertBefore(dropZone, empCell);
     });
     
     // Zone APRÈS le dernier employé
@@ -3456,7 +3468,13 @@ globalState.employees.forEach(employee => {
     grid.appendChild(finalDropZone);
     
     const totalZones = document.querySelectorAll('.employee-drop-zone').length;
-    console.log('✅ Zones créées:', totalZones, '(doit être', employeeCells.length + 1, ')');
+    console.log('✅ Zones créées:', totalZones);
+    
+    // Libérer la protection après un délai
+    setTimeout(() => {
+        isCreatingDropZones = false;
+        console.log('🔓 Protection libérée');
+    }, 100);
 }
 
         function cleanupEmployeeDropZones() {
