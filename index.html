@@ -781,6 +781,45 @@
             to { transform: translateX(0); opacity: 1; }
         }
 
+        /* NOUVEAU CSS POUR BOUTONS FLÈCHES */
+        .employee-order-controls {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            display: none;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .employee-cell:hover .employee-order-controls {
+            display: flex;
+        }
+
+        .order-btn {
+            background: rgba(102, 126, 234, 0.9);
+            color: white;
+            border: none;
+            border-radius: 3px;
+            width: 18px;
+            height: 16px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: bold;
+        }
+
+        .order-btn:hover {
+            background: #667eea;
+            transform: scale(1.1);
+        }
+
+        .order-btn:disabled {
+            background: rgba(107, 114, 128, 0.5);
+            cursor: not-allowed;
+            transform: none;
+        }
+    </style>
+
         .admin-panel {
             display: none;
         }
@@ -2484,9 +2523,13 @@ globalState.employees.forEach(employee => {
                     }
                     
                     empCell.innerHTML = `
-    <div class="employee-name">
-        ${globalState.isAdminMode ? '⬍⬍ ' : ''}${employee.name}
-    </div>
+    ${globalState.isAdminMode ? `
+        <div class="employee-order-controls">
+            <button class="order-btn" onclick="moveEmployeeUp('${employee.id}')" title="Monter" ${index === 0 ? 'disabled' : ''}>⬆️</button>
+            <button class="order-btn" onclick="moveEmployeeDown('${employee.id}')" title="Descendre" ${index === globalState.employees.length - 1 ? 'disabled' : ''}>⬇️</button>
+        </div>
+    ` : ''}
+    <div class="employee-name">${employee.name}</div>
     <div class="employee-role">${employee.role}</div>
     <div class="employee-hours">${weekHours.toFixed(0)}h | ${workDays} jours</div>
     ${globalState.isAdminMode ? `
@@ -3488,7 +3531,7 @@ function setupEmployeeDropZones() {
             e.currentTarget.style.background = 'rgba(102, 126, 234, 0.1)';
         }
 
-        function handleEmployeeDragLeave(e) {
+     function handleEmployeeDragLeave(e) {
             e.currentTarget.style.border = '2px dashed transparent';
             e.currentTarget.style.background = 'transparent';
         }
@@ -3508,6 +3551,69 @@ function setupEmployeeDropZones() {
                     showToast('Position inchangée', 'error');
                     return;
                 }
+                
+                // Supprimer l'employé de sa position actuelle
+                const employee = globalState.employees.splice(originalIndex, 1)[0];
+                
+                // Calculer la nouvelle position correctement
+                let newIndex = insertIndex;
+
+                // Si on déplace vers le bas
+                if (insertIndex > originalIndex) {
+                    newIndex = insertIndex - 1;
+                }
+                // Si on déplace vers le haut  
+                else if (insertIndex < originalIndex) {
+                    newIndex = insertIndex;
+                }
+                
+                console.log(`Déplacement: ${originalIndex} → ${newIndex} (insertIndex: ${insertIndex})`);
+                
+                // Insérer à la nouvelle position
+                globalState.employees.splice(newIndex, 0, employee);
+                
+                // Mettre à jour l'affichage
+                renderPlanning();
+                updateSummary();
+                saveData();
+                
+                showToast(`${employee.name} déplacé à la position ${newIndex + 1}`, 'success');
+                
+            } catch (error) {
+                console.error('Erreur déplacement employé:', error);
+                showToast('Erreur lors du déplacement', 'error');
+            }
+        }
+
+        function moveEmployeeUp(employeeId) {
+            const currentIndex = globalState.employees.findIndex(emp => emp.id === employeeId);
+            if (currentIndex <= 0) return;
+            
+            // Échanger avec l'employé du dessus
+            const temp = globalState.employees[currentIndex];
+            globalState.employees[currentIndex] = globalState.employees[currentIndex - 1];
+            globalState.employees[currentIndex - 1] = temp;
+            
+            renderPlanning();
+            updateSummary();
+            saveData();
+            showToast(`${temp.name} monté`, 'success');
+        }
+
+        function moveEmployeeDown(employeeId) {
+            const currentIndex = globalState.employees.findIndex(emp => emp.id === employeeId);
+            if (currentIndex >= globalState.employees.length - 1) return;
+            
+            // Échanger avec l'employé du dessous
+            const temp = globalState.employees[currentIndex];
+            globalState.employees[currentIndex] = globalState.employees[currentIndex + 1];
+            globalState.employees[currentIndex + 1] = temp;
+            
+            renderPlanning();
+            updateSummary();
+            saveData();
+            showToast(`${temp.name} descendu`, 'success');
+        }
                 
                 // Supprimer l'employé de sa position actuelle
                 const employee = globalState.employees.splice(originalIndex, 1)[0];
