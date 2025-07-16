@@ -3397,52 +3397,67 @@ globalState.employees.forEach(employee => {
         }
 
         function setupEmployeeDropZones() {
-            const grid = document.getElementById('planningGrid');
-            if (!grid) return;
-            
-            // Ajouter des zones de drop entre chaque ligne d'employé
-            const employeeCells = grid.querySelectorAll('.employee-cell');
-            
-            employeeCells.forEach((cell, index) => {
-                // Zone de drop au-dessus
-                const dropZoneTop = document.createElement('div');
-                dropZoneTop.className = 'employee-drop-zone';
-                dropZoneTop.dataset.insertIndex = index;
-                dropZoneTop.style.cssText = `
-                    grid-column: 1 / -1;
-                    height: 20px;
-                    background: transparent;
-                    border: 2px dashed transparent;
-                    transition: all 0.3s ease;
-                    cursor: copy;
-                `;
-                
-                dropZoneTop.addEventListener('dragover', handleEmployeeDragOver);
-                dropZoneTop.addEventListener('dragleave', handleEmployeeDragLeave);
-                dropZoneTop.addEventListener('drop', (e) => handleEmployeeDrop(e, index));
-                
-                cell.parentNode.insertBefore(dropZoneTop, cell);
-            });
-            
-            // Zone de drop à la fin
-            const dropZoneEnd = document.createElement('div');
-            dropZoneEnd.className = 'employee-drop-zone';
-            dropZoneEnd.dataset.insertIndex = employeeCells.length;
-            dropZoneEnd.style.cssText = `
-                grid-column: 1 / -1;
-                height: 20px;
-                background: transparent;
-                border: 2px dashed transparent;
-                transition: all 0.3s ease;
-                cursor: copy;
-            `;
-            
-            dropZoneEnd.addEventListener('dragover', handleEmployeeDragOver);
-            dropZoneEnd.addEventListener('dragleave', handleEmployeeDragLeave);
-            dropZoneEnd.addEventListener('drop', (e) => handleEmployeeDrop(e, employeeCells.length));
-            
-            grid.appendChild(dropZoneEnd);
-        }
+    const grid = document.getElementById('planningGrid');
+    if (!grid) return;
+    
+    // Nettoyer les anciennes zones
+    cleanupEmployeeDropZones();
+    
+    console.log('🎯 Création zones de drop...');
+    
+    // Trouver toutes les cellules employés
+    const employeeCells = grid.querySelectorAll('.employee-cell');
+    console.log('👥 Employés trouvés:', employeeCells.length);
+    
+    // Créer une zone AVANT chaque employé
+    employeeCells.forEach((empCell, index) => {
+        const dropZone = document.createElement('div');
+        dropZone.className = 'employee-drop-zone';
+        dropZone.dataset.insertIndex = index;
+        dropZone.style.cssText = `
+            grid-column: 1 / -1;
+            height: 20px;
+            background: rgba(102, 126, 234, 0.05);
+            border: 2px dashed transparent;
+            transition: all 0.3s ease;
+            cursor: copy;
+            margin: 1px 0;
+        `;
+        
+        dropZone.addEventListener('dragover', handleEmployeeDragOver);
+        dropZone.addEventListener('dragleave', handleEmployeeDragLeave);
+        dropZone.addEventListener('drop', (e) => handleEmployeeDrop(e, index));
+        
+        // Insérer AVANT la ligne de l'employé (8 cellules par ligne)
+        const rowStartIndex = Array.from(grid.children).indexOf(empCell);
+        const rowFirstCell = grid.children[rowStartIndex];
+        
+        grid.insertBefore(dropZone, rowFirstCell);
+    });
+    
+    // Zone APRÈS le dernier employé
+    const finalDropZone = document.createElement('div');
+    finalDropZone.className = 'employee-drop-zone';
+    finalDropZone.dataset.insertIndex = employeeCells.length;
+    finalDropZone.style.cssText = `
+        grid-column: 1 / -1;
+        height: 20px;
+        background: rgba(102, 126, 234, 0.05);
+        border: 2px dashed transparent;
+        transition: all 0.3s ease;
+        cursor: copy;
+        margin: 1px 0;
+    `;
+    
+    finalDropZone.addEventListener('dragover', handleEmployeeDragOver);
+    finalDropZone.addEventListener('dragleave', handleEmployeeDragLeave);
+    finalDropZone.addEventListener('drop', (e) => handleEmployeeDrop(e, employeeCells.length));
+    
+    grid.appendChild(finalDropZone);
+    
+    const totalZones = document.querySelectorAll('.employee-drop-zone').length;
+    console.log('✅ Zones créées:', totalZones, '(doit être', employeeCells.length + 1, ')');
+}
 
         function cleanupEmployeeDropZones() {
             const dropZones = document.querySelectorAll('.employee-drop-zone');
