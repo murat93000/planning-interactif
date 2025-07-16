@@ -1246,39 +1246,132 @@
         // ================================
 
         function saveToCloud() {
-            if (!isFirebaseEnabled || !db) {
-                showToast('Firebase non disponible', 'error');
-                return;
-            }
+    if (!isFirebaseEnabled || !db) {
+        showToast('Firebase non disponible', 'error');
+        return;
+    }
 
-            try {
-                const dataToSave = {
-                    employees: globalState.employees || [],
-                    customTemplates: globalState.customTemplates || [],
-                    timeSlots: globalState.timeSlots || [],
-                    weekTemplates: globalState.weekTemplates || [],
-                    lastSave: new Date().toISOString(),
-                    version: '3.0',
-                    userId: currentUser ? currentUser.uid : 'shared'
-                };
-
-                // Utiliser un document partagé "main" au lieu de l'uid utilisateur
-                db.collection('plannings').doc('main').set(dataToSave)
-                    .then(() => {
-                        showToast('☁️ Sauvegardé sur le cloud !', 'success');
-                        console.log('✅ Sauvegarde réussie dans document "main"');
-                    })
-                    .catch((error) => {
-                        console.error('Erreur sauvegarde cloud:', error);
-                        showToast('Erreur sauvegarde cloud: ' + error.message, 'error');
-                        // Fallback vers local seulement en cas d'erreur
-                        saveDataLocal();
-                    });
-            } catch (error) {
-                console.error('Erreur préparation données:', error);
-                showToast('Erreur préparation des données', 'error');
-            }
+    try {
+        // 🔍 DIAGNOSTIC : Vérifier globalState
+        console.log('🔍 Vérification globalState:', globalState);
+        
+        if (!globalState) {
+            showToast('❌ Données non initialisées', 'error');
+            return;
         }
+
+        // 🧹 NETTOYAGE : Supprimer les propriétés problématiques
+        const cleanEmployees = (globalState.employees || []).map(emp => {
+            const cleanEmp = {
+                id: emp.id,
+                name: emp.name || '',
+                role: emp.role || '',
+                planning: {}
+            };
+            
+            // Nettoyer le planning
+            if (emp.planning && typeof emp.planning === 'object') {
+                Object.keys(emp.planning).forEach(weekKey => {
+                    if (emp.planning[weekKey] && typeof emp.planning[weekKey] === 'object') {
+                        cleanEmp.planning[weekKey] = {};
+                        Object.keys(emp.planning[weekKey]).forEach(day => {
+                            if (Array.isArray(emp.planning[weekKey][day])) {
+                                cleanEmp.planning[weekKey][day] = emp.planning[weekKey][day].map(shift => ({
+                                    id: shift.id || generateId(),
+                                    type: shift.type || 'work',
+                                    text: shift.text || '',
+                                    hours: shift.hours || '',
+                                    backgroundColor: shift.backgroundColor || '',
+                                    slot: shift.slot ? {
+                                        id: shift.slot.id,
+                                        name: shift.slot.name,
+                                        start: shift.slot.start,
+                                        end: shift.slot.end
+                                    } : null
+                                })).filter(shift => shift.id); // Supprimer les shifts sans ID
+                            }
+                        });
+                    }
+                });
+            }
+            
+            return cleanEmp;
+        });
+
+        // 🧹 NETTOYAGE : Templates personnalisés
+        const cleanCustomTemplates = (globalState.customTemplates || []).map(template => ({
+            id: template.id || generateId(),
+            text: template.text || '',
+            color: template.color || '#8b5cf6'
+        })).filter(template => template.text); // Supprimer les templates vides
+
+        // 🧹 NETTOYAGE : Créneaux horaires
+        const cleanTimeSlots = (globalState.timeSlots || []).map(slot => ({
+            id: slot.id || generateId(),
+            name: slot.name || '',
+            start: slot.start || '09:00',
+            end: slot.end || '18:00'
+        })).filter(slot => slot.name); // Supprimer les slots vides
+
+        // 📦 PRÉPARATION : Données finales
+        const dataToSave = {
+            employees: cleanEmployees,
+            customTemplates: cleanCustomTemplates,
+            timeSlots: cleanTimeSlots,
+            weekTemplates: globalState.weekTemplates || [],
+            lastSave: new Date().toISOString(),
+            version: '3.1',
+            userId: currentUser ? currentUser.uid : 'shared'
+        };
+
+        // 🔍 DIAGNOSTIC : Vérifier la taille
+        const dataString = JSON.stringify(dataToSave);
+        const sizeKB = Math.round(dataString.length / 1024);
+        console.log(`📊 Taille des données: ${sizeKB} KB`);
+        
+        if (sizeKB > 900) { // Firebase limite à ~1MB
+            showToast(`⚠️ Données volumineuses (${sizeKB} KB). Sauvegarde risquée.`, 'error');
+        }
+
+        // 💾 SAUVEGARDE : Envoyer à Firebase
+        console.log('💾 Début sauvegarde Firebase...');
+        
+        db.collection('plannings').doc('main').set(dataToSave)
+            .then(() => {
+                showToast(`☁️ Sauvegardé sur le cloud ! (${sizeKB} KB)`, 'success');
+                console.log('✅ Sauvegarde cloud réussie');
+            })
+            .catch((error) => {
+                console.error('❌ Erreur sauvegarde Firebase:', error);
+                showToast(`Erreur Firebase: ${error.message}`, 'error');
+                
+                // 🔄 FALLBACK : Sauvegarde locale en cas d'erreur
+                saveDataLocal();
+            });
+            
+    } catch (error) {
+        console.error('❌ Erreur dans saveToCloud:', error);
+        console.error('📍 Stack trace:', error.stack);
+        
+        // 🔍 DIAGNOSTIC DÉTAILLÉ
+        try {
+            console.log('🔍 État de globalState.employees:', globalState?.employees?.length || 'undefined');
+            console.log('🔍 État de globalState.customTemplates:', globalState?.customTemplates?.length || 'undefined'); 
+            console.log('🔍 État de globalState.timeSlots:', globalState?.timeSlots?.length || 'undefined');
+        } catch (diagError) {
+            console.error('❌ Erreur diagnostic:', diagError);
+        }
+        
+        showToast(`Erreur préparation: ${error.message}`, 'error');
+        
+        // 🔄 FALLBACK : Tentative de sauvegarde locale
+        try {
+            saveDataLocal();
+        } catch (fallbackError) {
+            showToast('Erreur sauvegarde locale également', 'error');
+        }
+    }
+}
 
         function loadFromCloud() {
             if (!isFirebaseEnabled || !db) {
