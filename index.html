@@ -837,6 +837,37 @@
             transform: rotate(5deg) scale(0.95);
             z-index: 1000;
         }
+        /* Styles pour le déplacement des employés */
+.employee-cell.draggable-employee {
+    cursor: move;
+}
+
+.employee-cell.dragging-employee {
+    opacity: 0.6;
+    transform: scale(0.98);
+    z-index: 1000;
+    border: 2px dashed #667eea;
+}
+
+.employee-row.drag-over-employee {
+    border-top: 3px solid #667eea;
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.drag-indicator {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #667eea;
+    z-index: 999;
+    animation: dragPulse 1s infinite;
+}
+
+@keyframes dragPulse {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 1; }
+}
     </style>
 </head>
 <body>
@@ -2424,10 +2455,14 @@
                 }
                 
                 // Lignes des employés
-                globalState.employees.forEach(employee => {
-                    // Cellule employé
-                    const empCell = document.createElement('div');
-                    empCell.className = 'employee-cell';
+globalState.employees.forEach(employee => {
+    // Cellule employé
+    const empCell = document.createElement('div');
+    empCell.className = 'employee-cell';
+    
+    // NOUVEAU: Rendre l'employé déplaçable
+    makeEmployeeDraggable(empCell, employee.id);
+                    
                     
                     // Calculer les heures de la semaine
                     let weekHours = 0;
@@ -2449,10 +2484,12 @@
                     }
                     
                     empCell.innerHTML = `
-                        <div class="employee-name">${employee.name}</div>
-                        <div class="employee-role">${employee.role}</div>
-                        <div class="employee-hours">${weekHours.toFixed(0)}h | ${workDays} jours</div>
-                        ${globalState.isAdminMode ? `
+    <div class="employee-name">
+        ${globalState.isAdminMode ? '⬍⬍ ' : ''}${employee.name}
+    </div>
+    <div class="employee-role">${employee.role}</div>
+    <div class="employee-hours">${weekHours.toFixed(0)}h | ${workDays} jours</div>
+    ${globalState.isAdminMode ? `
                             <button class="remove-emp" onclick="removeEmployee('${employee.id}')" title="Supprimer">×</button>
                             <button class="copy-week-btn" onclick="copyEmployeeWeek('${employee.id}')" title="Copier semaine">📋</button>
                             <button class="paste-week-btn" onclick="pasteEmployeeWeek('${employee.id}')" title="Coller semaine" style="opacity: ${globalState.copiedWeek ? '1' : '0.3'};">📥</button>
@@ -3314,24 +3351,156 @@
             e.target.style.opacity = '1';
         }
 
-        // Auto-sauvegarde périodique
-        setInterval(() => {
-            if (globalState.employees && globalState.employees.length > 0) {
-                saveData();
-            }
-        }, 60000); // Toutes les minutes
+        // ================================
+        // FONCTIONS POUR DÉPLACER LES EMPLOYÉS
+        // ================================
+        
+        let draggedEmployeeData = null;
 
-        // Fonction de réinitialisation d'urgence
-        window.resetPlanning = function() {
-            if (confirm('ATTENTION: Cela va supprimer toutes les données. Continuer ?')) {
-                try {
-                    localStorage.removeItem('planning_data');
-                    location.reload();
-                } catch (error) {
-                    console.error('Erreur reset:', error);
+        function makeEmployeeDraggable(employeeCell, employeeId) {
+            if (!globalState.isAdminMode) return;
+            
+            employeeCell.classList.add('draggable-employee');
+            employeeCell.draggable = true;
+            
+            employeeCell.addEventListener('dragstart', (e) => handleEmployeeDragStart(e, employeeId));
+            employeeCell.addEventListener('dragend', handleEmployeeDragEnd);
+        }
+
+        function handleEmployeeDragStart(e, employeeId) {
+            if (!globalState.isAdminMode) return;
+            
+            const employee = globalState.employees.find(emp => emp.id === employeeId);
+            if (!employee) return;
+            
+            draggedEmployeeData = {
+                employeeId: employeeId,
+                employee: { ...employee },
+                originalIndex: globalState.employees.findIndex(emp => emp.id === employeeId)
+            };
+            
+            e.currentTarget.classList.add('dragging-employee');
+            
+            // Préparer les zones de drop
+            setupEmployeeDropZones();
+            
+            showToast(`Déplacement de ${employee.name}...`, 'success');
+        }
+
+        function handleEmployeeDragEnd(e) {
+            e.currentTarget.classList.remove('dragging-employee');
+            
+            // Nettoyer les zones de drop
+            cleanupEmployeeDropZones();
+            
+            draggedEmployeeData = null;
+        }
+
+        function setupEmployeeDropZones() {
+            const grid = document.getElementById('planningGrid');
+            if (!grid) return;
+            
+            // Ajouter des zones de drop entre chaque ligne d'employé
+            const employeeCells = grid.querySelectorAll('.employee-cell');
+            
+            employeeCells.forEach((cell, index) => {
+                // Zone de drop au-dessus
+                const dropZoneTop = document.createElement('div');
+                dropZoneTop.className = 'employee-drop-zone';
+                dropZoneTop.dataset.insertIndex = index;
+                dropZoneTop.style.cssText = `
+                    grid-column: 1 / -1;
+                    height: 20px;
+                    background: transparent;
+                    border: 2px dashed transparent;
+                    transition: all 0.3s ease;
+                    cursor: copy;
+                `;
+                
+                dropZoneTop.addEventListener('dragover', handleEmployeeDragOver);
+                dropZoneTop.addEventListener('dragleave', handleEmployeeDragLeave);
+                dropZoneTop.addEventListener('drop', (e) => handleEmployeeDrop(e, index));
+                
+                cell.parentNode.insertBefore(dropZoneTop, cell);
+            });
+            
+            // Zone de drop à la fin
+            const dropZoneEnd = document.createElement('div');
+            dropZoneEnd.className = 'employee-drop-zone';
+            dropZoneEnd.dataset.insertIndex = employeeCells.length;
+            dropZoneEnd.style.cssText = `
+                grid-column: 1 / -1;
+                height: 20px;
+                background: transparent;
+                border: 2px dashed transparent;
+                transition: all 0.3s ease;
+                cursor: copy;
+            `;
+            
+            dropZoneEnd.addEventListener('dragover', handleEmployeeDragOver);
+            dropZoneEnd.addEventListener('dragleave', handleEmployeeDragLeave);
+            dropZoneEnd.addEventListener('drop', (e) => handleEmployeeDrop(e, employeeCells.length));
+            
+            grid.appendChild(dropZoneEnd);
+        }
+
+        function cleanupEmployeeDropZones() {
+            const dropZones = document.querySelectorAll('.employee-drop-zone');
+            dropZones.forEach(zone => zone.remove());
+        }
+
+        function handleEmployeeDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.style.border = '2px dashed #667eea';
+            e.currentTarget.style.background = 'rgba(102, 126, 234, 0.1)';
+        }
+
+        function handleEmployeeDragLeave(e) {
+            e.currentTarget.style.border = '2px dashed transparent';
+            e.currentTarget.style.background = 'transparent';
+        }
+
+        function handleEmployeeDrop(e, insertIndex) {
+            e.preventDefault();
+            e.currentTarget.style.border = '2px dashed transparent';
+            e.currentTarget.style.background = 'transparent';
+            
+            if (!draggedEmployeeData) return;
+            
+            try {
+                const { employeeId, originalIndex } = draggedEmployeeData;
+                
+                // Ne rien faire si on dépose au même endroit
+                if (insertIndex === originalIndex || insertIndex === originalIndex + 1) {
+                    showToast('Position inchangée', 'error');
+                    return;
                 }
+                
+                // Supprimer l'employé de sa position actuelle
+                const employee = globalState.employees.splice(originalIndex, 1)[0];
+                
+                // Ajuster l'index si on insère après la position d'origine
+                let newIndex = insertIndex;
+                if (insertIndex > originalIndex) {
+                    newIndex--;
+                }
+                
+                // Insérer à la nouvelle position
+                globalState.employees.splice(newIndex, 0, employee);
+                
+                // Mettre à jour l'affichage
+                renderPlanning();
+                updateSummary();
+                saveData();
+                
+                showToast(`${employee.name} déplacé à la position ${newIndex + 1}`, 'success');
+                
+            } catch (error) {
+                console.error('Erreur déplacement employé:', error);
+                showToast('Erreur lors du déplacement', 'error');
             }
-        };
+        }
+    
 
         console.log(`
 🎉 Planning Hebdomadaire Initialisé avec succès!
