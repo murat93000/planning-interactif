@@ -1560,29 +1560,37 @@
         }
 
         function handleKeyboardShortcuts(e) {
-            try {
-                if (e.ctrlKey || e.metaKey) {
-                    switch(e.key) {
-                        case 's':
-                            e.preventDefault();
-                            saveData();
-                            break;
-                        case 'a':
-                            if (globalState.isAdminMode) {
-                                e.preventDefault();
-                                openEmployeeModal();
-                            }
-                            break;
+    try {
+        if (e.ctrlKey || e.metaKey) {
+            switch(e.key) {
+                case 's':
+                    e.preventDefault();
+                    saveData(); // CTRL + S = Sauvegarder local
+                    break;
+                case 'a':
+                    if (globalState.isAdminMode) {
+                        e.preventDefault();
+                        openEmployeeModal(); // CTRL + A = Ajouter employé
                     }
-                }
-                
-                if (e.key === 'Escape') {
-                    closeModal();
-                }
-            } catch (error) {
-                console.error('Erreur raccourcis clavier:', error);
+                    break;
+                case 'c':
+                    e.preventDefault();
+                    saveToCloud(); // CTRL + C = Sauver sur cloud
+                    break;
+                case 'r':
+                    e.preventDefault();
+                    forceLoadFromCloud(); // CTRL + R = Recharger depuis le cloud
+                    break;
             }
         }
+        
+        if (e.key === 'Escape') {
+            closeModal(); // ÉCHAP = Fermer modal
+        }
+    } catch (error) {
+        console.error('Erreur raccourcis clavier:', error);
+    }
+}
 
         function updateSidebarContent() {
             try {
