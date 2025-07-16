@@ -806,7 +806,7 @@
             }
         }
 
-        @media (max-width: 600px) {
+    @media (max-width: 600px) {
             .container {
                 padding: 15px;
             }
@@ -820,6 +820,22 @@
                 flex-direction: column;
                 align-items: stretch;
             }
+        }
+
+        /* NOUVEAU CSS ICI - EN DEHORS des media queries */
+        .shift-card .action-btn.edit {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .shift-card .action-btn.edit:hover {
+            background: linear-gradient(135deg, #d97706, #b45309);
+            transform: scale(1.1);
+        }
+
+        .shift-card.dragging {
+            opacity: 0.5 !important;
+            transform: rotate(5deg) scale(0.95);
+            z-index: 1000;
         }
     </style>
 </head>
@@ -2393,18 +2409,24 @@
                 const card = document.createElement('div');
                 card.className = `shift-card ${shift.type}`;
                 card.dataset.shiftId = shift.id;
+                card.dataset.employeeId = employeeId;
+                card.dataset.day = day;
                 
-                // Appliquer la couleur personnalisée si elle existe
+                if (globalState.isAdminMode) {
+                    card.draggable = true;
+                    card.addEventListener('dragstart', handleShiftDragStart);
+                    card.addEventListener('dragend', handleShiftDragEnd);
+                }
+                
                 if (shift.backgroundColor) {
                     card.style.background = shift.backgroundColor;
                 }
                 
-                // Affichage selon le type
                 let content = '';
                 if (shift.type === 'work') {
                     content = `
-                        <div style="font-weight: 800; font-size: 12px;">${shift.text}</div>
-                        ${shift.hours ? `<div style="font-size: 12px; opacity: 0.9;">${shift.hours}</div>` : ''}
+                        <div style="font-weight: 800; font-size: 16px;">${shift.text}</div>
+                        ${shift.hours ? `<div style="font-size: 14px; opacity: 0.9;">${shift.hours}</div>` : ''}
                     `;
                 } else {
                     content = shift.text;
@@ -2414,6 +2436,7 @@
                     ${content}
                     ${globalState.isAdminMode ? `
                         <div class="actions">
+                            ${shift.type === 'work' ? `<button class="action-btn edit" onclick="editShiftTime('${employeeId}', ${day}, '${shift.id}')" title="Modifier horaires">✏️</button>` : ''}
                             <button class="action-btn copy" onclick="copyShift('${employeeId}', ${day}, '${shift.id}')" title="Copier">📋</button>
                             <button class="action-btn delete" onclick="removeShift('${employeeId}', ${day}, '${shift.id}')" title="Supprimer">×</button>
                         </div>
@@ -2444,8 +2467,6 @@
                 e.preventDefault();
                 e.currentTarget.classList.remove('drag-over');
                 
-                if (!globalState.draggedItem) return;
-                
                 const employeeId = e.currentTarget.dataset.employeeId;
                 const day = parseInt(e.currentTarget.dataset.day);
                 
@@ -2459,34 +2480,60 @@
                 
                 let newShift;
                 
-                if (globalState.draggedItem.type === 'timeSlot') {
-                    const slot = globalState.draggedItem.slot;
-                    const hours = calculateHours(slot.start, slot.end);
+                if (draggedShiftData) {
                     newShift = {
                         id: generateId(),
-                        type: 'work',
-                        text: `${slot.start} - ${slot.end}`,
-                        hours: `${hours.toFixed(0)}h`,
-                        slot: slot
+                        type: draggedShiftData.shift.type,
+                        text: draggedShiftData.shift.text,
+                        hours: draggedShiftData.shift.hours,
+                        slot: draggedShiftData.shift.slot,
+                        backgroundColor: draggedShiftData.shift.backgroundColor
                     };
+                    
+                    const originalEmployee = globalState.employees.find(emp => emp.id === draggedShiftData.originalEmployeeId);
+                    if (originalEmployee && originalEmployee.planning[weekKey] && originalEmployee.planning[weekKey][draggedShiftData.originalDay]) {
+                        originalEmployee.planning[weekKey][draggedShiftData.originalDay] = 
+                            originalEmployee.planning[weekKey][draggedShiftData.originalDay].filter(s => s.id !== draggedShiftData.originalShiftId);
+                        
+                        if (originalEmployee.planning[weekKey][draggedShiftData.originalDay].length === 0) {
+                            delete originalEmployee.planning[weekKey][draggedShiftData.originalDay];
+                        }
+                    }
+                    
+                    draggedShiftData = null;
+                    showToast('Case déplacée', 'success');
+                    
+                } else if (globalState.draggedItem) {
+                    if (globalState.draggedItem.type === 'timeSlot') {
+                        const slot = globalState.draggedItem.slot;
+                        const hours = calculateHours(slot.start, slot.end);
+                        newShift = {
+                            id: generateId(),
+                            type: 'work',
+                            text: `${slot.start} - ${slot.end}`,
+                            hours: `${hours.toFixed(0)}h`,
+                            slot: slot
+                        };
+                    } else {
+                        newShift = {
+                            id: generateId(),
+                            type: globalState.draggedItem.type,
+                            text: globalState.draggedItem.text,
+                            backgroundColor: globalState.draggedItem.backgroundColor
+                        };
+                    }
+                    
+                    globalState.draggedItem = null;
+                    showToast('Créneau ajouté', 'success');
                 } else {
-                    newShift = {
-                        id: generateId(),
-                        type: globalState.draggedItem.type,
-                        text: globalState.draggedItem.text,
-                        backgroundColor: globalState.draggedItem.backgroundColor
-                    };
+                    return;
                 }
                 
                 employee.planning[weekKey][day].push(newShift);
                 
-                const shiftCard = createShiftCard(newShift, employeeId, day);
-                e.currentTarget.appendChild(shiftCard);
-                
-                globalState.draggedItem = null;
+                renderPlanning();
                 updateSummary();
                 saveData();
-                showToast('Créneau ajouté', 'success');
                 
             } catch (error) {
                 console.error('Erreur handle drop:', error);
@@ -3029,6 +3076,142 @@
         function saveWeekTemplate() { showToast('Fonctionnalité en développement', 'error'); }
         function applyWeekTemplate() { showToast('Fonctionnalité en développement', 'error'); }
         function deleteWeekTemplate() { showToast('Fonctionnalité en développement', 'error'); }
+        // ================================
+        // NOUVELLES FONCTIONS POUR ÉDITION ET DÉPLACEMENT
+        // ================================
+        
+        let draggedShiftData = null;
+
+        function editShiftTime(employeeId, day, shiftId) {
+            try {
+                const employee = globalState.employees.find(emp => emp.id === employeeId);
+                if (!employee) return;
+                
+                const weekKey = getWeekKey();
+                if (!employee.planning?.[weekKey]?.[day]) return;
+                
+                const shift = employee.planning[weekKey][day].find(s => s.id === shiftId);
+                if (!shift) return;
+                
+                const modal = document.createElement('div');
+                modal.className = 'modal';
+                modal.style.display = 'block';
+                modal.innerHTML = `
+                    <div class="modal-content" style="max-width: 350px;">
+                        <h3 style="margin-bottom: 20px; text-align: center; color: #374151;">
+                            ✏️ Modifier les horaires
+                        </h3>
+                        <div class="form-group">
+                            <label>Heure de début :</label>
+                            <input type="time" id="editStartTime" value="${extractStartTime(shift.text)}" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px;">
+                        </div>
+                        <div class="form-group">
+                            <label>Heure de fin :</label>
+                            <input type="time" id="editEndTime" value="${extractEndTime(shift.text)}" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px;">
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn" onclick="closeEditModal()">Annuler</button>
+                            <button type="button" class="btn admin" onclick="saveEditedTime('${employeeId}', ${day}, '${shiftId}')">Sauver</button>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) closeEditModal();
+                });
+                
+            } catch (error) {
+                console.error('Erreur edit shift time:', error);
+                showToast('Erreur lors de l\'édition', 'error');
+            }
+        }
+
+        function extractStartTime(timeText) {
+            const match = timeText.match(/(\d{2}:\d{2})/);
+            return match ? match[1] : '09:00';
+        }
+
+        function extractEndTime(timeText) {
+            const matches = timeText.match(/(\d{2}:\d{2})/g);
+            return matches && matches.length > 1 ? matches[1] : '18:00';
+        }
+
+        function saveEditedTime(employeeId, day, shiftId) {
+            try {
+                const startTime = document.getElementById('editStartTime').value;
+                const endTime = document.getElementById('editEndTime').value;
+                
+                if (!startTime || !endTime) {
+                    showToast('Veuillez remplir tous les champs', 'error');
+                    return;
+                }
+                
+                const employee = globalState.employees.find(emp => emp.id === employeeId);
+                if (!employee) return;
+                
+                const weekKey = getWeekKey();
+                const shift = employee.planning[weekKey][day].find(s => s.id === shiftId);
+                if (!shift) return;
+                
+                const hours = calculateHours(startTime, endTime);
+                
+                shift.text = `${startTime} - ${endTime}`;
+                shift.hours = `${hours.toFixed(0)}h`;
+                
+                renderPlanning();
+                updateSummary();
+                saveData();
+                closeEditModal();
+                
+                showToast('Horaires modifiés avec succès', 'success');
+                
+            } catch (error) {
+                console.error('Erreur save edited time:', error);
+                showToast('Erreur lors de la sauvegarde', 'error');
+            }
+        }
+
+        function closeEditModal() {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (modal.innerHTML.includes('Modifier les horaires')) {
+                    modal.remove();
+                }
+            });
+        }
+
+        function handleShiftDragStart(e) {
+            if (!globalState.isAdminMode) return;
+            
+            const card = e.target;
+            const employeeId = card.dataset.employeeId;
+            const day = parseInt(card.dataset.day);
+            const shiftId = card.dataset.shiftId;
+            
+            const employee = globalState.employees.find(emp => emp.id === employeeId);
+            if (!employee) return;
+            
+            const weekKey = getWeekKey();
+            const shift = employee.planning[weekKey][day].find(s => s.id === shiftId);
+            if (!shift) return;
+            
+            draggedShiftData = {
+                shift: { ...shift },
+                originalEmployeeId: employeeId,
+                originalDay: day,
+                originalShiftId: shiftId
+            };
+            
+            card.classList.add('dragging');
+            card.style.opacity = '0.5';
+        }
+
+        function handleShiftDragEnd(e) {
+            e.target.classList.remove('dragging');
+            e.target.style.opacity = '1';
+        }
 
         // Auto-sauvegarde périodique
         setInterval(() => {
