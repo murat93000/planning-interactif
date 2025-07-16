@@ -2796,13 +2796,23 @@ globalState.employees.forEach(employee => {
 function parseHours(hoursString) {
     if (!hoursString || typeof hoursString !== 'string') return 0;
     
-    // Supprimer 'h' et autres caractères non numériques sauf points et virgules
+    // Gestion spécifique pour le format "8h30", "7h15", etc.
+    const hourMinuteMatch = hoursString.match(/(\d+)h(\d+)/);
+    if (hourMinuteMatch) {
+        const hours = parseInt(hourMinuteMatch[1]);
+        const minutes = parseInt(hourMinuteMatch[2]);
+        return hours + (minutes / 60);
+    }
+    
+    // Gestion pour le format "8h", "7h", etc.
+    const hourMatch = hoursString.match(/(\d+)h/);
+    if (hourMatch) {
+        return parseInt(hourMatch[1]);
+    }
+    
+    // Gestion pour les nombres décimaux comme "8.5"
     const cleanString = hoursString.replace(/[^\d.,]/g, '');
-    
-    // Remplacer virgule par point pour la conversion
     const normalizedString = cleanString.replace(',', '.');
-    
-    // Convertir en nombre
     const hours = parseFloat(normalizedString);
     
     return isNaN(hours) ? 0 : hours;
