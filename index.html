@@ -3479,11 +3479,24 @@ globalState.employees.forEach(employee => {
                 // Supprimer l'employé de sa position actuelle
                 const employee = globalState.employees.splice(originalIndex, 1)[0];
                 
-                // Ajuster l'index si on insère après la position d'origine
+                // Calculer la nouvelle position correctement
                 let newIndex = insertIndex;
+
+                // Si on déplace vers le bas
                 if (insertIndex > originalIndex) {
-                    newIndex--;
+                    newIndex = insertIndex - 1;
                 }
+                // Si on déplace vers le haut  
+                else if (insertIndex < originalIndex) {
+                    newIndex = insertIndex;
+                }
+                // Même position = annuler
+                else {
+                    showToast('Position inchangée', 'error');
+                    return;
+                }
+
+                console.log(`Déplacement: ${originalIndex} → ${newIndex} (insertIndex: ${insertIndex})`);
                 
                 // Insérer à la nouvelle position
                 globalState.employees.splice(newIndex, 0, employee);
