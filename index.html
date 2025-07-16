@@ -820,17 +820,17 @@
         }
     </style>
 
-        .admin-panel {
+       .admin-panel {
             display: none;
         }
 
         @media (max-width: 1200px) {
             body {
-                padding-left: 20px; /* Enlever l'espace sidebar sur mobile */
+                padding-left: 20px;
             }
             
             .sidebar {
-                display: none !important; /* Cacher complètement la sidebar sur mobile */
+                display: none !important;
             }
             
             .grid {
@@ -845,7 +845,7 @@
             }
         }
 
-    @media (max-width: 600px) {
+        @media (max-width: 600px) {
             .container {
                 padding: 15px;
             }
@@ -861,7 +861,6 @@
             }
         }
 
-        /* NOUVEAU CSS ICI - EN DEHORS des media queries */
         .shift-card .action-btn.edit {
             background: linear-gradient(135deg, #f59e0b, #d97706);
         }
@@ -876,37 +875,37 @@
             transform: rotate(5deg) scale(0.95);
             z-index: 1000;
         }
-        /* Styles pour le déplacement des employés */
-.employee-cell.draggable-employee {
-    cursor: move;
-}
 
-.employee-cell.dragging-employee {
-    opacity: 0.6;
-    transform: scale(0.98);
-    z-index: 1000;
-    border: 2px dashed #667eea;
-}
+        .employee-cell.draggable-employee {
+            cursor: move;
+        }
 
-.employee-row.drag-over-employee {
-    border-top: 3px solid #667eea;
-    background: rgba(102, 126, 234, 0.1);
-}
+        .employee-cell.dragging-employee {
+            opacity: 0.6;
+            transform: scale(0.98);
+            z-index: 1000;
+            border: 2px dashed #667eea;
+        }
 
-.drag-indicator {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: #667eea;
-    z-index: 999;
-    animation: dragPulse 1s infinite;
-}
+        .employee-row.drag-over-employee {
+            border-top: 3px solid #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
 
-@keyframes dragPulse {
-    0%, 100% { opacity: 0.8; }
-    50% { opacity: 1; }
-}
+        .drag-indicator {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #667eea;
+            z-index: 999;
+            animation: dragPulse 1s infinite;
+        }
+
+        @keyframes dragPulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
     </style>
 </head>
 <body>
