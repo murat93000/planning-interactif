@@ -21,7 +21,7 @@
             min-height: 100vh;
             padding: 20px;
             animation: gradientShift 15s ease infinite;
-            padding-right: 320px; /* Espace pour la sidebar */
+            padding-left: 320px; /* Espace pour la sidebar */
         }
 
         @keyframes gradientShift {
@@ -100,14 +100,14 @@
         .sidebar {
             position: fixed;
             top: 0;
-            right: 0;
+            left: 0;
             width: 300px;
             height: 100vh;
             background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(20px);
-            border-left: 2px solid rgba(102, 126, 234, 0.3);
+            border-right: 2px solid rgba(102, 126, 234, 0.3);
             padding: 20px;
-            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.2);
+            box-shadow: 10px 0 40px rgba(0, 0, 0, 0.2);
             z-index: 9999;
             overflow-y: auto;
             display: none; /* Caché par défaut, affiché en mode admin */
@@ -787,7 +787,7 @@
 
         @media (max-width: 1200px) {
             body {
-                padding-right: 20px; /* Enlever l'espace sidebar sur mobile */
+                padding-left: 20px; /* Enlever l'espace sidebar sur mobile */
             }
             
             .sidebar {
