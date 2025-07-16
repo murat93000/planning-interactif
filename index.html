@@ -2008,7 +2008,7 @@
                     shiftData = {
                         type: 'work',
                         text: `${slotData.start} - ${slotData.end}`,
-                        hours: `${hours.toFixed(0)}h`,
+                        hours: formatHours(hours),
                         slot: slotData
                     };
                 }
@@ -2474,7 +2474,7 @@ globalState.employees.forEach(employee => {
                             let hasWork = false;
                             dayShifts.forEach(shift => {
                                 if (shift.type === 'work' && shift.hours) {
-                                    const hours = parseFloat(shift.hours.replace('h', ''));
+                                    const hours = parseHours(shift.hours);
                                     weekHours += hours;
                                     hasWork = true;
                                 }
@@ -2488,7 +2488,7 @@ globalState.employees.forEach(employee => {
         ${globalState.isAdminMode ? '⬍⬍ ' : ''}${employee.name}
     </div>
     <div class="employee-role">${employee.role}</div>
-    <div class="employee-hours">${weekHours.toFixed(0)}h | ${workDays} jours</div>
+    <div class="employee-hours">${formatHours(weekHours)} | ${workDays} jours</div>
     ${globalState.isAdminMode ? `
                             <button class="remove-emp" onclick="removeEmployee('${employee.id}')" title="Supprimer">×</button>
                             <button class="copy-week-btn" onclick="copyEmployeeWeek('${employee.id}')" title="Copier semaine">📋</button>
@@ -2649,7 +2649,7 @@ globalState.employees.forEach(employee => {
                             id: generateId(),
                             type: 'work',
                             text: `${slot.start} - ${slot.end}`,
-                            hours: `${hours.toFixed(0)}h`,
+                            hours: formatHours(hours),
                             slot: slot
                         };
                     } else {
@@ -2789,7 +2789,40 @@ globalState.employees.forEach(employee => {
                 return 8;
             }
         }
+// ================================
+// FONCTIONS CORRIGÉES POUR LES HEURES
+// ================================
 
+function parseHours(hoursString) {
+    if (!hoursString || typeof hoursString !== 'string') return 0;
+    
+    // Supprimer 'h' et autres caractères non numériques sauf points et virgules
+    const cleanString = hoursString.replace(/[^\d.,]/g, '');
+    
+    // Remplacer virgule par point pour la conversion
+    const normalizedString = cleanString.replace(',', '.');
+    
+    // Convertir en nombre
+    const hours = parseFloat(normalizedString);
+    
+    return isNaN(hours) ? 0 : hours;
+}
+
+function formatHours(hours) {
+    if (hours === 0) return '0h';
+    
+    // Séparer heures et minutes
+    const wholeHours = Math.floor(hours);
+    const minutes = Math.round((hours - wholeHours) * 60);
+    
+    if (minutes === 0) {
+        return `${wholeHours}h`;
+    } else if (minutes === 30) {
+        return `${wholeHours}h30`;
+    } else {
+        return `${wholeHours}h${minutes.toString().padStart(2, '0')}`;
+    }
+}
         function copyEmployeeWeek(employeeId) {
             try {
                 const employee = globalState.employees.find(emp => emp.id === employeeId);
@@ -2870,7 +2903,7 @@ globalState.employees.forEach(employee => {
                                 totalShifts += dayShifts.length;
                                 dayShifts.forEach(shift => {
                                     if (shift.type === 'work' && shift.hours) {
-                                        const hours = parseFloat(shift.hours.replace('h', ''));
+                                        const hours = parseHours(shift.hours);
                                         totalHours += hours;
                                     }
                                 });
@@ -2919,7 +2952,7 @@ globalState.employees.forEach(employee => {
                                     switch(shift.type) {
                                         case 'work':
                                             if (shift.hours) {
-                                                const hours = parseFloat(shift.hours.replace('h', ''));
+                                                const hours = parseHours(shift.hours);
                                                 workHours += hours;
                                                 hasWork = true;
                                             }
@@ -2958,11 +2991,11 @@ globalState.employees.forEach(employee => {
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
                                 <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(102, 126, 234, 0.1); border-radius: 8px;">
                                     <span style="font-weight: 600;">⏰ Heures travail:</span>
-                                    <span style="font-weight: 700; color: ${workHours > 35 ? '#ef4444' : '#10b981'};">${workHours.toFixed(1)}h</span>
+                                    <span style="font-weight: 700; color: ${workHours > 35 ? '#ef4444' : '#10b981'};">${formatHours(workHours)}</span>
                                 </div>
                                 <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
                                     <span style="font-weight: 600;">⚡ Heures sup:</span>
-                                    <span style="font-weight: 700; color: #ef4444;">${overtime.toFixed(1)}h</span>
+                                    <span style="font-weight: 700; color: #ef4444;">${formatHours(overtime)}</span>
                                 </div>
                                 <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(107, 114, 128, 0.1); border-radius: 8px;">
                                     <span style="font-weight: 600;">📅 Jours travail:</span>
@@ -3296,7 +3329,7 @@ globalState.employees.forEach(employee => {
                 const hours = calculateHours(startTime, endTime);
                 
                 shift.text = `${startTime} - ${endTime}`;
-                shift.hours = `${hours.toFixed(0)}h`;
+                shift.hours = formatHours(hours);
                 
                 renderPlanning();
                 updateSummary();
