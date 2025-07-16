@@ -654,10 +654,6 @@
             background: linear-gradient(135deg, #8b5cf6, #7c3aed);
         }
 
-        .shift-card .action-btn.edit {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-        }
-
         .summary {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -789,41 +785,6 @@
             display: none;
         }
 
-        /* Context Menu pour copier/coller */
-        .context-menu {
-            position: fixed;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            padding: 8px 0;
-            z-index: 1000;
-            display: none;
-            min-width: 150px;
-        }
-
-        .context-menu-item {
-            padding: 10px 20px;
-            cursor: pointer;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: background 0.2s;
-        }
-
-        .context-menu-item:hover {
-            background: #f3f4f6;
-        }
-
-        .context-menu-item.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .context-menu-item.disabled:hover {
-            background: transparent;
-        }
-
         @media (max-width: 1200px) {
             body {
                 padding-right: 20px; /* Enlever l'espace sidebar sur mobile */
@@ -895,3 +856,2208 @@
             <div class="control-group">
                 <label>💼 Poste</label>
                 <input type="text" id="empRole" placeholder="Fonction">
+            </div>
+            <button class="btn" onclick="addEmployee()">➕ Ajouter</button>
+        </div>
+
+        <!-- Configuration des créneaux horaires -->
+        <div class="time-slots-config admin-panel">
+            <div class="templates-title">⏰ Créneaux Horaires - Glissez dans le planning</div>
+            <div class="time-slots-list" id="timeSlotsContainer">
+                <!-- Les créneaux seront générés ici -->
+            </div>
+            <div class="time-slot-creator">
+                <input type="text" id="slotName" placeholder="Nom du créneau (ex: Journée A)" style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; width: 150px;">
+                <input type="time" id="slotStart" value="09:00" style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px;">
+                <span style="font-weight: bold; color: #374151;">-</span>
+                <input type="time" id="slotEnd" value="18:30" style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px;">
+                <button class="btn" onclick="addTimeSlot()">✨ Créer Créneau</button>
+            </div>
+        </div>
+
+        <!-- Templates types -->
+        <div class="templates-section admin-panel">
+            <div class="templates-title">🎨 Cases Types - Glissez dans le planning</div>
+            <div class="templates" id="templatesContainer">
+                <div class="template repos" draggable="true" data-type="repos">😴 Repos</div>
+                <div class="template absent" draggable="true" data-type="absent">❌ Absent</div>
+                <div class="template cours" draggable="true" data-type="cours">📚 Cours</div>
+                <div class="template conges" draggable="true" data-type="conges">🏖️ Congés</div>
+            </div>
+            
+            <div class="custom-template-creator">
+                <input type="text" id="customText" placeholder="Case personnalisée..." style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px;">
+                <input type="color" id="customColor" class="color-picker" value="#8b5cf6" title="Choisir couleur">
+                <button class="btn" onclick="addCustomTemplate()">✨ Créer Case</button>
+            </div>
+        </div>
+
+        <!-- Gestion des semaines types -->
+        <div class="week-templates admin-panel">
+            <div class="templates-title">📋 Semaines Types</div>
+            <div class="week-template-controls">
+                <select id="weekTemplateSelect" style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; min-width: 200px;">
+                    <option value="">Sélectionner une semaine type...</option>
+                </select>
+                <button class="btn" onclick="saveWeekTemplate()">💾 Sauver Semaine Type</button>
+                <button class="btn" onclick="applyWeekTemplate()">📋 Appliquer Semaine Type</button>
+                <button class="btn danger" onclick="deleteWeekTemplate()">🗑️ Supprimer Type</button>
+            </div>
+        </div>
+
+        <div class="week-nav">
+            <button class="btn" onclick="changeWeek(-1)">⬅️ Semaine précédente</button>
+            <div class="current-week" id="weekDisplay">Semaine courante</div>
+            <button class="btn" onclick="changeWeek(1)">Semaine suivante ➡️</button>
+        </div>
+
+        <div class="planning-grid">
+            <div class="grid" id="planningGrid">
+                <!-- Le planning sera généré ici -->
+            </div>
+        </div>
+
+        <div class="summary">
+            <div class="summary-card">
+                <h4>👥 Employés</h4>
+                <div class="value" id="empCount">0</div>
+            </div>
+            <div class="summary-card">
+                <h4>📋 Cases assignées</h4>
+                <div class="value" id="shiftCount">0</div>
+            </div>
+            <div class="summary-card">
+                <h4>📊 Taux occupation</h4>
+                <div class="value" id="occupationRate">0%</div>
+            </div>
+        </div>
+
+        <!-- Récapitulatif détaillé par employé -->
+        <div class="employee-recap admin-panel">
+            <h3 style="text-align: center; margin-bottom: 20px; color: #374151; font-size: 1.8em;">📊 Récapitulatif Détaillé par Employé</h3>
+            <div id="employeeRecap" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <!-- Les récapitulatifs seront générés ici -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Barre latérale fixe à droite -->
+    <div class="sidebar admin-panel" id="sidebar">
+        <div class="sidebar-section">
+            <div class="sidebar-title">⏰ Créneaux Horaires</div>
+            <div class="sidebar-content" id="sidebarTimeSlots">
+                <!-- Les créneaux seront dupliqués ici -->
+            </div>
+        </div>
+        
+        <div class="sidebar-section">
+            <div class="sidebar-title">🎨 Cases Types</div>
+            <div class="sidebar-content" id="sidebarTemplates">
+                <!-- Les templates seront dupliqués ici -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal pour ajouter un employé -->
+    <div id="employeeModal" class="modal">
+        <div class="modal-content">
+            <h2>👤 Ajouter un Employé</h2>
+            <form id="employeeForm">
+                <div class="form-group">
+                    <label>Nom complet:</label>
+                    <input type="text" id="modalEmpName" required>
+                </div>
+                <div class="form-group">
+                    <label>Poste/Fonction:</label>
+                    <input type="text" id="modalEmpRole" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn" onclick="closeModal()">Annuler</button>
+                    <button type="submit" class="btn admin">Ajouter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal pour remplissage par date -->
+    <div id="bulkFillModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <h2>📅 Remplissage Automatique par Date</h2>
+            <form id="bulkFillForm">
+                <div class="form-group">
+                    <label>👤 Employé :</label>
+                    <select id="bulkEmployeeSelect" required style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                        <option value="">Sélectionner un employé...</option>
+                        <option value="ALL">🌟 TOUS LES EMPLOYÉS</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>📅 Date de début :</label>
+                    <input type="date" id="bulkStartDate" required style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                </div>
+                
+                <div class="form-group">
+                    <label>📅 Date de fin :</label>
+                    <input type="date" id="bulkEndDate" required style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                </div>
+                
+                <div class="form-group">
+                    <label>🎯 Type de case :</label>
+                    <select id="bulkCaseType" required style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                        <option value="">Sélectionner un type...</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>📋 Créneaux horaires (pour les jours de travail) :</label>
+                    <select id="bulkTimeSlot" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                        <option value="">Aucun créneau spécifique</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>📆 Jours de la semaine :</label>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 8px;">
+                        <label style="display: flex; align-items: center; gap: 5px; font-weight: normal;">
+                            <input type="checkbox" id="dayMon" checked> Lundi
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; font-weight: normal;">
+                            <input type="checkbox" id="dayTue" checked> Mardi
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; font-weight: normal;">
+                            <input type="checkbox" id="dayWed" checked> Mercredi
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; font-weight: normal;">
+                            <input type="checkbox" id="dayThu" checked> Jeudi
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; font-weight: normal;">
+                            <input type="checkbox" id="dayFri" checked> Vendredi
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; font-weight: normal;">
+                            <input type="checkbox" id="daySat"> Samedi
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; font-weight: normal;">
+                            <input type="checkbox" id="daySun"> Dimanche
+                        </label>
+                        <button type="button" onclick="toggleAllDays()" style="grid-column: 1 / -1; padding: 8px; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                            🔄 Tout cocher/décocher
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                        <input type="checkbox" id="replaceExisting">
+                        ⚠️ Remplacer les cases existantes
+                    </label>
+                    <small style="color: #6b7280; font-size: 12px; margin-top: 4px; display: block;">
+                        Si décoché, les nouvelles cases s'ajouteront aux existantes
+                    </small>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn" onclick="closeModal()">Annuler</button>
+                    <button type="submit" class="btn admin">🚀 Remplir Planning</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal pour mot de passe admin -->
+    <div id="passwordModal" class="modal">
+        <div class="modal-content">
+            <h2>🔒 Accès Administrateur</h2>
+            <form id="passwordForm">
+                <div class="form-group">
+                    <label>Mot de passe:</label>
+                    <input type="password" id="adminPassword" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn" onclick="closeModal()">Annuler</button>
+                    <button type="submit" class="btn admin">Valider</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ================================
+        // CONFIGURATION FIREBASE
+        // ================================
+        
+        // 🔥 VOS CLÉS FIREBASE CONFIGURÉES
+        const firebaseConfig = {
+            apiKey: "AIzaSyAfR_JWPDlpvSLA3NzmQbaznZ4F96eUJ9A",
+            authDomain: "planning-pro-o2.firebaseapp.com",
+            projectId: "planning-pro-o2",
+            storageBucket: "planning-pro-o2.firebasestorage.app",
+            messagingSenderId: "995287000230",
+            appId: "1:995287000230:web:a649b621b84ead3e1c4067"
+        };
+
+        // Variables Firebase
+        let db = null;
+        let auth = null;
+        let currentUser = null;
+        let isFirebaseEnabled = false;
+
+        // Initialisation Firebase
+        function initFirebase() {
+            try {
+                // Vérifier si les clés Firebase sont configurées
+                if (firebaseConfig.apiKey === "VOTRE_API_KEY") {
+                    console.warn("⚠️ Firebase non configuré - fonctionnement en mode local uniquement");
+                    updateConnectionStatus("local", "Firebase non configuré - Mode local");
+                    return false;
+                }
+
+                // Initialiser Firebase
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                auth = firebase.auth();
+                isFirebaseEnabled = true;
+
+                // Écouter les changements d'authentification
+                auth.onAuthStateChanged((user) => {
+                    currentUser = user;
+                    updateAuthDisplay();
+                    if (user) {
+                        updateConnectionStatus("connected", `Connecté: ${user.email}`);
+                        loadFromCloud();
+                    } else {
+                        updateConnectionStatus("disconnected", "Non connecté");
+                    }
+                });
+
+                updateConnectionStatus("ready", "Firebase prêt");
+                return true;
+            } catch (error) {
+                console.error("Erreur initialisation Firebase:", error);
+                updateConnectionStatus("error", "Erreur Firebase");
+                return false;
+            }
+        }
+
+        function updateConnectionStatus(status, message) {
+            const statusDiv = document.getElementById('connectionStatus');
+            const statusText = document.getElementById('statusText');
+            const userInfo = document.getElementById('userInfo');
+
+            if (!statusDiv || !statusText) return;
+
+            statusText.textContent = message;
+
+            // Styles selon le statut
+            switch(status) {
+                case 'connected':
+                    statusDiv.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                    statusDiv.style.color = 'white';
+                    break;
+                case 'disconnected':
+                case 'local':
+                    statusDiv.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+                    statusDiv.style.color = 'white';
+                    break;
+                case 'error':
+                    statusDiv.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                    statusDiv.style.color = 'white';
+                    break;
+                default:
+                    statusDiv.style.background = 'linear-gradient(135deg, #6b7280, #4b5563)';
+                    statusDiv.style.color = 'white';
+            }
+        }
+
+        function updateAuthDisplay() {
+            const authBtn = document.getElementById('authBtn');
+            if (!authBtn) return;
+
+            if (currentUser) {
+                authBtn.textContent = '🚪 Se déconnecter';
+                authBtn.className = 'btn danger';
+            } else {
+                authBtn.textContent = '🔑 Se connecter';
+                authBtn.className = 'btn';
+            }
+        }
+
+        // ================================
+        // FONCTIONS D'AUTHENTIFICATION
+        // ================================
+
+        function toggleAuth() {
+            if (!isFirebaseEnabled) {
+                showToast('Firebase non configuré', 'error');
+                return;
+            }
+
+            if (currentUser) {
+                signOut();
+            } else {
+                signInAnonymously();
+            }
+        }
+
+        function signInAnonymously() {
+            if (!auth) return;
+
+            auth.signInAnonymously()
+                .then(() => {
+                    showToast('Connexion réussie', 'success');
+                })
+                .catch((error) => {
+                    console.error('Erreur connexion:', error);
+                    showToast('Erreur de connexion', 'error');
+                });
+        }
+
+        function signOut() {
+            if (!auth) return;
+
+            auth.signOut()
+                .then(() => {
+                    showToast('Déconnexion réussie', 'success');
+                })
+                .catch((error) => {
+                    console.error('Erreur déconnexion:', error);
+                    showToast('Erreur de déconnexion', 'error');
+                });
+        }
+
+        // ================================
+        // FONCTIONS CLOUD
+        // ================================
+
+        function saveToCloud() {
+            if (!isFirebaseEnabled || !db) {
+                showToast('Firebase non disponible', 'error');
+                return;
+            }
+
+            try {
+                const dataToSave = {
+                    employees: globalState.employees || [],
+                    customTemplates: globalState.customTemplates || [],
+                    timeSlots: globalState.timeSlots || [],
+                    weekTemplates: globalState.weekTemplates || [],
+                    lastSave: new Date().toISOString(),
+                    version: '3.0',
+                    userId: currentUser ? currentUser.uid : 'shared'
+                };
+
+                // Utiliser un document partagé "main" au lieu de l'uid utilisateur
+                db.collection('plannings').doc('main').set(dataToSave)
+                    .then(() => {
+                        showToast('☁️ Sauvegardé sur le cloud !', 'success');
+                        console.log('✅ Sauvegarde réussie dans document "main"');
+                    })
+                    .catch((error) => {
+                        console.error('Erreur sauvegarde cloud:', error);
+                        showToast('Erreur sauvegarde cloud: ' + error.message, 'error');
+                        // Fallback vers local seulement en cas d'erreur
+                        saveDataLocal();
+                    });
+            } catch (error) {
+                console.error('Erreur préparation données:', error);
+                showToast('Erreur préparation des données', 'error');
+            }
+        }
+
+        function loadFromCloud() {
+            if (!isFirebaseEnabled || !db) {
+                return;
+            }
+
+            // Charger depuis le document partagé "main"
+            db.collection('plannings').doc('main').get()
+                .then((doc) => {
+                    if (doc.exists) {
+                        const cloudData = doc.data();
+                        console.log('📡 Données cloud trouvées (main):', cloudData);
+
+                        // Merger avec les données locales ou utiliser les données cloud
+                        if (cloudData.employees && Array.isArray(cloudData.employees)) {
+                            globalState.employees = cloudData.employees;
+                            console.log('👥 Employés chargés:', globalState.employees.length);
+                        }
+
+                        if (cloudData.customTemplates && Array.isArray(cloudData.customTemplates)) {
+                            globalState.customTemplates = cloudData.customTemplates;
+                            loadCustomTemplates();
+                            console.log('🎨 Templates chargés:', globalState.customTemplates.length);
+                        }
+
+                        if (cloudData.timeSlots && Array.isArray(cloudData.timeSlots)) {
+                            globalState.timeSlots = cloudData.timeSlots;
+                            renderTimeSlots();
+                            console.log('⏰ Créneaux chargés:', globalState.timeSlots.length);
+                        }
+
+                        renderPlanning();
+                        updateSummary();
+                        showToast('📡 Données synchronisées depuis le cloud', 'success');
+                    } else {
+                        console.log('❌ Aucune donnée cloud trouvée dans "main"');
+                        // Charger les données locales si disponibles
+                        loadData();
+                    }
+                })
+                .catch((error) => {
+                    console.error('❌ Erreur chargement cloud:', error);
+                    showToast('Erreur chargement cloud, utilisation des données locales', 'error');
+                    loadData();
+                });
+        }
+
+        function loadCustomTemplates() {
+            // Nettoyer les templates personnalisés existants
+            document.querySelectorAll('.template.custom').forEach(el => el.remove());
+
+            // Recharger depuis globalState.customTemplates
+            if (Array.isArray(globalState.customTemplates)) {
+                globalState.customTemplates.forEach(template => {
+                    const customTemplate = document.createElement('div');
+                    customTemplate.className = 'template custom';
+                    customTemplate.draggable = true;
+                    customTemplate.dataset.type = 'custom';
+                    customTemplate.style.background = template.color ? 
+                        `linear-gradient(135deg, ${template.color}, ${adjustColor(template.color, -20)})` :
+                        'linear-gradient(135deg, #8b5cf6, #7c3aed)';
+                    customTemplate.innerHTML = `⚙️ ${template.text}`;
+                    
+                    customTemplate.addEventListener('dragstart', handleDragStart);
+                    customTemplate.addEventListener('dragend', handleDragEnd);
+                    
+                    document.getElementById('templatesContainer').appendChild(customTemplate);
+                });
+            }
+        }
+
+        // Auto-sauvegarde cloud
+        function enableAutoSaveCloud() {
+            if (!isFirebaseEnabled || !currentUser) return;
+
+            setInterval(() => {
+                if (globalState.employees && globalState.employees.length > 0) {
+                    saveToCloud();
+                }
+            }, 300000); // Toutes les 5 minutes
+        }
+
+        // ================================
+        // CODE EXISTANT MODIFIÉ
+        // ================================
+        // Configuration sécurisée
+        const ADMIN_PASSWORD = 'admin123';
+        
+        // État global avec validation
+        let globalState = {
+            employees: [],
+            currentWeek: new Date(),
+            isAdminMode: false,
+            draggedItem: null,
+            customTemplates: [],
+            timeSlots: [
+                { id: 'journeeA', name: 'Journée A', start: '09:00', end: '18:30' },
+                { id: 'journeeB', name: 'Journée B', start: '10:30', end: '19:30' },
+                { id: 'journeeC', name: 'Journée C', start: '07:00', end: '15:00' },
+                { id: 'matin', name: 'Matin', start: '08:00', end: '12:00' },
+                { id: 'apremidi', name: 'Après-midi', start: '13:00', end: '17:00' }
+            ],
+            weekTemplates: [],
+            copiedShift: null,
+            copiedWeek: null
+        };
+
+        // Initialisation sécurisée
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                // Initialiser Firebase en premier
+                initFirebase();
+                
+                // Puis initialiser l'application
+                initializeApp();
+            } catch (error) {
+                console.error('Erreur initialisation:', error);
+                showToast('Erreur d\'initialisation, création des données par défaut', 'error');
+                createDefaultData();
+            }
+        });
+
+        function initializeApp() {
+            const today = new Date();
+            globalState.currentWeek = new Date(today);
+            globalState.currentWeek.setDate(today.getDate() - today.getDay() + 1);
+            
+            setupEventListeners();
+            updateWeekDisplay();
+            renderTimeSlots();
+            renderPlanning();
+            updateSummary();
+            updateWeekTemplateSelect();
+            
+            // Charger les données (local d'abord, puis cloud si connecté)
+            loadData();
+            
+            // Activer l'auto-sauvegarde cloud si possible
+            setTimeout(() => {
+                if (isFirebaseEnabled && currentUser) {
+                    enableAutoSaveCloud();
+                }
+            }, 2000);
+            
+            showToast('Planning initialisé avec succès', 'success');
+        }
+
+        function setupEventListeners() {
+            try {
+                // Événements pour les formulaires
+                const employeeForm = document.getElementById('employeeForm');
+                const passwordForm = document.getElementById('passwordForm');
+                const bulkFillForm = document.getElementById('bulkFillForm');
+                
+                if (employeeForm) {
+                    employeeForm.addEventListener('submit', handleEmployeeSubmit);
+                }
+                
+                if (passwordForm) {
+                    passwordForm.addEventListener('submit', handlePasswordSubmit);
+                }
+                
+                if (bulkFillForm) {
+                    bulkFillForm.addEventListener('submit', handleBulkFillSubmit);
+                }
+                
+                // Événements pour les templates
+                document.querySelectorAll('.template').forEach(template => {
+                    template.addEventListener('dragstart', handleDragStart);
+                    template.addEventListener('dragend', handleDragEnd);
+                });
+                
+                // Fermer modal en cliquant à l'extérieur
+                window.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('modal')) {
+                        closeModal();
+                    }
+                });
+                
+                // Raccourcis clavier
+                document.addEventListener('keydown', handleKeyboardShortcuts);
+                
+            } catch (error) {
+                console.error('Erreur setup événements:', error);
+            }
+        }
+
+        function handleKeyboardShortcuts(e) {
+            try {
+                if (e.ctrlKey || e.metaKey) {
+                    switch(e.key) {
+                        case 's':
+                            e.preventDefault();
+                            saveData();
+                            break;
+                        case 'a':
+                            if (globalState.isAdminMode) {
+                                e.preventDefault();
+                                openEmployeeModal();
+                            }
+                            break;
+                    }
+                }
+                
+                if (e.key === 'Escape') {
+                    closeModal();
+                }
+            } catch (error) {
+                console.error('Erreur raccourcis clavier:', error);
+            }
+        }
+
+        function updateSidebarContent() {
+            try {
+                if (!globalState.isAdminMode) return;
+                
+                // Mise à jour des créneaux horaires dans la sidebar
+                const sidebarTimeSlots = document.getElementById('sidebarTimeSlots');
+                const originalTimeSlots = document.getElementById('timeSlotsContainer');
+                if (sidebarTimeSlots && originalTimeSlots) {
+                    sidebarTimeSlots.innerHTML = '';
+                    originalTimeSlots.querySelectorAll('.time-slot-template').forEach(slot => {
+                        const clone = slot.cloneNode(true);
+                        // Supprimer le bouton de suppression dans la sidebar
+                        const deleteBtn = clone.querySelector('.delete-slot');
+                        if (deleteBtn) deleteBtn.remove();
+                        
+                        clone.addEventListener('dragstart', handleDragStart);
+                        clone.addEventListener('dragend', handleDragEnd);
+                        sidebarTimeSlots.appendChild(clone);
+                    });
+                }
+                
+                // Mise à jour des templates dans la sidebar
+                const sidebarTemplates = document.getElementById('sidebarTemplates');
+                const originalTemplates = document.getElementById('templatesContainer');
+                if (sidebarTemplates && originalTemplates) {
+                    sidebarTemplates.innerHTML = '';
+                    originalTemplates.querySelectorAll('.template').forEach(template => {
+                        const clone = template.cloneNode(true);
+                        // Supprimer le bouton de suppression dans la sidebar
+                        const deleteBtn = clone.querySelector('.delete-template');
+                        if (deleteBtn) deleteBtn.remove();
+                        
+                        clone.addEventListener('dragstart', handleDragStart);
+                        clone.addEventListener('dragend', handleDragEnd);
+                        sidebarTemplates.appendChild(clone);
+                    });
+                }
+            } catch (error) {
+                console.error('Erreur update sidebar content:', error);
+            }
+        }
+
+        function toggleMode() {
+            try {
+                console.log('toggleMode appelé, mode actuel:', globalState.isAdminMode);
+                
+                if (globalState.isAdminMode) {
+                    globalState.isAdminMode = false;
+                    updateModeDisplay();
+                    showToast('Mode lecture activé', 'success');
+                } else {
+                    // Ouvrir le modal de mot de passe
+                    openModal('passwordModal');
+                }
+            } catch (error) {
+                console.error('Erreur toggle mode:', error);
+                showToast('Erreur changement de mode', 'error');
+            }
+        }
+
+        function openModal(modalId) {
+            try {
+                console.log('Tentative ouverture modal:', modalId);
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.style.display = 'block';
+                    console.log('Modal ouvert:', modalId);
+                    
+                    // Focus automatique sur le premier input
+                    const firstInput = modal.querySelector('input');
+                    if (firstInput) {
+                        setTimeout(() => firstInput.focus(), 100);
+                    }
+                } else {
+                    console.error('Modal non trouvé:', modalId);
+                    showToast('Erreur d\'ouverture du modal', 'error');
+                }
+            } catch (error) {
+                console.error('Erreur open modal:', error);
+                showToast('Erreur d\'interface', 'error');
+            }
+        }
+
+        function closeModal() {
+            try {
+                const modals = document.querySelectorAll('.modal');
+                modals.forEach(modal => {
+                    modal.style.display = 'none';
+                });
+                
+                // Nettoyer les champs
+                const passwordInput = document.getElementById('adminPassword');
+                if (passwordInput) {
+                    passwordInput.value = '';
+                }
+                
+                const empNameInput = document.getElementById('modalEmpName');
+                const empRoleInput = document.getElementById('modalEmpRole');
+                if (empNameInput) empNameInput.value = '';
+                if (empRoleInput) empRoleInput.value = '';
+            } catch (error) {
+                console.error('Erreur close modal:', error);
+            }
+        }
+
+        function handlePasswordSubmit(e) {
+            try {
+                e.preventDefault();
+                console.log('Soumission mot de passe...');
+                
+                const passwordInput = document.getElementById('adminPassword');
+                if (!passwordInput) {
+                    console.error('Input mot de passe non trouvé');
+                    showToast('Erreur d\'interface', 'error');
+                    return;
+                }
+                
+                const password = passwordInput.value;
+                console.log('Mot de passe saisi:', password.length, 'caractères');
+                
+                if (password === ADMIN_PASSWORD) {
+                    globalState.isAdminMode = true;
+                    updateModeDisplay();
+                    closeModal();
+                    showToast('Mode administrateur activé', 'success');
+                    console.log('Mode admin activé avec succès');
+                } else {
+                    showToast('Mot de passe incorrect (utilisez:****)', 'error');
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                    console.log('Mot de passe incorrect');
+                }
+            } catch (error) {
+                console.error('Erreur password submit:', error);
+                showToast('Erreur de connexion', 'error');
+            }
+        }
+
+        function handleEmployeeSubmit(e) {
+            try {
+                e.preventDefault();
+                
+                const name = document.getElementById('modalEmpName').value.trim();
+                const role = document.getElementById('modalEmpRole').value.trim();
+                
+                if (!name) {
+                    showToast('Le nom est requis', 'error');
+                    return;
+                }
+                
+                if (!Array.isArray(globalState.employees)) {
+                    globalState.employees = [];
+                }
+                
+                if (globalState.employees.find(emp => emp.name.toLowerCase() === name.toLowerCase())) {
+                    showToast('Un employé avec ce nom existe déjà', 'error');
+                    return;
+                }
+                
+                const newEmployee = {
+                    id: generateId(),
+                    name: name,
+                    role: role || 'Employé',
+                    planning: {}
+                };
+                
+                globalState.employees.push(newEmployee);
+                
+                closeModal();
+                renderPlanning();
+                updateSummary();
+                saveData();
+                showToast('Employé ajouté avec succès', 'success');
+            } catch (error) {
+                console.error('Erreur employee submit:', error);
+                showToast('Erreur lors de l\'ajout', 'error');
+            }
+        }
+
+        function updateModeDisplay() {
+            try {
+                const modeBtn = document.getElementById('modeBtn');
+                const adminPanels = document.querySelectorAll('.admin-panel');
+                const sidebar = document.getElementById('sidebar');
+                
+                if (globalState.isAdminMode) {
+                    modeBtn.textContent = '🔓 Mode Admin';
+                    modeBtn.className = 'btn admin';
+                    adminPanels.forEach(panel => panel.style.display = 'block');
+                    sidebar.classList.add('show');
+                    addDeleteButtonsToTemplates();
+                    updateSidebarContent();
+                } else {
+                    modeBtn.textContent = '🔒 Mode Lecture';
+                    modeBtn.className = 'btn';
+                    adminPanels.forEach(panel => panel.style.display = 'none');
+                    sidebar.classList.remove('show');
+                    removeDeleteButtonsFromTemplates();
+                }
+                
+                renderPlanning();
+            } catch (error) {
+                console.error('Erreur update mode display:', error);
+            }
+        }
+
+        function addDeleteButtonsToTemplates() {
+            try {
+                const templates = document.querySelectorAll('.template');
+                templates.forEach(template => {
+                    if (template.querySelector('.delete-template')) return;
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-template';
+                    deleteBtn.innerHTML = '×';
+                    deleteBtn.title = 'Supprimer';
+                    deleteBtn.onclick = () => removeTemplate(deleteBtn);
+                    
+                    template.appendChild(deleteBtn);
+                });
+            } catch (error) {
+                console.error('Erreur add delete buttons:', error);
+            }
+        }
+
+        function removeDeleteButtonsFromTemplates() {
+            try {
+                const deleteButtons = document.querySelectorAll('.delete-template');
+                deleteButtons.forEach(btn => btn.remove());
+            } catch (error) {
+                console.error('Erreur remove delete buttons:', error);
+            }
+        }
+
+        // Fonctions de base du planning
+        function openEmployeeModal() { 
+            openModal('employeeModal'); 
+        }
+
+        function openBulkFillModal() {
+            try {
+                // Peupler la liste des employés
+                const employeeSelect = document.getElementById('bulkEmployeeSelect');
+                if (employeeSelect) {
+                    // Garder les options par défaut et ajouter les employés
+                    const defaultOptions = employeeSelect.innerHTML;
+                    employeeSelect.innerHTML = defaultOptions;
+                    
+                    if (Array.isArray(globalState.employees)) {
+                        globalState.employees.forEach(employee => {
+                            const option = document.createElement('option');
+                            option.value = employee.id;
+                            option.textContent = `${employee.name} (${employee.role})`;
+                            employeeSelect.appendChild(option);
+                        });
+                    }
+                }
+                
+                // Peupler les types de cases
+                const caseTypeSelect = document.getElementById('bulkCaseType');
+                if (caseTypeSelect) {
+                    caseTypeSelect.innerHTML = `
+                        <option value="">Sélectionner un type...</option>
+                        <option value="repos" data-bg="linear-gradient(135deg, #6b7280, #4b5563)">😴 Repos</option>
+                        <option value="absent" data-bg="linear-gradient(135deg, #ef4444, #dc2626)">❌ Absent</option>
+                        <option value="cours" data-bg="linear-gradient(135deg, #f59e0b, #d97706)">📚 Cours</option>
+                        <option value="conges" data-bg="linear-gradient(135deg, #10b981, #059669)">🏖️ Congés</option>
+                    `;
+                    
+                    // Ajouter les cases personnalisées
+                    if (Array.isArray(globalState.customTemplates)) {
+                        globalState.customTemplates.forEach(template => {
+                            const option = document.createElement('option');
+                            option.value = 'custom';
+                            option.dataset.customText = template.text;
+                            option.dataset.bg = template.color ? 
+                                `linear-gradient(135deg, ${template.color}, ${adjustColor(template.color, -20)})` :
+                                'linear-gradient(135deg, #8b5cf6, #7c3aed)';
+                            option.textContent = `⚙️ ${template.text}`;
+                            caseTypeSelect.appendChild(option);
+                        });
+                    }
+                }
+                
+                // Peupler les créneaux horaires
+                const timeSlotSelect = document.getElementById('bulkTimeSlot');
+                if (timeSlotSelect) {
+                    timeSlotSelect.innerHTML = '<option value="">Aucun créneau spécifique</option>';
+                    
+                    if (Array.isArray(globalState.timeSlots)) {
+                        globalState.timeSlots.forEach(slot => {
+                            const option = document.createElement('option');
+                            option.value = slot.id;
+                            option.dataset.slot = JSON.stringify(slot);
+                            option.textContent = `${slot.name} (${slot.start} - ${slot.end})`;
+                            timeSlotSelect.appendChild(option);
+                        });
+                    }
+                }
+                
+                // Définir la date d'aujourd'hui par défaut
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('bulkStartDate').value = today;
+                document.getElementById('bulkEndDate').value = today;
+                
+                openModal('bulkFillModal');
+            } catch (error) {
+                console.error('Erreur ouverture bulk fill modal:', error);
+                showToast('Erreur d\'ouverture du modal', 'error');
+            }
+        }
+
+        function toggleAllDays() {
+            try {
+                const checkboxes = ['dayMon', 'dayTue', 'dayWed', 'dayThu', 'dayFri', 'daySat', 'daySun'];
+                const firstChecked = document.getElementById('dayMon').checked;
+                
+                checkboxes.forEach(id => {
+                    const checkbox = document.getElementById(id);
+                    if (checkbox) {
+                        checkbox.checked = !firstChecked;
+                    }
+                });
+            } catch (error) {
+                console.error('Erreur toggle all days:', error);
+            }
+        }
+
+        function handleBulkFillSubmit(e) {
+            try {
+                e.preventDefault();
+                
+                const employeeId = document.getElementById('bulkEmployeeSelect').value;
+                const startDate = new Date(document.getElementById('bulkStartDate').value);
+                const endDate = new Date(document.getElementById('bulkEndDate').value);
+                const caseType = document.getElementById('bulkCaseType').value;
+                const timeSlotId = document.getElementById('bulkTimeSlot').value;
+                const replaceExisting = document.getElementById('replaceExisting').checked;
+                
+                // Validation
+                if (!employeeId || !caseType || isNaN(startDate) || isNaN(endDate)) {
+                    showToast('Veuillez remplir tous les champs obligatoires', 'error');
+                    return;
+                }
+                
+                if (startDate > endDate) {
+                    showToast('La date de début doit être antérieure à la date de fin', 'error');
+                    return;
+                }
+                
+                // Récupérer les jours sélectionnés
+                const selectedDays = [];
+                ['dayMon', 'dayTue', 'dayWed', 'dayThu', 'dayFri', 'daySat', 'daySun'].forEach((id, index) => {
+                    if (document.getElementById(id).checked) {
+                        selectedDays.push(index === 6 ? 0 : index + 1); // Dimanche = 0, Lundi = 1, etc.
+                    }
+                });
+                
+                if (selectedDays.length === 0) {
+                    showToast('Sélectionnez au moins un jour de la semaine', 'error');
+                    return;
+                }
+                
+                // Préparer les données de la case
+                const caseTypeSelect = document.getElementById('bulkCaseType');
+                const selectedOption = caseTypeSelect.options[caseTypeSelect.selectedIndex];
+                const backgroundColor = selectedOption.dataset.bg;
+                const customText = selectedOption.dataset.customText;
+                
+                let shiftData = {
+                    type: caseType,
+                    text: customText || selectedOption.textContent.trim(),
+                    backgroundColor: backgroundColor
+                };
+                
+                // Si un créneau horaire est sélectionné
+                if (timeSlotId) {
+                    const timeSlotSelect = document.getElementById('bulkTimeSlot');
+                    const slotOption = timeSlotSelect.options[timeSlotSelect.selectedIndex];
+                    const slotData = JSON.parse(slotOption.dataset.slot);
+                    
+                    const hours = calculateHours(slotData.start, slotData.end);
+                    shiftData = {
+                        type: 'work',
+                        text: `${slotData.start} - ${slotData.end}`,
+                        hours: `${hours.toFixed(0)}h`,
+                        slot: slotData
+                    };
+                }
+                
+                // Appliquer le remplissage
+                let affectedDays = 0;
+                const currentDate = new Date(startDate);
+                
+                while (currentDate <= endDate) {
+                    const dayOfWeek = currentDate.getDay();
+                    
+                    if (selectedDays.includes(dayOfWeek)) {
+                        if (employeeId === 'ALL') {
+                            // Appliquer à tous les employés
+                            globalState.employees.forEach(employee => {
+                                affectedDays += applyShiftToEmployeeDay(employee, new Date(currentDate), shiftData, replaceExisting);
+                            });
+                        } else {
+                            // Appliquer à un employé spécifique
+                            const employee = globalState.employees.find(emp => emp.id === employeeId);
+                            if (employee) {
+                                affectedDays += applyShiftToEmployeeDay(employee, new Date(currentDate), shiftData, replaceExisting);
+                            }
+                        }
+                    }
+                    
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+                
+                if (affectedDays > 0) {
+                    renderPlanning();
+                    updateSummary();
+                    saveData();
+                    closeModal();
+                    showToast(`${affectedDays} case(s) ajoutée(s) avec succès`, 'success');
+                } else {
+                    showToast('Aucune case n\'a été ajoutée', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Erreur bulk fill submit:', error);
+                showToast('Erreur lors du remplissage automatique', 'error');
+            }
+        }
+
+        function applyShiftToEmployeeDay(employee, date, shiftData, replaceExisting) {
+            try {
+                // Calculer la semaine et le jour
+                const weekStart = new Date(date);
+                weekStart.setDate(date.getDate() - date.getDay() + 1); // Lundi de la semaine
+                
+                const year = weekStart.getFullYear();
+                const firstDay = new Date(year, 0, 1);
+                const pastDays = (weekStart - firstDay) / 86400000;
+                const weekNumber = Math.ceil((pastDays + firstDay.getDay() + 1) / 7);
+                const weekKey = `${year}-W${weekNumber}`;
+                
+                const dayIndex = date.getDay() === 0 ? 6 : date.getDay() - 1; // Dimanche = 6, Lundi = 0
+                
+                // Initialiser la structure si nécessaire
+                if (!employee.planning) employee.planning = {};
+                if (!employee.planning[weekKey]) employee.planning[weekKey] = {};
+                if (!employee.planning[weekKey][dayIndex]) employee.planning[weekKey][dayIndex] = [];
+                
+                // Remplacer si demandé
+                if (replaceExisting) {
+                    employee.planning[weekKey][dayIndex] = [];
+                }
+                
+                // Ajouter la nouvelle case
+                const newShift = {
+                    id: generateId(),
+                    ...shiftData
+                };
+                
+                employee.planning[weekKey][dayIndex].push(newShift);
+                return 1; // Une case ajoutée
+                
+            } catch (error) {
+                console.error('Erreur apply shift to employee day:', error);
+                return 0;
+            }
+        }
+
+        function addEmployee() {
+            const name = document.getElementById('empName').value.trim();
+            const role = document.getElementById('empRole').value.trim();
+            
+            if (!name) {
+                showToast('Le nom est requis', 'error');
+                return;
+            }
+            
+            if (!Array.isArray(globalState.employees)) {
+                globalState.employees = [];
+            }
+            
+            if (globalState.employees.find(emp => emp.name.toLowerCase() === name.toLowerCase())) {
+                showToast('Un employé avec ce nom existe déjà', 'error');
+                return;
+            }
+            
+            const newEmployee = {
+                id: generateId(),
+                name: name,
+                role: role || 'Employé',
+                planning: {}
+            };
+            
+            globalState.employees.push(newEmployee);
+            
+            document.getElementById('empName').value = '';
+            document.getElementById('empRole').value = '';
+            
+            renderPlanning();
+            updateSummary();
+            saveData();
+            showToast('Employé ajouté avec succès', 'success');
+        }
+
+        function renderTimeSlots() {
+            try {
+                const container = document.getElementById('timeSlotsContainer');
+                if (!container) return;
+                
+                container.innerHTML = '';
+                
+                if (!Array.isArray(globalState.timeSlots)) {
+                    globalState.timeSlots = [
+                        { id: 'journeeA', name: 'Journée A', start: '09:00', end: '18:30' },
+                        { id: 'journeeB', name: 'Journée B', start: '10:30', end: '19:30' },
+                        { id: 'journeeC', name: 'Journée C', start: '07:00', end: '15:00' }
+                    ];
+                }
+                
+                globalState.timeSlots.forEach(slot => {
+                    const slotElement = document.createElement('div');
+                    slotElement.className = 'time-slot-template work';
+                    slotElement.draggable = true;
+                    slotElement.dataset.type = 'timeSlot';
+                    slotElement.dataset.slotId = slot.id;
+                    slotElement.innerHTML = `
+                        ${slot.name}<br>
+                        <small style="opacity: 0.9;">${slot.start}-${slot.end}</small>
+                        <button class="delete-slot" onclick="removeTimeSlot('${slot.id}')" title="Supprimer">×</button>
+                    `;
+                    
+                    slotElement.addEventListener('dragstart', handleDragStart);
+                    slotElement.addEventListener('dragend', handleDragEnd);
+                    
+                    container.appendChild(slotElement);
+                });
+
+                // Mise à jour de la sidebar
+                updateSidebarContent();
+            } catch (error) {
+                console.error('Erreur render time slots:', error);
+            }
+        }
+
+        function addTimeSlot() {
+            try {
+                const name = document.getElementById('slotName').value.trim();
+                const start = document.getElementById('slotStart').value;
+                const end = document.getElementById('slotEnd').value;
+                
+                if (!name || !start || !end) {
+                    showToast('Tous les champs sont requis', 'error');
+                    return;
+                }
+                
+                if (!Array.isArray(globalState.timeSlots)) {
+                    globalState.timeSlots = [];
+                }
+                
+                if (globalState.timeSlots.find(slot => slot.name.toLowerCase() === name.toLowerCase())) {
+                    showToast('Un créneau avec ce nom existe déjà', 'error');
+                    return;
+                }
+                
+                const newSlot = {
+                    id: generateId(),
+                    name: name,
+                    start: start,
+                    end: end
+                };
+                
+                globalState.timeSlots.push(newSlot);
+                
+                document.getElementById('slotName').value = '';
+                document.getElementById('slotStart').value = '09:00';
+                document.getElementById('slotEnd').value = '18:30';
+                
+                renderTimeSlots();
+                saveData();
+                showToast('Créneau horaire créé', 'success');
+            } catch (error) {
+                console.error('Erreur add time slot:', error);
+                showToast('Erreur lors de la création du créneau', 'error');
+            }
+        }
+
+        function removeTimeSlot(slotId) {
+            try {
+                if (confirm('Supprimer ce créneau horaire ?')) {
+                    if (!Array.isArray(globalState.timeSlots)) {
+                        globalState.timeSlots = [];
+                        return;
+                    }
+                    
+                    globalState.timeSlots = globalState.timeSlots.filter(slot => slot.id !== slotId);
+                    renderTimeSlots();
+                    saveData();
+                    showToast('Créneau supprimé', 'success');
+                }
+            } catch (error) {
+                console.error('Erreur remove time slot:', error);
+                showToast('Erreur lors de la suppression', 'error');
+            }
+        }
+
+        function addCustomTemplate() {
+            try {
+                const text = document.getElementById('customText').value.trim();
+                const color = document.getElementById('customColor').value;
+                
+                if (!text) {
+                    showToast('Tapez un nom pour la case', 'error');
+                    return;
+                }
+                
+                // Vérifier si le nom existe déjà
+                const existingTemplates = document.querySelectorAll('.template');
+                for (let template of existingTemplates) {
+                    if (template.textContent.includes(text)) {
+                        showToast('Ce nom existe déjà', 'error');
+                        return;
+                    }
+                }
+                
+                const customTemplate = document.createElement('div');
+                customTemplate.className = 'template custom';
+                customTemplate.draggable = true;
+                customTemplate.dataset.type = 'custom';
+                customTemplate.style.background = `linear-gradient(135deg, ${color}, ${adjustColor(color, -20)})`;
+                customTemplate.innerHTML = `
+                    ⚙️ ${text}
+                    <button class="delete-template" onclick="removeTemplate(this)" title="Supprimer">×</button>
+                `;
+                
+                customTemplate.addEventListener('dragstart', handleDragStart);
+                customTemplate.addEventListener('dragend', handleDragEnd);
+                
+                document.getElementById('templatesContainer').appendChild(customTemplate);
+                document.getElementById('customText').value = '';
+                
+                if (!Array.isArray(globalState.customTemplates)) {
+                    globalState.customTemplates = [];
+                }
+                
+                globalState.customTemplates.push({
+                    id: generateId(),
+                    text: text,
+                    color: color
+                });
+                
+                // Mise à jour de la sidebar
+                updateSidebarContent();
+                saveData();
+                showToast('Case créée : ' + text, 'success');
+            } catch (error) {
+                console.error('Erreur add custom template:', error);
+                showToast('Erreur lors de la création de la case', 'error');
+            }
+        }
+
+        function adjustColor(hex, percent) {
+            const num = parseInt(hex.replace("#", ""), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) + amt;
+            const G = (num >> 8 & 0x00FF) + amt;
+            const B = (num & 0x0000FF) + amt;
+            return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+                (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+                (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+        }
+
+        function removeTemplate(button) {
+            try {
+                const template = button.closest('.template');
+                const type = template.dataset.type;
+                const templateText = template.textContent.replace('×', '').trim();
+                
+                if (confirm(`Supprimer la case "${templateText}" ?`)) {
+                    if (type === 'custom') {
+                        if (!Array.isArray(globalState.customTemplates)) {
+                            globalState.customTemplates = [];
+                        }
+                        globalState.customTemplates = globalState.customTemplates.filter(t => 
+                            !templateText.includes(t.text)
+                        );
+                    }
+                    
+                    template.remove();
+                    updateSidebarContent();
+                    saveData();
+                    showToast('Case supprimée', 'success');
+                }
+            } catch (error) {
+                console.error('Erreur remove template:', error);
+                showToast('Erreur lors de la suppression', 'error');
+            }
+        }
+
+        function handleDragStart(e) {
+            try {
+                if (!globalState.isAdminMode) return;
+                
+                const type = e.target.dataset.type;
+                
+                if (type === 'timeSlot') {
+                    const slotId = e.target.dataset.slotId;
+                    const slot = globalState.timeSlots.find(s => s.id === slotId);
+                    if (slot) {
+                        globalState.draggedItem = {
+                            type: 'timeSlot',
+                            text: `${slot.name} (${slot.start}-${slot.end})`,
+                            slot: slot
+                        };
+                    }
+                } else {
+                    // Capturer la couleur de fond pour les cases personnalisées
+                    const computedStyle = window.getComputedStyle(e.target);
+                    const backgroundColor = computedStyle.background || computedStyle.backgroundColor;
+                    
+                    globalState.draggedItem = {
+                        type: e.target.dataset.type,
+                        text: e.target.textContent.replace('×', '').trim(),
+                        backgroundColor: backgroundColor
+                    };
+                }
+                
+                e.target.classList.add('dragging');
+            } catch (error) {
+                console.error('Erreur drag start:', error);
+            }
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+
+        // Fonctions utilitaires
+        function generateId() {
+            return 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function getWeekKey() {
+            try {
+                const year = globalState.currentWeek.getFullYear();
+                const firstDay = new Date(year, 0, 1);
+                const pastDays = (globalState.currentWeek - firstDay) / 86400000;
+                const weekNumber = Math.ceil((pastDays + firstDay.getDay() + 1) / 7);
+                return `${year}-W${weekNumber}`;
+            } catch (error) {
+                console.error('Erreur get week key:', error);
+                return '2024-W1';
+            }
+        }
+
+        function updateWeekDisplay() {
+            try {
+                const start = new Date(globalState.currentWeek);
+                const end = new Date(globalState.currentWeek);
+                end.setDate(end.getDate() + 6);
+                
+                const options = { day: 'numeric', month: 'short' };
+                const startStr = start.toLocaleDateString('fr-FR', options);
+                const endStr = end.toLocaleDateString('fr-FR', options);
+                const year = end.getFullYear();
+                
+                const weekDisplay = document.getElementById('weekDisplay');
+                if (weekDisplay) {
+                    weekDisplay.textContent = `${startStr} - ${endStr} ${year}`;
+                }
+            } catch (error) {
+                console.error('Erreur update week display:', error);
+            }
+        }
+
+        function changeWeek(direction) {
+            try {
+                globalState.currentWeek.setDate(globalState.currentWeek.getDate() + (direction * 7));
+                updateWeekDisplay();
+                renderPlanning();
+                saveData();
+            } catch (error) {
+                console.error('Erreur change week:', error);
+            }
+        }
+
+        function renderPlanning() {
+            try {
+                const grid = document.getElementById('planningGrid');
+                if (!grid) return;
+                
+                grid.innerHTML = '';
+                
+                // Header avec employés
+                const cornerHeader = document.createElement('div');
+                cornerHeader.className = 'grid-header';
+                cornerHeader.textContent = '👤 Employés';
+                grid.appendChild(cornerHeader);
+                
+                // Headers des jours
+                const days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+                days.forEach((day, index) => {
+                    const dayHeader = document.createElement('div');
+                    dayHeader.className = 'grid-header';
+                    const date = new Date(globalState.currentWeek);
+                    date.setDate(date.getDate() + index);
+                    dayHeader.innerHTML = `${day}<br><small>${date.getDate()}</small>`;
+                    grid.appendChild(dayHeader);
+                });
+                
+                // Si pas d'employés, afficher un message pour les ajouter
+                if (!Array.isArray(globalState.employees) || globalState.employees.length === 0) {
+                    const emptyMessage = document.createElement('div');
+                    emptyMessage.style.cssText = `
+                        grid-column: 1 / -1;
+                        text-align: center;
+                        padding: 40px;
+                        color: #6b7280;
+                        background: rgba(255, 255, 255, 0.8);
+                        border-radius: 12px;
+                        margin: 10px;
+                    `;
+                    emptyMessage.innerHTML = `
+                        <h3 style="margin-bottom: 10px;">Aucun employé ajouté</h3>
+                        <p>Passez en mode administrateur pour commencer à créer votre planning</p>
+                    `;
+                    grid.appendChild(emptyMessage);
+                    return;
+                }
+                
+                // Lignes des employés
+                globalState.employees.forEach(employee => {
+                    // Cellule employé
+                    const empCell = document.createElement('div');
+                    empCell.className = 'employee-cell';
+                    
+                    // Calculer les heures de la semaine
+                    let weekHours = 0;
+                    let workDays = 0;
+                    const weekKey = getWeekKey();
+                    
+                    if (employee.planning && employee.planning[weekKey]) {
+                        Object.values(employee.planning[weekKey]).forEach(dayShifts => {
+                            let hasWork = false;
+                            dayShifts.forEach(shift => {
+                                if (shift.type === 'work' && shift.hours) {
+                                    const hours = parseFloat(shift.hours.replace('h', ''));
+                                    weekHours += hours;
+                                    hasWork = true;
+                                }
+                            });
+                            if (hasWork) workDays++;
+                        });
+                    }
+                    
+                    empCell.innerHTML = `
+                        <div class="employee-name">${employee.name}</div>
+                        <div class="employee-role">${employee.role}</div>
+                        <div class="employee-hours">${weekHours.toFixed(0)}h | ${workDays} jours</div>
+                        ${globalState.isAdminMode ? `
+                            <button class="remove-emp" onclick="removeEmployee('${employee.id}')" title="Supprimer">×</button>
+                            <button class="copy-week-btn" onclick="copyEmployeeWeek('${employee.id}')" title="Copier semaine">📋</button>
+                            <button class="paste-week-btn" onclick="pasteEmployeeWeek('${employee.id}')" title="Coller semaine" style="opacity: ${globalState.copiedWeek ? '1' : '0.3'};">📥</button>
+                        ` : ''}
+                    `;
+                    
+                    if (globalState.isAdminMode) {
+                        empCell.addEventListener('contextmenu', (e) => {
+                            e.preventDefault();
+                            if (globalState.copiedWeek) {
+                                pasteEmployeeWeek(employee.id);
+                            }
+                        });
+                    }
+                    
+                    grid.appendChild(empCell);
+                    
+                    // Cellules des jours
+                    for (let day = 0; day < 7; day++) {
+                        const dayCell = document.createElement('div');
+                        dayCell.className = 'day-cell';
+                        dayCell.dataset.employeeId = employee.id;
+                        dayCell.dataset.day = day;
+                        
+                        if (globalState.isAdminMode) {
+                            dayCell.addEventListener('dragover', handleDragOver);
+                            dayCell.addEventListener('dragleave', handleDragLeave);
+                            dayCell.addEventListener('drop', handleDrop);
+                        }
+                        
+                        // Ajouter les créneaux existants
+                        const weekKey = getWeekKey();
+                        if (employee.planning && employee.planning[weekKey] && employee.planning[weekKey][day]) {
+                            employee.planning[weekKey][day].forEach(shift => {
+                                const shiftCard = createShiftCard(shift, employee.id, day);
+                                dayCell.appendChild(shiftCard);
+                            });
+                        }
+                        
+                        grid.appendChild(dayCell);
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Erreur render planning:', error);
+                const grid = document.getElementById('planningGrid');
+                if (grid) {
+                    grid.innerHTML = '<div style="text-align: center; padding: 40px; color: #374151;"><h3>Erreur de chargement du planning</h3></div>';
+                }
+            }
+        }
+
+        function createShiftCard(shift, employeeId, day) {
+            try {
+                const card = document.createElement('div');
+                card.className = `shift-card ${shift.type}`;
+                card.dataset.shiftId = shift.id;
+                
+                // Appliquer la couleur personnalisée si elle existe
+                if (shift.backgroundColor) {
+                    card.style.background = shift.backgroundColor;
+                }
+                
+                // Affichage selon le type
+                let content = '';
+                if (shift.type === 'work') {
+                    content = `
+                        <div style="font-weight: 800; font-size: 12px;">${shift.text}</div>
+                        ${shift.hours ? `<div style="font-size: 12px; opacity: 0.9;">${shift.hours}</div>` : ''}
+                    `;
+                } else {
+                    content = shift.text;
+                }
+                
+                card.innerHTML = `
+                    ${content}
+                    ${globalState.isAdminMode ? `
+                        <div class="actions">
+                            <button class="action-btn copy" onclick="copyShift('${employeeId}', ${day}, '${shift.id}')" title="Copier">📋</button>
+                            <button class="action-btn delete" onclick="removeShift('${employeeId}', ${day}, '${shift.id}')" title="Supprimer">×</button>
+                        </div>
+                    ` : ''}
+                `;
+                
+                if (globalState.isAdminMode) {
+                    card.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        if (globalState.copiedShift) {
+                            pasteShift(employeeId, day, e.target.closest('.day-cell'));
+                        }
+                    });
+                }
+                
+                return card;
+            } catch (error) {
+                console.error('Erreur create shift card:', error);
+                const card = document.createElement('div');
+                card.className = 'shift-card';
+                card.textContent = 'Erreur';
+                return card;
+            }
+        }
+
+        function handleDrop(e) {
+            try {
+                e.preventDefault();
+                e.currentTarget.classList.remove('drag-over');
+                
+                if (!globalState.draggedItem) return;
+                
+                const employeeId = e.currentTarget.dataset.employeeId;
+                const day = parseInt(e.currentTarget.dataset.day);
+                
+                const employee = globalState.employees.find(emp => emp.id === employeeId);
+                if (!employee) return;
+                
+                if (!employee.planning) employee.planning = {};
+                const weekKey = getWeekKey();
+                if (!employee.planning[weekKey]) employee.planning[weekKey] = {};
+                if (!employee.planning[weekKey][day]) employee.planning[weekKey][day] = [];
+                
+                let newShift;
+                
+                if (globalState.draggedItem.type === 'timeSlot') {
+                    const slot = globalState.draggedItem.slot;
+                    const hours = calculateHours(slot.start, slot.end);
+                    newShift = {
+                        id: generateId(),
+                        type: 'work',
+                        text: `${slot.start} - ${slot.end}`,
+                        hours: `${hours.toFixed(0)}h`,
+                        slot: slot
+                    };
+                } else {
+                    newShift = {
+                        id: generateId(),
+                        type: globalState.draggedItem.type,
+                        text: globalState.draggedItem.text,
+                        backgroundColor: globalState.draggedItem.backgroundColor
+                    };
+                }
+                
+                employee.planning[weekKey][day].push(newShift);
+                
+                const shiftCard = createShiftCard(newShift, employeeId, day);
+                e.currentTarget.appendChild(shiftCard);
+                
+                globalState.draggedItem = null;
+                updateSummary();
+                saveData();
+                showToast('Créneau ajouté', 'success');
+                
+            } catch (error) {
+                console.error('Erreur handle drop:', error);
+                showToast('Erreur lors de l\'ajout', 'error');
+            }
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function copyShift(employeeId, day, shiftId) {
+            try {
+                const employee = globalState.employees.find(emp => emp.id === employeeId);
+                if (!employee) return;
+                
+                const weekKey = getWeekKey();
+                if (employee.planning && employee.planning[weekKey] && employee.planning[weekKey][day]) {
+                    const shift = employee.planning[weekKey][day].find(s => s.id === shiftId);
+                    if (shift) {
+                        globalState.copiedShift = {
+                            type: shift.type,
+                            text: shift.text,
+                            hours: shift.hours,
+                            slot: shift.slot,
+                            backgroundColor: shift.backgroundColor
+                        };
+                        showToast('Case copiée - Clic droit pour coller', 'success');
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur copy shift:', error);
+            }
+        }
+
+        function pasteShift(employeeId, day, dayCell) {
+            try {
+                if (!globalState.copiedShift) return;
+                
+                const employee = globalState.employees.find(emp => emp.id === employeeId);
+                if (!employee) return;
+                
+                if (!employee.planning) employee.planning = {};
+                const weekKey = getWeekKey();
+                if (!employee.planning[weekKey]) employee.planning[weekKey] = {};
+                if (!employee.planning[weekKey][day]) employee.planning[weekKey][day] = [];
+                
+                const newShift = {
+                    id: generateId(),
+                    type: globalState.copiedShift.type,
+                    text: globalState.copiedShift.text,
+                    hours: globalState.copiedShift.hours,
+                    slot: globalState.copiedShift.slot,
+                    backgroundColor: globalState.copiedShift.backgroundColor
+                };
+                
+                employee.planning[weekKey][day].push(newShift);
+                
+                const shiftCard = createShiftCard(newShift, employeeId, day);
+                dayCell.appendChild(shiftCard);
+                
+                updateSummary();
+                saveData();
+                showToast('Case collée', 'success');
+            } catch (error) {
+                console.error('Erreur paste shift:', error);
+            }
+        }
+
+        function removeShift(employeeId, day, shiftId) {
+            try {
+                const employee = globalState.employees.find(emp => emp.id === employeeId);
+                if (!employee) return;
+                
+                const weekKey = getWeekKey();
+                if (employee.planning && employee.planning[weekKey] && employee.planning[weekKey][day]) {
+                    employee.planning[weekKey][day] = employee.planning[weekKey][day].filter(shift => shift.id !== shiftId);
+                    
+                    if (employee.planning[weekKey][day].length === 0) {
+                        delete employee.planning[weekKey][day];
+                    }
+                }
+                
+                renderPlanning();
+                updateSummary();
+                saveData();
+                showToast('Créneau supprimé', 'success');
+            } catch (error) {
+                console.error('Erreur remove shift:', error);
+            }
+        }
+
+        function calculateHours(startTime, endTime) {
+            try {
+                const [startHour, startMin] = startTime.split(':').map(Number);
+                const [endHour, endMin] = endTime.split(':').map(Number);
+                
+                const startDecimal = startHour + (startMin / 60);
+                const endDecimal = endHour + (endMin / 60);
+                
+                let hours = endDecimal - startDecimal;
+                if (hours < 0) hours += 24;
+                
+                // Déduction pause déjeuner si > 6h
+                if (hours > 6) hours -= 1;
+                
+                return Math.max(0, hours);
+            } catch (error) {
+                console.error('Erreur calculate hours:', error);
+                return 8;
+            }
+        }
+
+        function copyEmployeeWeek(employeeId) {
+            try {
+                const employee = globalState.employees.find(emp => emp.id === employeeId);
+                if (!employee) return;
+                
+                const weekKey = getWeekKey();
+                if (employee.planning && employee.planning[weekKey]) {
+                    globalState.copiedWeek = JSON.parse(JSON.stringify(employee.planning[weekKey]));
+                    showToast(`Semaine de ${employee.name} copiée`, 'success');
+                } else {
+                    showToast('Aucun planning à copier', 'error');
+                }
+            } catch (error) {
+                console.error('Erreur copy employee week:', error);
+            }
+        }
+
+        function pasteEmployeeWeek(targetEmployeeId) {
+            try {
+                if (!globalState.copiedWeek) {
+                    showToast('Aucune semaine copiée', 'error');
+                    return;
+                }
+                
+                const employee = globalState.employees.find(emp => emp.id === targetEmployeeId);
+                if (!employee) return;
+                
+                if (confirm(`Coller la semaine sur ${employee.name} ?`)) {
+                    if (!employee.planning) employee.planning = {};
+                    const weekKey = getWeekKey();
+                    
+                    employee.planning[weekKey] = {};
+                    Object.keys(globalState.copiedWeek).forEach(day => {
+                        employee.planning[weekKey][day] = globalState.copiedWeek[day].map(shift => ({
+                            ...shift,
+                            id: generateId()
+                        }));
+                    });
+                    
+                    renderPlanning();
+                    updateSummary();
+                    saveData();
+                    showToast(`Semaine collée sur ${employee.name}`, 'success');
+                }
+            } catch (error) {
+                console.error('Erreur paste employee week:', error);
+            }
+        }
+
+        function removeEmployee(employeeId) {
+            try {
+                const employee = globalState.employees.find(emp => emp.id === employeeId);
+                if (!employee) return;
+                
+                if (confirm(`Supprimer ${employee.name} ?`)) {
+                    globalState.employees = globalState.employees.filter(emp => emp.id !== employeeId);
+                    renderPlanning();
+                    updateSummary();
+                    saveData();
+                    showToast('Employé supprimé', 'success');
+                }
+            } catch (error) {
+                console.error('Erreur remove employee:', error);
+            }
+        }
+
+        function updateSummary() {
+            try {
+                const empCount = globalState.employees?.length || 0;
+                let totalShifts = 0;
+                let totalHours = 0;
+                
+                const weekKey = getWeekKey();
+                if (Array.isArray(globalState.employees)) {
+                    globalState.employees.forEach(employee => {
+                        if (employee.planning && employee.planning[weekKey]) {
+                            Object.values(employee.planning[weekKey]).forEach(dayShifts => {
+                                totalShifts += dayShifts.length;
+                                dayShifts.forEach(shift => {
+                                    if (shift.type === 'work' && shift.hours) {
+                                        const hours = parseFloat(shift.hours.replace('h', ''));
+                                        totalHours += hours;
+                                    }
+                                });
+                            });
+                        }
+                    });
+                }
+                
+                const occupationRate = empCount > 0 ? Math.round((totalShifts / (empCount * 7)) * 100) : 0;
+                
+                document.getElementById('empCount').textContent = empCount;
+                document.getElementById('shiftCount').textContent = totalShifts;
+                document.getElementById('occupationRate').textContent = occupationRate + '%';
+                
+                updateEmployeeRecap();
+            } catch (error) {
+                console.error('Erreur update summary:', error);
+                document.getElementById('empCount').textContent = '0';
+                document.getElementById('shiftCount').textContent = '0';
+                document.getElementById('occupationRate').textContent = '0%';
+            }
+        }
+
+        function updateEmployeeRecap() {
+            try {
+                const container = document.getElementById('employeeRecap');
+                if (!container || !globalState.isAdminMode) return;
+                
+                container.innerHTML = '';
+                
+                const weekKey = getWeekKey();
+                
+                if (Array.isArray(globalState.employees)) {
+                    globalState.employees.forEach(employee => {
+                        let workHours = 0;
+                        let workDays = 0;
+                        let absences = 0;
+                        let conges = 0;
+                        let repos = 0;
+                        let cours = 0;
+                        
+                        if (employee.planning && employee.planning[weekKey]) {
+                            Object.values(employee.planning[weekKey]).forEach(dayShifts => {
+                                let hasWork = false;
+                                dayShifts.forEach(shift => {
+                                    switch(shift.type) {
+                                        case 'work':
+                                            if (shift.hours) {
+                                                const hours = parseFloat(shift.hours.replace('h', ''));
+                                                workHours += hours;
+                                                hasWork = true;
+                                            }
+                                            break;
+                                        case 'absent':
+                                            absences++;
+                                            break;
+                                        case 'conges':
+                                            conges++;
+                                            break;
+                                        case 'repos':
+                                            repos++;
+                                            break;
+                                        case 'cours':
+                                            cours++;
+                                            break;
+                                    }
+                                });
+                                if (hasWork) workDays++;
+                            });
+                        }
+                        
+                        const overtime = Math.max(0, workHours - 35);
+                        
+                        const recapCard = document.createElement('div');
+                        recapCard.style.cssText = `
+                            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
+                            padding: 20px;
+                            border-radius: 16px;
+                            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+                            border: 1px solid rgba(255, 255, 255, 0.3);
+                        `;
+                        
+                        recapCard.innerHTML = `
+                            <h4 style="color: #374151; margin-bottom: 15px; font-size: 1.2em; font-weight: 700;">${employee.name}</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
+                                <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(102, 126, 234, 0.1); border-radius: 8px;">
+                                    <span style="font-weight: 600;">⏰ Heures travail:</span>
+                                    <span style="font-weight: 700; color: ${workHours > 35 ? '#ef4444' : '#10b981'};">${workHours.toFixed(1)}h</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
+                                    <span style="font-weight: 600;">⚡ Heures sup:</span>
+                                    <span style="font-weight: 700; color: #ef4444;">${overtime.toFixed(1)}h</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(107, 114, 128, 0.1); border-radius: 8px;">
+                                    <span style="font-weight: 600;">📅 Jours travail:</span>
+                                    <span style="font-weight: 700; color: #6b7280;">${workDays}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(16, 185, 129, 0.1); border-radius: 8px;">
+                                    <span style="font-weight: 600;">🏖️ Congés:</span>
+                                    <span style="font-weight: 700; color: #10b981;">${conges}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
+                                    <span style="font-weight: 600;">❌ Absences:</span>
+                                    <span style="font-weight: 700; color: #ef4444;">${absences}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(245, 158, 11, 0.1); border-radius: 8px;">
+                                    <span style="font-weight: 600;">😴 Repos:</span>
+                                    <span style="font-weight: 700; color: #6b7280;">${repos}</span>
+                                </div>
+                            </div>
+                        `;
+                        
+                        container.appendChild(recapCard);
+                    });
+                }
+            } catch (error) {
+                console.error('Erreur update employee recap:', error);
+            }
+        }
+
+        function updateWeekTemplateSelect() {
+            try {
+                const select = document.getElementById('weekTemplateSelect');
+                if (!select) return;
+                
+                select.innerHTML = '<option value="">Sélectionner une semaine type...</option>';
+            } catch (error) {
+                console.error('Erreur update week template select:', error);
+            }
+        }
+
+        // Système de sauvegarde amélioré
+        function saveData() {
+            saveDataLocal();
+            
+            // Auto-sauvegarde cloud si connecté (mais sans message répétitif)
+            if (isFirebaseEnabled && currentUser) {
+                setTimeout(() => {
+                    saveToCloudSilent(); // Version silencieuse pour l'auto-save
+                }, 1000);
+            }
+        }
+
+        function saveDataLocal() {
+            try {
+                const dataToSave = {
+                    employees: globalState.employees || [],
+                    customTemplates: globalState.customTemplates || [],
+                    timeSlots: globalState.timeSlots || [],
+                    weekTemplates: globalState.weekTemplates || [],
+                    lastSave: new Date().toISOString(),
+                    version: '3.0'
+                };
+                
+                const dataString = JSON.stringify(dataToSave);
+                
+                // Sauvegarde localStorage
+                try {
+                    localStorage.setItem('planning_data', dataString);
+                    showToast('💾 Sauvegardé localement', 'success');
+                } catch (e) {
+                    console.warn('localStorage non disponible');
+                    showToast('Erreur sauvegarde locale', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Erreur sauvegarde:', error);
+                showToast('Erreur de sauvegarde', 'error');
+            }
+        }
+
+        function saveToCloudSilent() {
+            if (!isFirebaseEnabled || !currentUser || !db) return;
+
+            try {
+                const dataToSave = {
+                    employees: globalState.employees || [],
+                    customTemplates: globalState.customTemplates || [],
+                    timeSlots: globalState.timeSlots || [],
+                    weekTemplates: globalState.weekTemplates || [],
+                    lastSave: new Date().toISOString(),
+                    version: '3.0',
+                    userId: currentUser.uid
+                };
+
+                db.collection('plannings').doc(currentUser.uid).set(dataToSave)
+                    .catch((error) => {
+                        console.error('Erreur auto-sauvegarde cloud:', error);
+                    });
+            } catch (error) {
+                console.error('Erreur auto-sauvegarde:', error);
+            }
+        }
+
+        function loadData() {
+            try {
+                let loadedData = null;
+                
+                // Charger depuis localStorage
+                try {
+                    const localData = localStorage.getItem('planning_data');
+                    if (localData) {
+                        loadedData = JSON.parse(localData);
+                    }
+                } catch (e) {
+                    console.warn('localStorage non disponible');
+                }
+                
+                if (loadedData) {
+                    // Valider et appliquer les données
+                    if (Array.isArray(loadedData.employees)) {
+                        globalState.employees = loadedData.employees;
+                    }
+                    
+                    if (Array.isArray(loadedData.customTemplates)) {
+                        globalState.customTemplates = loadedData.customTemplates;
+                        
+                        loadedData.customTemplates.forEach(template => {
+                            const customTemplate = document.createElement('div');
+                            customTemplate.className = 'template custom';
+                            customTemplate.draggable = true;
+                            customTemplate.dataset.type = 'custom';
+                            customTemplate.style.background = template.color ? 
+                                `linear-gradient(135deg, ${template.color}, ${adjustColor(template.color, -20)})` :
+                                'linear-gradient(135deg, #8b5cf6, #7c3aed)';
+                            customTemplate.innerHTML = `⚙️ ${template.text}`;
+                            
+                            customTemplate.addEventListener('dragstart', handleDragStart);
+                            customTemplate.addEventListener('dragend', handleDragEnd);
+                            
+                            document.getElementById('templatesContainer').appendChild(customTemplate);
+                        });
+                    }
+                    
+                    if (Array.isArray(loadedData.timeSlots)) {
+                        globalState.timeSlots = loadedData.timeSlots;
+                        renderTimeSlots();
+                    }
+                    
+                    if (Array.isArray(loadedData.weekTemplates)) {
+                        globalState.weekTemplates = loadedData.weekTemplates;
+                        updateWeekTemplateSelect();
+                    }
+                    
+                    renderPlanning();
+                    updateSummary();
+                    showToast('Planning chargé', 'success');
+                } else {
+                    createDefaultData();
+                }
+            } catch (error) {
+                console.error('Erreur chargement:', error);
+                createDefaultData();
+            }
+        }
+
+        function createDefaultData() {
+            try {
+                globalState = {
+                    employees: [],
+                    currentWeek: new Date(),
+                    isAdminMode: false,
+                    draggedItem: null,
+                    customTemplates: [],
+                    timeSlots: [
+                        { id: 'journeeA', name: 'Journée A', start: '09:00', end: '18:30' },
+                        { id: 'journeeB', name: 'Journée B', start: '10:30', end: '19:30' },
+                        { id: 'journeeC', name: 'Journée C', start: '07:00', end: '15:00' }
+                    ],
+                    weekTemplates: [],
+                    copiedShift: null,
+                    copiedWeek: null
+                };
+                
+                saveData();
+                renderPlanning();
+                updateSummary();
+                
+                showToast('Planning initialisé - Passez en mode admin pour ajouter des employés', 'success');
+            } catch (error) {
+                console.error('Erreur create default data:', error);
+            }
+        }
+
+        function shareOpening() {
+            try {
+                const currentUrl = window.location.href;
+                
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(currentUrl).then(() => {
+                        showToast('Lien copié dans le presse-papier !', 'success');
+                    }).catch(() => {
+                        showShareFallback(currentUrl);
+                    });
+                } else {
+                    showShareFallback(currentUrl);
+                }
+            } catch (error) {
+                console.error('Erreur partage:', error);
+                showToast('Erreur lors du partage', 'error');
+            }
+        }
+
+        function showShareFallback(url) {
+            alert(`Copiez ce lien pour partager le planning :\n\n${url}`);
+        }
+
+        function clearAll() { 
+            if (confirm('Vider tous les plannings ?')) {
+                if (Array.isArray(globalState.employees)) {
+                    globalState.employees.forEach(emp => {
+                        emp.planning = {};
+                    });
+                }
+                renderPlanning();
+                updateSummary();
+                saveData();
+                showToast('Plannings vidés', 'success');
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            try {
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.textContent = message;
+                
+                document.body.appendChild(toast);
+                
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.remove();
+                    }
+                }, 3000);
+            } catch (error) {
+                console.error('Erreur show toast:', error);
+            }
+        }
+
+        // Stubs pour les fonctions non implémentées
+        function saveWeekTemplate() { showToast('Fonctionnalité en développement', 'error'); }
+        function applyWeekTemplate() { showToast('Fonctionnalité en développement', 'error'); }
+        function deleteWeekTemplate() { showToast('Fonctionnalité en développement', 'error'); }
+
+        // Auto-sauvegarde périodique
+        setInterval(() => {
+            if (globalState.employees && globalState.employees.length > 0) {
+                saveData();
+            }
+        }, 60000); // Toutes les minutes
+
+        // Fonction de réinitialisation d'urgence
+        window.resetPlanning = function() {
+            if (confirm('ATTENTION: Cela va supprimer toutes les données. Continuer ?')) {
+                try {
+                    localStorage.removeItem('planning_data');
+                    location.reload();
+                } catch (error) {
+                    console.error('Erreur reset:', error);
+                }
+            }
+        };
+
+        console.log(`
+🎉 Planning Hebdomadaire Initialisé avec succès!
+
+🔧 Commandes de dépannage disponibles:
+- resetPlanning() : Réinitialise tout
+- globalState : État actuel des données
+
+🔑 Mot de passe admin: admin123
+        `);
+    </script>
+</body>
+</html>
