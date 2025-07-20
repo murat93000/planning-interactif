@@ -2646,12 +2646,53 @@ globalState.employees.forEach(employee => {
         let newShift;
         
         if (draggedShiftData) {
-            // ... reste du code pour draggedShiftData
-        } else if (globalState.draggedItem) {
-            // ... reste du code pour draggedItem
-        } else {
-            return;
+    newShift = {
+        id: generateId(),
+        type: draggedShiftData.shift.type,
+        text: draggedShiftData.shift.text,
+        hours: draggedShiftData.shift.hours,
+        slot: draggedShiftData.shift.slot,
+        backgroundColor: draggedShiftData.shift.backgroundColor
+    };
+    
+    const originalEmployee = globalState.employees.find(emp => emp.id === draggedShiftData.originalEmployeeId);
+    if (originalEmployee && originalEmployee.planning[weekKey] && originalEmployee.planning[weekKey][draggedShiftData.originalDay]) {
+        originalEmployee.planning[weekKey][draggedShiftData.originalDay] = 
+            originalEmployee.planning[weekKey][draggedShiftData.originalDay].filter(s => s.id !== draggedShiftData.originalShiftId);
+        
+        if (originalEmployee.planning[weekKey][draggedShiftData.originalDay].length === 0) {
+            delete originalEmployee.planning[weekKey][draggedShiftData.originalDay];
         }
+    }
+    
+    draggedShiftData = null;
+    showToast('Case déplacée', 'success');
+    
+} else if (globalState.draggedItem) {
+    if (globalState.draggedItem.type === 'timeSlot') {
+        const slot = globalState.draggedItem.slot;
+        const hours = calculateHours(slot.start, slot.end);
+        newShift = {
+            id: generateId(),
+            type: 'work',
+            text: `${slot.start} - ${slot.end}`,
+            hours: formatHours(hours),
+            slot: slot
+        };
+    } else {
+        newShift = {
+            id: generateId(),
+            type: globalState.draggedItem.type,
+            text: globalState.draggedItem.text,
+            backgroundColor: globalState.draggedItem.backgroundColor
+        };
+    }
+    
+    globalState.draggedItem = null;
+    showToast('Créneau ajouté', 'success');
+} else {
+    return;
+}
         
         employee.planning[weekKey][day].push(newShift);
         
