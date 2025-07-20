@@ -890,8 +890,10 @@
                 <button class="btn warning" onclick="saveToCloud()">☁️ Sauver sur Cloud</button>
                 <button class="btn warning" onclick="forceLoadFromCloud()">🔄 Recharger Cloud</button>
                 <button class="btn warning" onclick="saveData()">💾 Sauver Local+Cloud</button>
+                <button class="btn" onclick="undo()" id="undoBtn" title="Ctrl+Z">↶ Annuler</button>
+<button class="btn" onclick="redo()" id="redoBtn" title="Ctrl+Y">↷ Refaire</button>
                 <button class="btn" onclick="shareOpening()">🔗 Partager Planning</button>
-                <button class="btn danger" onclick="clearAll()">🗑️ Vider Planning</button>
+                <button class="btn danger" onclick="clearCurrentWeek()">🗑️ Vider Semaine Courante</button>
             </div>
         </div>
 
@@ -1490,7 +1492,11 @@
         // ================================
         // Configuration sécurisée
         const ADMIN_PASSWORD = '123123';
-        
+
+        // Système d'annulation
+let undoStack = [];
+let redoStack = [];
+const MAX_UNDO_STEPS = 20;
         // État global avec validation
         let globalState = {
             employees: [],
@@ -1612,6 +1618,18 @@
                     e.preventDefault();
                     forceLoadFromCloud(); // CTRL + R = Recharger depuis le cloud
                     break;
+                    case 'z':
+    e.preventDefault();
+    if (e.shiftKey) {
+        redo(); // Ctrl+Shift+Z = Refaire
+    } else {
+        undo(); // Ctrl+Z = Annuler
+    }
+    break;
+case 'y':
+    e.preventDefault();
+    redo(); // Ctrl+Y = Refaire
+    break;
             }
         }
         
@@ -2094,39 +2112,42 @@
         }
 
         function addEmployee() {
-            const name = document.getElementById('empName').value.trim();
-            const role = document.getElementById('empRole').value.trim();
-            
-            if (!name) {
-                showToast('Le nom est requis', 'error');
-                return;
-            }
-            
-            if (!Array.isArray(globalState.employees)) {
-                globalState.employees = [];
-            }
-            
-            if (globalState.employees.find(emp => emp.name.toLowerCase() === name.toLowerCase())) {
-                showToast('Un employé avec ce nom existe déjà', 'error');
-                return;
-            }
-            
-            const newEmployee = {
-                id: generateId(),
-                name: name,
-                role: role || 'Employé',
-                planning: {}
-            };
-            
-            globalState.employees.push(newEmployee);
-            
-            document.getElementById('empName').value = '';
-            document.getElementById('empRole').value = '';
-            
-            renderPlanning();
-            updateSummary();
-            saveData();
-            showToast('Employé ajouté avec succès', 'success');
+    saveStateForUndo(); // ← AJOUT POUR L'ANNULATION
+    
+    const name = document.getElementById('empName').value.trim();
+    const role = document.getElementById('empRole').value.trim();
+    
+    if (!name) {
+        showToast('Le nom est requis', 'error');
+        return;
+    }
+    
+    if (!Array.isArray(globalState.employees)) {
+        globalState.employees = [];
+    }
+    
+    if (globalState.employees.find(emp => emp.name.toLowerCase() === name.toLowerCase())) {
+        showToast('Un employé avec ce nom existe déjà', 'error');
+        return;
+    }
+    
+    const newEmployee = {
+        id: generateId(),
+        name: name,
+        role: role || 'Employé',
+        planning: {}
+    };
+    
+    globalState.employees.push(newEmployee);
+    
+    document.getElementById('empName').value = '';
+    document.getElementById('empRole').value = '';
+    
+    renderPlanning();
+    updateSummary();
+    saveData();
+    showToast('Employé ajouté avec succès', 'success');
+}
         }
 
         function renderTimeSlots() {
@@ -2170,65 +2191,69 @@
         }
 
         function addTimeSlot() {
-            try {
-                const name = document.getElementById('slotName').value.trim();
-                const start = document.getElementById('slotStart').value;
-                const end = document.getElementById('slotEnd').value;
-                
-                if (!name || !start || !end) {
-                    showToast('Tous les champs sont requis', 'error');
-                    return;
-                }
-                
-                if (!Array.isArray(globalState.timeSlots)) {
-                    globalState.timeSlots = [];
-                }
-                
-                if (globalState.timeSlots.find(slot => slot.name.toLowerCase() === name.toLowerCase())) {
-                    showToast('Un créneau avec ce nom existe déjà', 'error');
-                    return;
-                }
-                
-                const newSlot = {
-                    id: generateId(),
-                    name: name,
-                    start: start,
-                    end: end
-                };
-                
-                globalState.timeSlots.push(newSlot);
-                
-                document.getElementById('slotName').value = '';
-                document.getElementById('slotStart').value = '09:00';
-                document.getElementById('slotEnd').value = '18:30';
-                
-                renderTimeSlots();
-                saveData();
-                showToast('Créneau horaire créé', 'success');
-            } catch (error) {
-                console.error('Erreur add time slot:', error);
-                showToast('Erreur lors de la création du créneau', 'error');
-            }
+    try {
+        saveStateForUndo(); // ← AJOUT POUR L'ANNULATION
+        
+        const name = document.getElementById('slotName').value.trim();
+        const start = document.getElementById('slotStart').value;
+        const end = document.getElementById('slotEnd').value;
+        
+        if (!name || !start || !end) {
+            showToast('Tous les champs sont requis', 'error');
+            return;
         }
+        
+        if (!Array.isArray(globalState.timeSlots)) {
+            globalState.timeSlots = [];
+        }
+        
+        if (globalState.timeSlots.find(slot => slot.name.toLowerCase() === name.toLowerCase())) {
+            showToast('Un créneau avec ce nom existe déjà', 'error');
+            return;
+        }
+        
+        const newSlot = {
+            id: generateId(),
+            name: name,
+            start: start,
+            end: end
+        };
+        
+        globalState.timeSlots.push(newSlot);
+        
+        document.getElementById('slotName').value = '';
+        document.getElementById('slotStart').value = '09:00';
+        document.getElementById('slotEnd').value = '18:30';
+        
+        renderTimeSlots();
+        saveData();
+        showToast('Créneau horaire créé', 'success');
+    } catch (error) {
+        console.error('Erreur add time slot:', error);
+        showToast('Erreur lors de la création du créneau', 'error');
+    }
+}
 
         function removeTimeSlot(slotId) {
-            try {
-                if (confirm('Supprimer ce créneau horaire ?')) {
-                    if (!Array.isArray(globalState.timeSlots)) {
-                        globalState.timeSlots = [];
-                        return;
-                    }
-                    
-                    globalState.timeSlots = globalState.timeSlots.filter(slot => slot.id !== slotId);
-                    renderTimeSlots();
-                    saveData();
-                    showToast('Créneau supprimé', 'success');
-                }
-            } catch (error) {
-                console.error('Erreur remove time slot:', error);
-                showToast('Erreur lors de la suppression', 'error');
+    try {
+        if (confirm('Supprimer ce créneau horaire ?')) {
+            saveStateForUndo(); // ← AJOUT POUR L'ANNULATION
+            
+            if (!Array.isArray(globalState.timeSlots)) {
+                globalState.timeSlots = [];
+                return;
             }
+            
+            globalState.timeSlots = globalState.timeSlots.filter(slot => slot.id !== slotId);
+            renderTimeSlots();
+            saveData();
+            showToast('Créneau supprimé', 'success');
         }
+    } catch (error) {
+        console.error('Erreur remove time slot:', error);
+        showToast('Erreur lors de la suppression', 'error');
+    }
+}
 
         function addCustomTemplate() {
             try {
@@ -2601,83 +2626,44 @@ globalState.employees.forEach(employee => {
         }
 
         function handleDrop(e) {
-            try {
-                e.preventDefault();
-                e.currentTarget.classList.remove('drag-over');
-                
-                const employeeId = e.currentTarget.dataset.employeeId;
-                const day = parseInt(e.currentTarget.dataset.day);
-                
-                const employee = globalState.employees.find(emp => emp.id === employeeId);
-                if (!employee) return;
-                
-                if (!employee.planning) employee.planning = {};
-                const weekKey = getWeekKey();
-                if (!employee.planning[weekKey]) employee.planning[weekKey] = {};
-                if (!employee.planning[weekKey][day]) employee.planning[weekKey][day] = [];
-                
-                let newShift;
-                
-                if (draggedShiftData) {
-                    newShift = {
-                        id: generateId(),
-                        type: draggedShiftData.shift.type,
-                        text: draggedShiftData.shift.text,
-                        hours: draggedShiftData.shift.hours,
-                        slot: draggedShiftData.shift.slot,
-                        backgroundColor: draggedShiftData.shift.backgroundColor
-                    };
-                    
-                    const originalEmployee = globalState.employees.find(emp => emp.id === draggedShiftData.originalEmployeeId);
-                    if (originalEmployee && originalEmployee.planning[weekKey] && originalEmployee.planning[weekKey][draggedShiftData.originalDay]) {
-                        originalEmployee.planning[weekKey][draggedShiftData.originalDay] = 
-                            originalEmployee.planning[weekKey][draggedShiftData.originalDay].filter(s => s.id !== draggedShiftData.originalShiftId);
-                        
-                        if (originalEmployee.planning[weekKey][draggedShiftData.originalDay].length === 0) {
-                            delete originalEmployee.planning[weekKey][draggedShiftData.originalDay];
-                        }
-                    }
-                    
-                    draggedShiftData = null;
-                    showToast('Case déplacée', 'success');
-                    
-                } else if (globalState.draggedItem) {
-                    if (globalState.draggedItem.type === 'timeSlot') {
-                        const slot = globalState.draggedItem.slot;
-                        const hours = calculateHours(slot.start, slot.end);
-                        newShift = {
-                            id: generateId(),
-                            type: 'work',
-                            text: `${slot.start} - ${slot.end}`,
-                            hours: formatHours(hours),
-                            slot: slot
-                        };
-                    } else {
-                        newShift = {
-                            id: generateId(),
-                            type: globalState.draggedItem.type,
-                            text: globalState.draggedItem.text,
-                            backgroundColor: globalState.draggedItem.backgroundColor
-                        };
-                    }
-                    
-                    globalState.draggedItem = null;
-                    showToast('Créneau ajouté', 'success');
-                } else {
-                    return;
-                }
-                
-                employee.planning[weekKey][day].push(newShift);
-                
-                renderPlanning();
-                updateSummary();
-                saveData();
-                
-            } catch (error) {
-                console.error('Erreur handle drop:', error);
-                showToast('Erreur lors de l\'ajout', 'error');
-            }
+    try {
+        e.preventDefault();
+        e.currentTarget.classList.remove('drag-over');
+        
+        saveStateForUndo(); // ← AJOUT POUR L'ANNULATION
+        
+        const employeeId = e.currentTarget.dataset.employeeId;
+        const day = parseInt(e.currentTarget.dataset.day);
+        
+        const employee = globalState.employees.find(emp => emp.id === employeeId);
+        if (!employee) return;
+        
+        if (!employee.planning) employee.planning = {};
+        const weekKey = getWeekKey();
+        if (!employee.planning[weekKey]) employee.planning[weekKey] = {};
+        if (!employee.planning[weekKey][day]) employee.planning[weekKey][day] = [];
+        
+        let newShift;
+        
+        if (draggedShiftData) {
+            // ... reste du code pour draggedShiftData
+        } else if (globalState.draggedItem) {
+            // ... reste du code pour draggedItem
+        } else {
+            return;
         }
+        
+        employee.planning[weekKey][day].push(newShift);
+        
+        renderPlanning();
+        updateSummary();
+        saveData();
+        
+    } catch (error) {
+        console.error('Erreur handle drop:', error);
+        showToast('Erreur lors de l\'ajout', 'error');
+    }
+}
 
         function handleDragOver(e) {
             e.preventDefault();
@@ -2747,27 +2733,29 @@ globalState.employees.forEach(employee => {
         }
 
         function removeShift(employeeId, day, shiftId) {
-            try {
-                const employee = globalState.employees.find(emp => emp.id === employeeId);
-                if (!employee) return;
-                
-                const weekKey = getWeekKey();
-                if (employee.planning && employee.planning[weekKey] && employee.planning[weekKey][day]) {
-                    employee.planning[weekKey][day] = employee.planning[weekKey][day].filter(shift => shift.id !== shiftId);
-                    
-                    if (employee.planning[weekKey][day].length === 0) {
-                        delete employee.planning[weekKey][day];
-                    }
-                }
-                
-                renderPlanning();
-                updateSummary();
-                saveData();
-                showToast('Créneau supprimé', 'success');
-            } catch (error) {
-                console.error('Erreur remove shift:', error);
+    try {
+        saveStateForUndo(); // ← AJOUT POUR L'ANNULATION
+        
+        const employee = globalState.employees.find(emp => emp.id === employeeId);
+        if (!employee) return;
+        
+        const weekKey = getWeekKey();
+        if (employee.planning && employee.planning[weekKey] && employee.planning[weekKey][day]) {
+            employee.planning[weekKey][day] = employee.planning[weekKey][day].filter(shift => shift.id !== shiftId);
+            
+            if (employee.planning[weekKey][day].length === 0) {
+                delete employee.planning[weekKey][day];
             }
         }
+        
+        renderPlanning();
+        updateSummary();
+        saveData();
+        showToast('Créneau supprimé', 'success');
+    } catch (error) {
+        console.error('Erreur remove shift:', error);
+    }
+}
 
         function calculateHours(startTime, endTime) {
             try {
@@ -2883,21 +2871,23 @@ function formatHours(hours) {
         }
 
         function removeEmployee(employeeId) {
-            try {
-                const employee = globalState.employees.find(emp => emp.id === employeeId);
-                if (!employee) return;
-                
-                if (confirm(`Supprimer ${employee.name} ?`)) {
-                    globalState.employees = globalState.employees.filter(emp => emp.id !== employeeId);
-                    renderPlanning();
-                    updateSummary();
-                    saveData();
-                    showToast('Employé supprimé', 'success');
-                }
-            } catch (error) {
-                console.error('Erreur remove employee:', error);
-            }
+    try {
+        const employee = globalState.employees.find(emp => emp.id === employeeId);
+        if (!employee) return;
+        
+        if (confirm(`Supprimer ${employee.name} ?`)) {
+            saveStateForUndo(); // ← AJOUT POUR L'ANNULATION
+            
+            globalState.employees = globalState.employees.filter(emp => emp.id !== employeeId);
+            renderPlanning();
+            updateSummary();
+            saveData();
+            showToast('Employé supprimé', 'success');
         }
+    } catch (error) {
+        console.error('Erreur remove employee:', error);
+    }
+}
 
         function updateSummary() {
             try {
@@ -3221,19 +3211,151 @@ function formatHours(hours) {
             alert(`Copiez ce lien pour partager le planning :\n\n${url}`);
         }
 
-        function clearAll() { 
-            if (confirm('Vider tous les plannings ?')) {
-                if (Array.isArray(globalState.employees)) {
-                    globalState.employees.forEach(emp => {
-                        emp.planning = {};
-                    });
+       function clearCurrentWeek() { 
+    const weekKey = getWeekKey();
+    const weekStart = new Date(globalState.currentWeek);
+    const weekEnd = new Date(globalState.currentWeek);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    
+    const weekDisplay = `${weekStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} - ${weekEnd.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`;
+    
+    if (confirm(`Vider uniquement la semaine du ${weekDisplay} ?`)) {
+        saveStateForUndo(); // ← AJOUT POUR L'ANNULATION
+        
+        if (Array.isArray(globalState.employees)) {
+            globalState.employees.forEach(emp => {
+                if (emp.planning && emp.planning[weekKey]) {
+                    delete emp.planning[weekKey];
                 }
-                renderPlanning();
-                updateSummary();
-                saveData();
-                showToast('Plannings vidés', 'success');
-            }
+            });
         }
+        renderPlanning();
+        updateSummary();
+        saveData();
+        showToast(`Semaine du ${weekDisplay} vidée`, 'success');
+    }
+}
+        // ================================
+// SYSTÈME D'ANNULATION (CTRL+Z)
+// ================================
+
+function saveStateForUndo() {
+    try {
+        // Sauvegarder l'état actuel
+        const currentState = {
+            employees: JSON.parse(JSON.stringify(globalState.employees || [])),
+            customTemplates: JSON.parse(JSON.stringify(globalState.customTemplates || [])),
+            timeSlots: JSON.parse(JSON.stringify(globalState.timeSlots || [])),
+            timestamp: Date.now()
+        };
+        
+        undoStack.push(currentState);
+        
+        // Limiter la taille de la pile
+        if (undoStack.length > MAX_UNDO_STEPS) {
+            undoStack.shift();
+        }
+        
+        // Vider la pile redo quand on fait une nouvelle action
+        redoStack = [];
+        
+        updateUndoRedoButtons();
+        
+    } catch (error) {
+        console.error('Erreur save state for undo:', error);
+    }
+}
+
+function undo() {
+    try {
+        if (undoStack.length === 0) {
+            showToast('Rien à annuler', 'error');
+            return;
+        }
+        
+        // Sauvegarder l'état actuel dans redo
+        const currentState = {
+            employees: JSON.parse(JSON.stringify(globalState.employees || [])),
+            customTemplates: JSON.parse(JSON.stringify(globalState.customTemplates || [])),
+            timeSlots: JSON.parse(JSON.stringify(globalState.timeSlots || []))
+        };
+        redoStack.push(currentState);
+        
+        // Restaurer l'état précédent
+        const previousState = undoStack.pop();
+        globalState.employees = previousState.employees;
+        globalState.customTemplates = previousState.customTemplates;
+        globalState.timeSlots = previousState.timeSlots;
+        
+        // Mettre à jour l'affichage
+        renderPlanning();
+        renderTimeSlots();
+        loadCustomTemplates();
+        updateSummary();
+        updateUndoRedoButtons();
+        saveData();
+        
+        showToast('Action annulée', 'success');
+        
+    } catch (error) {
+        console.error('Erreur undo:', error);
+        showToast('Erreur lors de l\'annulation', 'error');
+    }
+}
+
+function redo() {
+    try {
+        if (redoStack.length === 0) {
+            showToast('Rien à refaire', 'error');
+            return;
+        }
+        
+        // Sauvegarder l'état actuel dans undo
+        const currentState = {
+            employees: JSON.parse(JSON.stringify(globalState.employees || [])),
+            customTemplates: JSON.parse(JSON.stringify(globalState.customTemplates || [])),
+            timeSlots: JSON.parse(JSON.stringify(globalState.timeSlots || []))
+        };
+        undoStack.push(currentState);
+        
+        // Restaurer l'état suivant
+        const nextState = redoStack.pop();
+        globalState.employees = nextState.employees;
+        globalState.customTemplates = nextState.customTemplates;
+        globalState.timeSlots = nextState.timeSlots;
+        
+        // Mettre à jour l'affichage
+        renderPlanning();
+        renderTimeSlots();
+        loadCustomTemplates();
+        updateSummary();
+        updateUndoRedoButtons();
+        saveData();
+        
+        showToast('Action refaite', 'success');
+        
+    } catch (error) {
+        console.error('Erreur redo:', error);
+        showToast('Erreur lors du refaire', 'error');
+    }
+}
+
+function updateUndoRedoButtons() {
+    const undoBtn = document.getElementById('undoBtn');
+    const redoBtn = document.getElementById('redoBtn');
+    
+    if (undoBtn) {
+        undoBtn.disabled = undoStack.length === 0;
+        undoBtn.style.opacity = undoStack.length === 0 ? '0.5' : '1';
+        undoBtn.textContent = `↶ Annuler ${undoStack.length > 0 ? `(${undoStack.length})` : ''}`;
+    }
+    
+    if (redoBtn) {
+        redoBtn.disabled = redoStack.length === 0;
+        redoBtn.style.opacity = redoStack.length === 0 ? '0.5' : '1';
+        redoBtn.textContent = `↷ Refaire ${redoStack.length > 0 ? `(${redoStack.length})` : ''}`;
+    }
+}
 
         function showToast(message, type = 'success') {
             try {
