@@ -893,6 +893,8 @@
                 <button class="btn" onclick="undo()" id="undoBtn" title="Ctrl+Z">↶ Annuler</button>
 <button class="btn" onclick="redo()" id="redoBtn" title="Ctrl+Y">↷ Refaire</button>
                 <button class="btn" onclick="shareOpening()">🔗 Partager Planning</button>
+                <button class="btn warning" onclick="exportToJSON()">📥 Export JSON</button>
+                <button class="btn warning" onclick="importFromJSON()">📤 Import JSON</button>
                 <button class="btn danger" onclick="clearCurrentWeek()">🗑️ Vider Semaine Courante</button>
             </div>
         </div>
@@ -3251,6 +3253,112 @@ function formatHours(hours) {
         function showShareFallback(url) {
             alert(`Copiez ce lien pour partager le planning :\n\n${url}`);
         }
+function exportToJSON() {
+    try {
+        const dataToExport = {
+            employees: globalState.employees || [],
+            customTemplates: globalState.customTemplates || [],
+            timeSlots: globalState.timeSlots || [],
+            weekTemplates: globalState.weekTemplates || [],
+            exportDate: new Date().toISOString(),
+            version: '3.1'
+        };
+        
+        const dataString = JSON.stringify(dataToExport, null, 2);
+        const blob = new Blob([dataString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `planning_backup_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        showToast('Sauvegarde JSON téléchargée', 'success');
+    } catch (error) {
+        console.error('Erreur export JSON:', error);
+        showToast('Erreur lors de l\'export', 'error');
+    }
+function importFromJSON() {
+    try {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.style.display = 'none';
+        
+        input.onchange = function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    // Vérifier que c'est bien un fichier de planning
+                    if (!importedData.employees && !importedData.version) {
+                        showToast('Ce fichier ne semble pas être une sauvegarde de planning', 'error');
+                        return;
+                    }
+                    
+                    const exportDate = importedData.exportDate ? 
+                        new Date(importedData.exportDate).toLocaleDateString('fr-FR') : 
+                        'Date inconnue';
+                    
+                    if (confirm(`Importer cette sauvegarde du ${exportDate} ?\n\n⚠️ Cela remplacera TOUTES les données actuelles.\n\nVoulez-vous continuer ?`)) {
+                        saveStateForUndo(); // Sauvegarder l'état actuel pour pouvoir annuler
+                        
+                        // Importer les données
+                        if (Array.isArray(importedData.employees)) {
+                            globalState.employees = importedData.employees;
+                        }
+                        
+                        if (Array.isArray(importedData.customTemplates)) {
+                            globalState.customTemplates = importedData.customTemplates;
+                        }
+                        
+                        if (Array.isArray(importedData.timeSlots)) {
+                            globalState.timeSlots = importedData.timeSlots;
+                        }
+                        
+                        if (Array.isArray(importedData.weekTemplates)) {
+                            globalState.weekTemplates = importedData.weekTemplates;
+                        }
+                        
+                        // Mettre à jour l'affichage
+                        renderPlanning();
+                        renderTimeSlots();
+                        loadCustomTemplates();
+                        updateSummary();
+                        updateWeekTemplateSelect();
+                        saveData(); // Sauvegarder localement
+                        
+                        const employeesCount = importedData.employees?.length || 0;
+                        showToast(`✅ Sauvegarde importée avec succès ! (${employeesCount} employés)`, 'success');
+                    }
+                } catch (parseError) {
+                    console.error('Erreur parsing JSON:', parseError);
+                    showToast('❌ Fichier JSON invalide ou corrompu', 'error');
+                }
+            };
+            
+            reader.onerror = function() {
+                showToast('❌ Erreur de lecture du fichier', 'error');
+            };
+            
+            reader.readAsText(file);
+        };
+        
+        document.body.appendChild(input);
+        input.click();
+        document.body.removeChild(input);
+        
+    } catch (error) {
+        console.error('Erreur import JSON:', error);
+        showToast('❌ Erreur lors de l\'import', 'error');
+    }
 
        function clearCurrentWeek() { 
     const weekKey = getWeekKey();
