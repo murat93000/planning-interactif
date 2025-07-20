@@ -3281,6 +3281,8 @@ function exportToJSON() {
         console.error('Erreur export JSON:', error);
         showToast('Erreur lors de l\'export', 'error');
     }
+}
+    
 function importFromJSON() {
     try {
         const input = document.createElement('input');
@@ -3359,6 +3361,8 @@ function importFromJSON() {
         console.error('Erreur import JSON:', error);
         showToast('❌ Erreur lors de l\'import', 'error');
     }
+}
+    
 
        function clearCurrentWeek() { 
     const weekKey = getWeekKey();
