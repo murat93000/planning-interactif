@@ -1412,55 +1412,7 @@
             if (!isFirebaseEnabled || !db) {
                 return;
             }
-            function forceLoadFromCloud() {
-    if (!isFirebaseEnabled || !db) {
-        showToast('Firebase non disponible', 'error');
-        return;
-    }
-
-    if (confirm('⚠️ Recharger depuis le cloud ?\n\nCela remplacera les données locales actuelles.')) {
-        showToast('🔄 Rechargement en cours...', 'success');
-        
-        // Forcer le rechargement
-        db.collection('plannings').doc('main').get()
-            .then((doc) => {
-                if (doc.exists) {
-                    const cloudData = doc.data();
-                    console.log('📡 Rechargement forcé des données cloud:', cloudData);
-
-                    // Appliquer les données cloud
-                    if (cloudData.employees && Array.isArray(cloudData.employees)) {
-                        globalState.employees = cloudData.employees;
-                    }
-
-                    if (cloudData.customTemplates && Array.isArray(cloudData.customTemplates)) {
-                        globalState.customTemplates = cloudData.customTemplates;
-                        loadCustomTemplates();
-                    }
-
-                    if (cloudData.timeSlots && Array.isArray(cloudData.timeSlots)) {
-                        globalState.timeSlots = cloudData.timeSlots;
-                        renderTimeSlots();
-                    }
-
-                    // Mettre à jour l'affichage
-                    renderPlanning();
-                    updateSummary();
-                    
-                    // Sauvegarder localement
-                    saveDataLocal();
-                    
-                    showToast('✅ Données cloud rechargées avec succès', 'success');
-                } else {
-                    showToast('❌ Aucune donnée cloud trouvée', 'error');
-                }
-            })
-            .catch((error) => {
-                console.error('❌ Erreur rechargement cloud:', error);
-                showToast('Erreur lors du rechargement cloud', 'error');
-            });
-    }
-}
+           
 
             // Charger depuis le document partagé "main"
             db.collection('plannings').doc('main').get()
@@ -1502,7 +1454,55 @@
                     loadData();
                 });
         }
+function forceLoadFromCloud() {
+            if (!isFirebaseEnabled || !db) {
+                showToast('Firebase non disponible', 'error');
+                return;
+            }
 
+            if (confirm('⚠️ Recharger depuis le cloud ?\n\nCela remplacera les données locales actuelles.')) {
+                showToast('🔄 Rechargement en cours...', 'success');
+                
+                // Forcer le rechargement
+                db.collection('plannings').doc('main').get()
+                    .then((doc) => {
+                        if (doc.exists) {
+                            const cloudData = doc.data();
+                            console.log('📡 Rechargement forcé des données cloud:', cloudData);
+
+                            // Appliquer les données cloud
+                            if (cloudData.employees && Array.isArray(cloudData.employees)) {
+                                globalState.employees = cloudData.employees;
+                            }
+
+                            if (cloudData.customTemplates && Array.isArray(cloudData.customTemplates)) {
+                                globalState.customTemplates = cloudData.customTemplates;
+                                loadCustomTemplates();
+                            }
+
+                            if (cloudData.timeSlots && Array.isArray(cloudData.timeSlots)) {
+                                globalState.timeSlots = cloudData.timeSlots;
+                                renderTimeSlots();
+                            }
+
+                            // Mettre à jour l'affichage
+                            renderPlanning();
+                            updateSummary();
+                            
+                            // Sauvegarder localement
+                            saveDataLocal();
+                            
+                            showToast('✅ Données cloud rechargées avec succès', 'success');
+                        } else {
+                            showToast('❌ Aucune donnée cloud trouvée', 'error');
+                        }
+                    })
+                    .catch((error) => {
+                        console.error('❌ Erreur rechargement cloud:', error);
+                        showToast('Erreur lors du rechargement cloud', 'error');
+                    });
+            }
+        }
         function loadCustomTemplates() {
             // Nettoyer les templates personnalisés existants
             document.querySelectorAll('.template.custom').forEach(el => el.remove());
