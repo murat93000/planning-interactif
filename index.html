@@ -806,7 +806,7 @@
             }
         }
 
-    @media (max-width: 600px) {
+        @media (max-width: 600px) {
             .container {
                 padding: 15px;
             }
@@ -837,37 +837,38 @@
             transform: rotate(5deg) scale(0.95);
             z-index: 1000;
         }
+
         /* Styles pour le déplacement des employés */
-.employee-cell.draggable-employee {
-    cursor: move;
-}
+        .employee-cell.draggable-employee {
+            cursor: move;
+        }
 
-.employee-cell.dragging-employee {
-    opacity: 0.6;
-    transform: scale(0.98);
-    z-index: 1000;
-    border: 2px dashed #667eea;
-}
+        .employee-cell.dragging-employee {
+            opacity: 0.6;
+            transform: scale(0.98);
+            z-index: 1000;
+            border: 2px dashed #667eea;
+        }
 
-.employee-row.drag-over-employee {
-    border-top: 3px solid #667eea;
-    background: rgba(102, 126, 234, 0.1);
-}
+        .employee-row.drag-over-employee {
+            border-top: 3px solid #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
 
-.drag-indicator {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: #667eea;
-    z-index: 999;
-    animation: dragPulse 1s infinite;
-}
+        .drag-indicator {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #667eea;
+            z-index: 999;
+            animation: dragPulse 1s infinite;
+        }
 
-@keyframes dragPulse {
-    0%, 100% { opacity: 0.8; }
-    50% { opacity: 1; }
-}
+        @keyframes dragPulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -891,7 +892,7 @@
                 <button class="btn warning" onclick="forceLoadFromCloud()">🔄 Recharger Cloud</button>
                 <button class="btn warning" onclick="saveData()">💾 Sauver Local+Cloud</button>
                 <button class="btn" onclick="undo()" id="undoBtn" title="Ctrl+Z">↶ Annuler</button>
-<button class="btn" onclick="redo()" id="redoBtn" title="Ctrl+Y">↷ Refaire</button>
+                <button class="btn" onclick="redo()" id="redoBtn" title="Ctrl+Y">↷ Refaire</button>
                 <button class="btn" onclick="shareOpening()">🔗 Partager Planning</button>
                 <button class="btn warning" onclick="exportToJSON()">📥 Export JSON</button>
                 <button class="btn warning" onclick="importFromJSON()">📤 Import JSON</button>
@@ -1193,7 +1194,6 @@
         function updateConnectionStatus(status, message) {
             const statusDiv = document.getElementById('connectionStatus');
             const statusText = document.getElementById('statusText');
-            const userInfo = document.getElementById('userInfo');
 
             if (!statusDiv || !statusText) return;
 
@@ -1281,138 +1281,137 @@
         // ================================
 
         function saveToCloud() {
-    if (!isFirebaseEnabled || !db) {
-        showToast('Firebase non disponible', 'error');
-        return;
-    }
+            if (!isFirebaseEnabled || !db) {
+                showToast('Firebase non disponible', 'error');
+                return;
+            }
 
-    try {
-        // 🔍 DIAGNOSTIC : Vérifier globalState
-        console.log('🔍 Vérification globalState:', globalState);
-        
-        if (!globalState) {
-            showToast('❌ Données non initialisées', 'error');
-            return;
-        }
+            try {
+                // 🔍 DIAGNOSTIC : Vérifier globalState
+                console.log('🔍 Vérification globalState:', globalState);
+                
+                if (!globalState) {
+                    showToast('❌ Données non initialisées', 'error');
+                    return;
+                }
 
-        // 🧹 NETTOYAGE : Supprimer les propriétés problématiques
-        const cleanEmployees = (globalState.employees || []).map(emp => {
-            const cleanEmp = {
-                id: emp.id,
-                name: emp.name || '',
-                role: emp.role || '',
-                planning: {}
-            };
-            
-            // Nettoyer le planning
-            if (emp.planning && typeof emp.planning === 'object') {
-                Object.keys(emp.planning).forEach(weekKey => {
-                    if (emp.planning[weekKey] && typeof emp.planning[weekKey] === 'object') {
-                        cleanEmp.planning[weekKey] = {};
-                        Object.keys(emp.planning[weekKey]).forEach(day => {
-                            if (Array.isArray(emp.planning[weekKey][day])) {
-                                cleanEmp.planning[weekKey][day] = emp.planning[weekKey][day].map(shift => ({
-                                    id: shift.id || generateId(),
-                                    type: shift.type || 'work',
-                                    text: shift.text || '',
-                                    hours: shift.hours || '',
-                                    backgroundColor: shift.backgroundColor || '',
-                                    slot: shift.slot ? {
-                                        id: shift.slot.id,
-                                        name: shift.slot.name,
-                                        start: shift.slot.start,
-                                        end: shift.slot.end
-                                    } : null
-                                })).filter(shift => shift.id); // Supprimer les shifts sans ID
+                // 🧹 NETTOYAGE : Supprimer les propriétés problématiques
+                const cleanEmployees = (globalState.employees || []).map(emp => {
+                    const cleanEmp = {
+                        id: emp.id,
+                        name: emp.name || '',
+                        role: emp.role || '',
+                        planning: {}
+                    };
+                    
+                    // Nettoyer le planning
+                    if (emp.planning && typeof emp.planning === 'object') {
+                        Object.keys(emp.planning).forEach(weekKey => {
+                            if (emp.planning[weekKey] && typeof emp.planning[weekKey] === 'object') {
+                                cleanEmp.planning[weekKey] = {};
+                                Object.keys(emp.planning[weekKey]).forEach(day => {
+                                    if (Array.isArray(emp.planning[weekKey][day])) {
+                                        cleanEmp.planning[weekKey][day] = emp.planning[weekKey][day].map(shift => ({
+                                            id: shift.id || generateId(),
+                                            type: shift.type || 'work',
+                                            text: shift.text || '',
+                                            hours: shift.hours || '',
+                                            backgroundColor: shift.backgroundColor || '',
+                                            slot: shift.slot ? {
+                                                id: shift.slot.id,
+                                                name: shift.slot.name,
+                                                start: shift.slot.start,
+                                                end: shift.slot.end
+                                            } : null
+                                        })).filter(shift => shift.id); // Supprimer les shifts sans ID
+                                    }
+                                });
                             }
                         });
                     }
+                    
+                    return cleanEmp;
                 });
-            }
-            
-            return cleanEmp;
-        });
 
-        // 🧹 NETTOYAGE : Templates personnalisés
-        const cleanCustomTemplates = (globalState.customTemplates || []).map(template => ({
-            id: template.id || generateId(),
-            text: template.text || '',
-            color: template.color || '#8b5cf6'
-        })).filter(template => template.text); // Supprimer les templates vides
+                // 🧹 NETTOYAGE : Templates personnalisés
+                const cleanCustomTemplates = (globalState.customTemplates || []).map(template => ({
+                    id: template.id || generateId(),
+                    text: template.text || '',
+                    color: template.color || '#8b5cf6'
+                })).filter(template => template.text); // Supprimer les templates vides
 
-        // 🧹 NETTOYAGE : Créneaux horaires
-        const cleanTimeSlots = (globalState.timeSlots || []).map(slot => ({
-            id: slot.id || generateId(),
-            name: slot.name || '',
-            start: slot.start || '09:00',
-            end: slot.end || '18:00'
-        })).filter(slot => slot.name); // Supprimer les slots vides
+                // 🧹 NETTOYAGE : Créneaux horaires
+                const cleanTimeSlots = (globalState.timeSlots || []).map(slot => ({
+                    id: slot.id || generateId(),
+                    name: slot.name || '',
+                    start: slot.start || '09:00',
+                    end: slot.end || '18:00'
+                })).filter(slot => slot.name); // Supprimer les slots vides
 
-        // 📦 PRÉPARATION : Données finales
-        const dataToSave = {
-            employees: cleanEmployees,
-            customTemplates: cleanCustomTemplates,
-            timeSlots: cleanTimeSlots,
-            weekTemplates: globalState.weekTemplates || [],
-            lastSave: new Date().toISOString(),
-            version: '3.1',
-            userId: currentUser ? currentUser.uid : 'shared'
-        };
+                // 📦 PRÉPARATION : Données finales
+                const dataToSave = {
+                    employees: cleanEmployees,
+                    customTemplates: cleanCustomTemplates,
+                    timeSlots: cleanTimeSlots,
+                    weekTemplates: globalState.weekTemplates || [],
+                    lastSave: new Date().toISOString(),
+                    version: '3.1',
+                    userId: currentUser ? currentUser.uid : 'shared'
+                };
 
-        // 🔍 DIAGNOSTIC : Vérifier la taille
-        const dataString = JSON.stringify(dataToSave);
-        const sizeKB = Math.round(dataString.length / 1024);
-        console.log(`📊 Taille des données: ${sizeKB} KB`);
-        
-        if (sizeKB > 900) { // Firebase limite à ~1MB
-            showToast(`⚠️ Données volumineuses (${sizeKB} KB). Sauvegarde risquée.`, 'error');
-        }
-
-        // 💾 SAUVEGARDE : Envoyer à Firebase
-        console.log('💾 Début sauvegarde Firebase...');
-        
-        db.collection('plannings').doc('main').set(dataToSave)
-            .then(() => {
-                showToast(`☁️ Sauvegardé sur le cloud ! (${sizeKB} KB)`, 'success');
-                console.log('✅ Sauvegarde cloud réussie');
-            })
-            .catch((error) => {
-                console.error('❌ Erreur sauvegarde Firebase:', error);
-                showToast(`Erreur Firebase: ${error.message}`, 'error');
+                // 🔍 DIAGNOSTIC : Vérifier la taille
+                const dataString = JSON.stringify(dataToSave);
+                const sizeKB = Math.round(dataString.length / 1024);
+                console.log(`📊 Taille des données: ${sizeKB} KB`);
                 
-                // 🔄 FALLBACK : Sauvegarde locale en cas d'erreur
-                saveDataLocal();
-            });
-            
-    } catch (error) {
-        console.error('❌ Erreur dans saveToCloud:', error);
-        console.error('📍 Stack trace:', error.stack);
-        
-        // 🔍 DIAGNOSTIC DÉTAILLÉ
-        try {
-            console.log('🔍 État de globalState.employees:', globalState?.employees?.length || 'undefined');
-            console.log('🔍 État de globalState.customTemplates:', globalState?.customTemplates?.length || 'undefined'); 
-            console.log('🔍 État de globalState.timeSlots:', globalState?.timeSlots?.length || 'undefined');
-        } catch (diagError) {
-            console.error('❌ Erreur diagnostic:', diagError);
+                if (sizeKB > 900) { // Firebase limite à ~1MB
+                    showToast(`⚠️ Données volumineuses (${sizeKB} KB). Sauvegarde risquée.`, 'error');
+                }
+
+                // 💾 SAUVEGARDE : Envoyer à Firebase
+                console.log('💾 Début sauvegarde Firebase...');
+                
+                db.collection('plannings').doc('main').set(dataToSave)
+                    .then(() => {
+                        showToast(`☁️ Sauvegardé sur le cloud ! (${sizeKB} KB)`, 'success');
+                        console.log('✅ Sauvegarde cloud réussie');
+                    })
+                    .catch((error) => {
+                        console.error('❌ Erreur sauvegarde Firebase:', error);
+                        showToast(`Erreur Firebase: ${error.message}`, 'error');
+                        
+                        // 🔄 FALLBACK : Sauvegarde locale en cas d'erreur
+                        saveDataLocal();
+                    });
+                    
+            } catch (error) {
+                console.error('❌ Erreur dans saveToCloud:', error);
+                console.error('📍 Stack trace:', error.stack);
+                
+                // 🔍 DIAGNOSTIC DÉTAILLÉ
+                try {
+                    console.log('🔍 État de globalState.employees:', globalState?.employees?.length || 'undefined');
+                    console.log('🔍 État de globalState.customTemplates:', globalState?.customTemplates?.length || 'undefined'); 
+                    console.log('🔍 État de globalState.timeSlots:', globalState?.timeSlots?.length || 'undefined');
+                } catch (diagError) {
+                    console.error('❌ Erreur diagnostic:', diagError);
+                }
+                
+                showToast(`Erreur préparation: ${error.message}`, 'error');
+                
+                // 🔄 FALLBACK : Tentative de sauvegarde locale
+                try {
+                    saveDataLocal();
+                } catch (fallbackError) {
+                    showToast('Erreur sauvegarde locale également', 'error');
+                }
+            }
         }
-        
-        showToast(`Erreur préparation: ${error.message}`, 'error');
-        
-        // 🔄 FALLBACK : Tentative de sauvegarde locale
-        try {
-            saveDataLocal();
-        } catch (fallbackError) {
-            showToast('Erreur sauvegarde locale également', 'error');
-        }
-    }
-}
 
         function loadFromCloud() {
             if (!isFirebaseEnabled || !db) {
                 return;
             }
-           
 
             // Charger depuis le document partagé "main"
             db.collection('plannings').doc('main').get()
@@ -1454,7 +1453,8 @@
                     loadData();
                 });
         }
-function forceLoadFromCloud() {
+
+        function forceLoadFromCloud() {
             if (!isFirebaseEnabled || !db) {
                 showToast('Firebase non disponible', 'error');
                 return;
@@ -1503,6 +1503,7 @@ function forceLoadFromCloud() {
                     });
             }
         }
+
         function loadCustomTemplates() {
             // Nettoyer les templates personnalisés existants
             document.querySelectorAll('.template.custom').forEach(el => el.remove());
@@ -1545,9 +1546,10 @@ function forceLoadFromCloud() {
         const ADMIN_PASSWORD = '123123';
 
         // Système d'annulation
-let undoStack = [];
-let redoStack = [];
-const MAX_UNDO_STEPS = 20;
+        let undoStack = [];
+        let redoStack = [];
+        const MAX_UNDO_STEPS = 20;
+
         // État global avec validation
         let globalState = {
             employees: [],
@@ -1648,49 +1650,49 @@ const MAX_UNDO_STEPS = 20;
         }
 
         function handleKeyboardShortcuts(e) {
-    try {
-        if (e.ctrlKey || e.metaKey) {
-            switch(e.key) {
-                case 's':
-                    e.preventDefault();
-                    saveData(); // CTRL + S = Sauvegarder local
-                    break;
-                case 'a':
-                    if (globalState.isAdminMode) {
-                        e.preventDefault();
-                        openEmployeeModal(); // CTRL + A = Ajouter employé
+            try {
+                if (e.ctrlKey || e.metaKey) {
+                    switch(e.key) {
+                        case 's':
+                            e.preventDefault();
+                            saveData(); // CTRL + S = Sauvegarder local
+                            break;
+                        case 'a':
+                            if (globalState.isAdminMode) {
+                                e.preventDefault();
+                                openEmployeeModal(); // CTRL + A = Ajouter employé
+                            }
+                            break;
+                        case 'c':
+                            e.preventDefault();
+                            saveToCloud(); // CTRL + C = Sauver sur cloud
+                            break;
+                        case 'r':
+                            e.preventDefault();
+                            forceLoadFromCloud(); // CTRL + R = Recharger depuis le cloud
+                            break;
+                        case 'z':
+                            e.preventDefault();
+                            if (e.shiftKey) {
+                                redo(); // Ctrl+Shift+Z = Refaire
+                            } else {
+                                undo(); // Ctrl+Z = Annuler
+                            }
+                            break;
+                        case 'y':
+                            e.preventDefault();
+                            redo(); // Ctrl+Y = Refaire
+                            break;
                     }
-                    break;
-                case 'c':
-                    e.preventDefault();
-                    saveToCloud(); // CTRL + C = Sauver sur cloud
-                    break;
-                case 'r':
-                    e.preventDefault();
-                    forceLoadFromCloud(); // CTRL + R = Recharger depuis le cloud
-                    break;
-                    case 'z':
-    e.preventDefault();
-    if (e.shiftKey) {
-        redo(); // Ctrl+Shift+Z = Refaire
-    } else {
-        undo(); // Ctrl+Z = Annuler
-    }
-    break;
-case 'y':
-    e.preventDefault();
-    redo(); // Ctrl+Y = Refaire
-    break;
+                }
+                
+                if (e.key === 'Escape') {
+                    closeModal(); // ÉCHAP = Fermer modal
+                }
+            } catch (error) {
+                console.error('Erreur raccourcis clavier:', error);
             }
         }
-        
-        if (e.key === 'Escape') {
-            closeModal(); // ÉCHAP = Fermer modal
-        }
-    } catch (error) {
-        console.error('Erreur raccourcis clavier:', error);
-    }
-}
 
         function updateSidebarContent() {
             try {
@@ -1819,7 +1821,7 @@ case 'y':
                     showToast('Mode administrateur activé', 'success');
                     console.log('Mode admin activé avec succès');
                 } else {
-                    showToast('Mot de passe incorrect (utilisez:****)', 'error');
+                    showToast('Mot de passe incorrect (utilisez: 123123)', 'error');
                     passwordInput.value = '';
                     passwordInput.focus();
                     console.log('Mot de passe incorrect');
@@ -2163,43 +2165,42 @@ case 'y':
         }
 
         function addEmployee() {
-    saveStateForUndo(); // ← AJOUT POUR L'ANNULATION
-    
-    const name = document.getElementById('empName').value.trim();
-    const role = document.getElementById('empRole').value.trim();
-    
-    if (!name) {
-        showToast('Le nom est requis', 'error');
-        return;
-    }
-    
-    if (!Array.isArray(globalState.employees)) {
-        globalState.employees = [];
-    }
-    
-    if (globalState.employees.find(emp => emp.name.toLowerCase() === name.toLowerCase())) {
-        showToast('Un employé avec ce nom existe déjà', 'error');
-        return;
-    }
-    
-    const newEmployee = {
-        id: generateId(),
-        name: name,
-        role: role || 'Employé',
-        planning: {}
-    };
-    
-    globalState.employees.push(newEmployee);
-    
-    document.getElementById('empName').value = '';
-    document.getElementById('empRole').value = '';
-    
-    renderPlanning();
-    updateSummary();
-    saveData();
-    showToast('Employé ajouté avec succès', 'success');
-}
-    
+            saveStateForUndo(); // ← AJOUT POUR L'ANNULATION
+            
+            const name = document.getElementById('empName').value.trim();
+            const role = document.getElementById('empRole').value.trim();
+            
+            if (!name) {
+                showToast('Le nom est requis', 'error');
+                return;
+            }
+            
+            if (!Array.isArray(globalState.employees)) {
+                globalState.employees = [];
+            }
+            
+            if (globalState.employees.find(emp => emp.name.toLowerCase() === name.toLowerCase())) {
+                showToast('Un employé avec ce nom existe déjà', 'error');
+                return;
+            }
+            
+            const newEmployee = {
+                id: generateId(),
+                name: name,
+                role: role || 'Employé',
+                planning: {}
+            };
+            
+            globalState.employees.push(newEmployee);
+            
+            document.getElementById('empName').value = '';
+            document.getElementById('empRole').value = '';
+            
+            renderPlanning();
+            updateSummary();
+            saveData();
+            showToast('Employé ajouté avec succès', 'success');
+        }
 
         function renderTimeSlots() {
             try {
@@ -2242,69 +2243,69 @@ case 'y':
         }
 
         function addTimeSlot() {
-    try {
-        saveStateForUndo(); // ← AJOUT POUR L'ANNULATION
-        
-        const name = document.getElementById('slotName').value.trim();
-        const start = document.getElementById('slotStart').value;
-        const end = document.getElementById('slotEnd').value;
-        
-        if (!name || !start || !end) {
-            showToast('Tous les champs sont requis', 'error');
-            return;
+            try {
+                saveStateForUndo(); // ← AJOUT POUR L'ANNULATION
+                
+                const name = document.getElementById('slotName').value.trim();
+                const start = document.getElementById('slotStart').value;
+                const end = document.getElementById('slotEnd').value;
+                
+                if (!name || !start || !end) {
+                    showToast('Tous les champs sont requis', 'error');
+                    return;
+                }
+                
+                if (!Array.isArray(globalState.timeSlots)) {
+                    globalState.timeSlots = [];
+                }
+                
+                if (globalState.timeSlots.find(slot => slot.name.toLowerCase() === name.toLowerCase())) {
+                    showToast('Un créneau avec ce nom existe déjà', 'error');
+                    return;
+                }
+                
+                const newSlot = {
+                    id: generateId(),
+                    name: name,
+                    start: start,
+                    end: end
+                };
+                
+                globalState.timeSlots.push(newSlot);
+                
+                document.getElementById('slotName').value = '';
+                document.getElementById('slotStart').value = '09:00';
+                document.getElementById('slotEnd').value = '18:30';
+                
+                renderTimeSlots();
+                saveData();
+                showToast('Créneau horaire créé', 'success');
+            } catch (error) {
+                console.error('Erreur add time slot:', error);
+                showToast('Erreur lors de la création du créneau', 'error');
+            }
         }
-        
-        if (!Array.isArray(globalState.timeSlots)) {
-            globalState.timeSlots = [];
-        }
-        
-        if (globalState.timeSlots.find(slot => slot.name.toLowerCase() === name.toLowerCase())) {
-            showToast('Un créneau avec ce nom existe déjà', 'error');
-            return;
-        }
-        
-        const newSlot = {
-            id: generateId(),
-            name: name,
-            start: start,
-            end: end
-        };
-        
-        globalState.timeSlots.push(newSlot);
-        
-        document.getElementById('slotName').value = '';
-        document.getElementById('slotStart').value = '09:00';
-        document.getElementById('slotEnd').value = '18:30';
-        
-        renderTimeSlots();
-        saveData();
-        showToast('Créneau horaire créé', 'success');
-    } catch (error) {
-        console.error('Erreur add time slot:', error);
-        showToast('Erreur lors de la création du créneau', 'error');
-    }
-}
 
         function removeTimeSlot(slotId) {
-    try {
-        if (confirm('Supprimer ce créneau horaire ?')) {
-            saveStateForUndo(); // ← AJOUT POUR L'ANNULATION
-            
-            if (!Array.isArray(globalState.timeSlots)) {
-                globalState.timeSlots = [];
-                return;
+            try {
+                if (confirm('Supprimer ce créneau horaire ?')) {
+                    saveStateForUndo(); // ← AJOUT POUR L'ANNULATION
+                    
+                    if (!Array.isArray(globalState.timeSlots)) {
+                        globalState.timeSlots = [];
+                        return;
+                    }
+                    
+                    globalState.timeSlots = globalState.timeSlots.filter(slot => slot.id !== slotId);
+                    renderTimeSlots();
+                    saveData();
+                    showToast('Créneau supprimé', 'success');
+                }
+            } catch (error) {
+                console.error('Erreur remove time slot:', error);
+                showToast('Erreur lors de la suppression', 'error');
             }
-            
-            globalState.timeSlots = globalState.timeSlots.filter(slot => slot.id !== slotId);
-            renderTimeSlots();
-            saveData();
-            showToast('Créneau supprimé', 'success');
         }
-    } catch (error) {
-        console.error('Erreur remove time slot:', error);
-        showToast('Erreur lors de la suppression', 'error');
-    }
-}
 
         function addCustomTemplate() {
             try {
@@ -2531,14 +2532,13 @@ case 'y':
                 }
                 
                 // Lignes des employés
-globalState.employees.forEach(employee => {
-    // Cellule employé
-    const empCell = document.createElement('div');
-    empCell.className = 'employee-cell';
-    
-    // NOUVEAU: Rendre l'employé déplaçable
-    makeEmployeeDraggable(empCell, employee.id);
+                globalState.employees.forEach(employee => {
+                    // Cellule employé
+                    const empCell = document.createElement('div');
+                    empCell.className = 'employee-cell';
                     
+                    // NOUVEAU: Rendre l'employé déplaçable
+                    makeEmployeeDraggable(empCell, employee.id);
                     
                     // Calculer les heures de la semaine
                     let weekHours = 0;
@@ -2560,12 +2560,12 @@ globalState.employees.forEach(employee => {
                     }
                     
                     empCell.innerHTML = `
-    <div class="employee-name">
-        ${globalState.isAdminMode ? '⬍⬍ ' : ''}${employee.name}
-    </div>
-    <div class="employee-role">${employee.role}</div>
-    <div class="employee-hours">${formatHours(weekHours)} | ${workDays} jours</div>
-    ${globalState.isAdminMode ? `
+                        <div class="employee-name">
+                            ${globalState.isAdminMode ? '⬍⬍ ' : ''}${employee.name}
+                        </div>
+                        <div class="employee-role">${employee.role}</div>
+                        <div class="employee-hours">${formatHours(weekHours)} | ${workDays} jours</div>
+                        ${globalState.isAdminMode ? `
                             <button class="remove-emp" onclick="removeEmployee('${employee.id}')" title="Supprimer">×</button>
                             <button class="copy-week-btn" onclick="copyEmployeeWeek('${employee.id}')" title="Copier semaine">📋</button>
                             <button class="paste-week-btn" onclick="pasteEmployeeWeek('${employee.id}')" title="Coller semaine" style="opacity: ${globalState.copiedWeek ? '1' : '0.3'};">📥</button>
@@ -2676,86 +2676,90 @@ globalState.employees.forEach(employee => {
             }
         }
 
+        // Variables pour le drag and drop
+        let draggedShiftData = null;
+        let draggedEmployeeData = null;
+
         function handleDrop(e) {
-    try {
-        e.preventDefault();
-        e.currentTarget.classList.remove('drag-over');
-        
-        saveStateForUndo(); // ← AJOUT POUR L'ANNULATION
-        
-        const employeeId = e.currentTarget.dataset.employeeId;
-        const day = parseInt(e.currentTarget.dataset.day);
-        
-        const employee = globalState.employees.find(emp => emp.id === employeeId);
-        if (!employee) return;
-        
-        if (!employee.planning) employee.planning = {};
-        const weekKey = getWeekKey();
-        if (!employee.planning[weekKey]) employee.planning[weekKey] = {};
-        if (!employee.planning[weekKey][day]) employee.planning[weekKey][day] = [];
-        
-        let newShift;
-        
-        if (draggedShiftData) {
-    newShift = {
-        id: generateId(),
-        type: draggedShiftData.shift.type,
-        text: draggedShiftData.shift.text,
-        hours: draggedShiftData.shift.hours,
-        slot: draggedShiftData.shift.slot,
-        backgroundColor: draggedShiftData.shift.backgroundColor
-    };
-    
-    const originalEmployee = globalState.employees.find(emp => emp.id === draggedShiftData.originalEmployeeId);
-    if (originalEmployee && originalEmployee.planning[weekKey] && originalEmployee.planning[weekKey][draggedShiftData.originalDay]) {
-        originalEmployee.planning[weekKey][draggedShiftData.originalDay] = 
-            originalEmployee.planning[weekKey][draggedShiftData.originalDay].filter(s => s.id !== draggedShiftData.originalShiftId);
-        
-        if (originalEmployee.planning[weekKey][draggedShiftData.originalDay].length === 0) {
-            delete originalEmployee.planning[weekKey][draggedShiftData.originalDay];
+            try {
+                e.preventDefault();
+                e.currentTarget.classList.remove('drag-over');
+                
+                saveStateForUndo(); // ← AJOUT POUR L'ANNULATION
+                
+                const employeeId = e.currentTarget.dataset.employeeId;
+                const day = parseInt(e.currentTarget.dataset.day);
+                
+                const employee = globalState.employees.find(emp => emp.id === employeeId);
+                if (!employee) return;
+                
+                if (!employee.planning) employee.planning = {};
+                const weekKey = getWeekKey();
+                if (!employee.planning[weekKey]) employee.planning[weekKey] = {};
+                if (!employee.planning[weekKey][day]) employee.planning[weekKey][day] = [];
+                
+                let newShift;
+                
+                if (draggedShiftData) {
+                    newShift = {
+                        id: generateId(),
+                        type: draggedShiftData.shift.type,
+                        text: draggedShiftData.shift.text,
+                        hours: draggedShiftData.shift.hours,
+                        slot: draggedShiftData.shift.slot,
+                        backgroundColor: draggedShiftData.shift.backgroundColor
+                    };
+                    
+                    const originalEmployee = globalState.employees.find(emp => emp.id === draggedShiftData.originalEmployeeId);
+                    if (originalEmployee && originalEmployee.planning[weekKey] && originalEmployee.planning[weekKey][draggedShiftData.originalDay]) {
+                        originalEmployee.planning[weekKey][draggedShiftData.originalDay] = 
+                            originalEmployee.planning[weekKey][draggedShiftData.originalDay].filter(s => s.id !== draggedShiftData.originalShiftId);
+                        
+                        if (originalEmployee.planning[weekKey][draggedShiftData.originalDay].length === 0) {
+                            delete originalEmployee.planning[weekKey][draggedShiftData.originalDay];
+                        }
+                    }
+                    
+                    draggedShiftData = null;
+                    showToast('Case déplacée', 'success');
+                    
+                } else if (globalState.draggedItem) {
+                    if (globalState.draggedItem.type === 'timeSlot') {
+                        const slot = globalState.draggedItem.slot;
+                        const hours = calculateHours(slot.start, slot.end);
+                        newShift = {
+                            id: generateId(),
+                            type: 'work',
+                            text: `${slot.start} - ${slot.end}`,
+                            hours: formatHours(hours),
+                            slot: slot
+                        };
+                    } else {
+                        newShift = {
+                            id: generateId(),
+                            type: globalState.draggedItem.type,
+                            text: globalState.draggedItem.text,
+                            backgroundColor: globalState.draggedItem.backgroundColor
+                        };
+                    }
+                    
+                    globalState.draggedItem = null;
+                    showToast('Créneau ajouté', 'success');
+                } else {
+                    return;
+                }
+                
+                employee.planning[weekKey][day].push(newShift);
+                
+                renderPlanning();
+                updateSummary();
+                saveData();
+                
+            } catch (error) {
+                console.error('Erreur handle drop:', error);
+                showToast('Erreur lors de l\'ajout', 'error');
+            }
         }
-    }
-    
-    draggedShiftData = null;
-    showToast('Case déplacée', 'success');
-    
-} else if (globalState.draggedItem) {
-    if (globalState.draggedItem.type === 'timeSlot') {
-        const slot = globalState.draggedItem.slot;
-        const hours = calculateHours(slot.start, slot.end);
-        newShift = {
-            id: generateId(),
-            type: 'work',
-            text: `${slot.start} - ${slot.end}`,
-            hours: formatHours(hours),
-            slot: slot
-        };
-    } else {
-        newShift = {
-            id: generateId(),
-            type: globalState.draggedItem.type,
-            text: globalState.draggedItem.text,
-            backgroundColor: globalState.draggedItem.backgroundColor
-        };
-    }
-    
-    globalState.draggedItem = null;
-    showToast('Créneau ajouté', 'success');
-} else {
-    return;
-}
-        
-        employee.planning[weekKey][day].push(newShift);
-        
-        renderPlanning();
-        updateSummary();
-        saveData();
-        
-    } catch (error) {
-        console.error('Erreur handle drop:', error);
-        showToast('Erreur lors de l\'ajout', 'error');
-    }
-}
 
         function handleDragOver(e) {
             e.preventDefault();
@@ -2825,29 +2829,29 @@ globalState.employees.forEach(employee => {
         }
 
         function removeShift(employeeId, day, shiftId) {
-    try {
-        saveStateForUndo(); // ← AJOUT POUR L'ANNULATION
-        
-        const employee = globalState.employees.find(emp => emp.id === employeeId);
-        if (!employee) return;
-        
-        const weekKey = getWeekKey();
-        if (employee.planning && employee.planning[weekKey] && employee.planning[weekKey][day]) {
-            employee.planning[weekKey][day] = employee.planning[weekKey][day].filter(shift => shift.id !== shiftId);
-            
-            if (employee.planning[weekKey][day].length === 0) {
-                delete employee.planning[weekKey][day];
+            try {
+                saveStateForUndo(); // ← AJOUT POUR L'ANNULATION
+                
+                const employee = globalState.employees.find(emp => emp.id === employeeId);
+                if (!employee) return;
+                
+                const weekKey = getWeekKey();
+                if (employee.planning && employee.planning[weekKey] && employee.planning[weekKey][day]) {
+                    employee.planning[weekKey][day] = employee.planning[weekKey][day].filter(shift => shift.id !== shiftId);
+                    
+                    if (employee.planning[weekKey][day].length === 0) {
+                        delete employee.planning[weekKey][day];
+                    }
+                }
+                
+                renderPlanning();
+                updateSummary();
+                saveData();
+                showToast('Créneau supprimé', 'success');
+            } catch (error) {
+                console.error('Erreur remove shift:', error);
             }
         }
-        
-        renderPlanning();
-        updateSummary();
-        saveData();
-        showToast('Créneau supprimé', 'success');
-    } catch (error) {
-        console.error('Erreur remove shift:', error);
-    }
-}
 
         function calculateHours(startTime, endTime) {
             try {
@@ -2869,50 +2873,52 @@ globalState.employees.forEach(employee => {
                 return 8;
             }
         }
-// ================================
-// FONCTIONS CORRIGÉES POUR LES HEURES
-// ================================
 
-function parseHours(hoursString) {
-    if (!hoursString || typeof hoursString !== 'string') return 0;
-    
-    // Gestion spécifique pour le format "8h30", "7h15", etc.
-    const hourMinuteMatch = hoursString.match(/(\d+)h(\d+)/);
-    if (hourMinuteMatch) {
-        const hours = parseInt(hourMinuteMatch[1]);
-        const minutes = parseInt(hourMinuteMatch[2]);
-        return hours + (minutes / 60);
-    }
-    
-    // Gestion pour le format "8h", "7h", etc.
-    const hourMatch = hoursString.match(/(\d+)h/);
-    if (hourMatch) {
-        return parseInt(hourMatch[1]);
-    }
-    
-    // Gestion pour les nombres décimaux comme "8.5"
-    const cleanString = hoursString.replace(/[^\d.,]/g, '');
-    const normalizedString = cleanString.replace(',', '.');
-    const hours = parseFloat(normalizedString);
-    
-    return isNaN(hours) ? 0 : hours;
-}
+        // ================================
+        // FONCTIONS CORRIGÉES POUR LES HEURES
+        // ================================
 
-function formatHours(hours) {
-    if (hours === 0) return '0h';
-    
-    // Séparer heures et minutes
-    const wholeHours = Math.floor(hours);
-    const minutes = Math.round((hours - wholeHours) * 60);
-    
-    if (minutes === 0) {
-        return `${wholeHours}h`;
-    } else if (minutes === 30) {
-        return `${wholeHours}h30`;
-    } else {
-        return `${wholeHours}h${minutes.toString().padStart(2, '0')}`;
-    }
-}
+        function parseHours(hoursString) {
+            if (!hoursString || typeof hoursString !== 'string') return 0;
+            
+            // Gestion spécifique pour le format "8h30", "7h15", etc.
+            const hourMinuteMatch = hoursString.match(/(\d+)h(\d+)/);
+            if (hourMinuteMatch) {
+                const hours = parseInt(hourMinuteMatch[1]);
+                const minutes = parseInt(hourMinuteMatch[2]);
+                return hours + (minutes / 60);
+            }
+            
+            // Gestion pour le format "8h", "7h", etc.
+            const hourMatch = hoursString.match(/(\d+)h/);
+            if (hourMatch) {
+                return parseInt(hourMatch[1]);
+            }
+            
+            // Gestion pour les nombres décimaux comme "8.5"
+            const cleanString = hoursString.replace(/[^\d.,]/g, '');
+            const normalizedString = cleanString.replace(',', '.');
+            const hours = parseFloat(normalizedString);
+            
+            return isNaN(hours) ? 0 : hours;
+        }
+
+        function formatHours(hours) {
+            if (hours === 0) return '0h';
+            
+            // Séparer heures et minutes
+            const wholeHours = Math.floor(hours);
+            const minutes = Math.round((hours - wholeHours) * 60);
+            
+            if (minutes === 0) {
+                return `${wholeHours}h`;
+            } else if (minutes === 30) {
+                return `${wholeHours}h30`;
+            } else {
+                return `${wholeHours}h${minutes.toString().padStart(2, '0')}`;
+            }
+        }
+
         function copyEmployeeWeek(employeeId) {
             try {
                 const employee = globalState.employees.find(emp => emp.id === employeeId);
@@ -2963,23 +2969,23 @@ function formatHours(hours) {
         }
 
         function removeEmployee(employeeId) {
-    try {
-        const employee = globalState.employees.find(emp => emp.id === employeeId);
-        if (!employee) return;
-        
-        if (confirm(`Supprimer ${employee.name} ?`)) {
-            saveStateForUndo(); // ← AJOUT POUR L'ANNULATION
-            
-            globalState.employees = globalState.employees.filter(emp => emp.id !== employeeId);
-            renderPlanning();
-            updateSummary();
-            saveData();
-            showToast('Employé supprimé', 'success');
+            try {
+                const employee = globalState.employees.find(emp => emp.id === employeeId);
+                if (!employee) return;
+                
+                if (confirm(`Supprimer ${employee.name} ?`)) {
+                    saveStateForUndo(); // ← AJOUT POUR L'ANNULATION
+                    
+                    globalState.employees = globalState.employees.filter(emp => emp.id !== employeeId);
+                    renderPlanning();
+                    updateSummary();
+                    saveData();
+                    showToast('Employé supprimé', 'success');
+                }
+            } catch (error) {
+                console.error('Erreur remove employee:', error);
+            }
         }
-    } catch (error) {
-        console.error('Erreur remove employee:', error);
-    }
-}
 
         function updateSummary() {
             try {
@@ -3302,264 +3308,263 @@ function formatHours(hours) {
         function showShareFallback(url) {
             alert(`Copiez ce lien pour partager le planning :\n\n${url}`);
         }
-function exportToJSON() {
-    try {
-        const dataToExport = {
-            employees: globalState.employees || [],
-            customTemplates: globalState.customTemplates || [],
-            timeSlots: globalState.timeSlots || [],
-            weekTemplates: globalState.weekTemplates || [],
-            exportDate: new Date().toISOString(),
-            version: '3.1'
-        };
-        
-        const dataString = JSON.stringify(dataToExport, null, 2);
-        const blob = new Blob([dataString], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `planning_backup_${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
-        showToast('Sauvegarde JSON téléchargée', 'success');
-    } catch (error) {
-        console.error('Erreur export JSON:', error);
-        showToast('Erreur lors de l\'export', 'error');
-    }
-}
-    
-function importFromJSON() {
-    try {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json';
-        input.style.display = 'none';
-        
-        input.onchange = function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const importedData = JSON.parse(e.target.result);
-                    
-                    // Vérifier que c'est bien un fichier de planning
-                    if (!importedData.employees && !importedData.version) {
-                        showToast('Ce fichier ne semble pas être une sauvegarde de planning', 'error');
-                        return;
-                    }
-                    
-                    const exportDate = importedData.exportDate ? 
-                        new Date(importedData.exportDate).toLocaleDateString('fr-FR') : 
-                        'Date inconnue';
-                    
-                    if (confirm(`Importer cette sauvegarde du ${exportDate} ?\n\n⚠️ Cela remplacera TOUTES les données actuelles.\n\nVoulez-vous continuer ?`)) {
-                        saveStateForUndo(); // Sauvegarder l'état actuel pour pouvoir annuler
-                        
-                        // Importer les données
-                        if (Array.isArray(importedData.employees)) {
-                            globalState.employees = importedData.employees;
-                        }
-                        
-                        if (Array.isArray(importedData.customTemplates)) {
-                            globalState.customTemplates = importedData.customTemplates;
-                        }
-                        
-                        if (Array.isArray(importedData.timeSlots)) {
-                            globalState.timeSlots = importedData.timeSlots;
-                        }
-                        
-                        if (Array.isArray(importedData.weekTemplates)) {
-                            globalState.weekTemplates = importedData.weekTemplates;
-                        }
-                        
-                        // Mettre à jour l'affichage
-                        renderPlanning();
-                        renderTimeSlots();
-                        loadCustomTemplates();
-                        updateSummary();
-                        updateWeekTemplateSelect();
-                        saveData(); // Sauvegarder localement
-                        
-                        const employeesCount = importedData.employees?.length || 0;
-                        showToast(`✅ Sauvegarde importée avec succès ! (${employeesCount} employés)`, 'success');
-                    }
-                } catch (parseError) {
-                    console.error('Erreur parsing JSON:', parseError);
-                    showToast('❌ Fichier JSON invalide ou corrompu', 'error');
-                }
-            };
-            
-            reader.onerror = function() {
-                showToast('❌ Erreur de lecture du fichier', 'error');
-            };
-            
-            reader.readAsText(file);
-        };
-        
-        document.body.appendChild(input);
-        input.click();
-        document.body.removeChild(input);
-        
-    } catch (error) {
-        console.error('Erreur import JSON:', error);
-        showToast('❌ Erreur lors de l\'import', 'error');
-    }
-}
-    
 
-       function clearCurrentWeek() { 
-    const weekKey = getWeekKey();
-    const weekStart = new Date(globalState.currentWeek);
-    const weekEnd = new Date(globalState.currentWeek);
-    weekEnd.setDate(weekEnd.getDate() + 6);
-    
-    const weekDisplay = `${weekStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} - ${weekEnd.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`;
-    
-    if (confirm(`Vider uniquement la semaine du ${weekDisplay} ?`)) {
-        saveStateForUndo(); // ← AJOUT POUR L'ANNULATION
-        
-        if (Array.isArray(globalState.employees)) {
-            globalState.employees.forEach(emp => {
-                if (emp.planning && emp.planning[weekKey]) {
-                    delete emp.planning[weekKey];
-                }
-            });
+        function exportToJSON() {
+            try {
+                const dataToExport = {
+                    employees: globalState.employees || [],
+                    customTemplates: globalState.customTemplates || [],
+                    timeSlots: globalState.timeSlots || [],
+                    weekTemplates: globalState.weekTemplates || [],
+                    exportDate: new Date().toISOString(),
+                    version: '3.1'
+                };
+                
+                const dataString = JSON.stringify(dataToExport, null, 2);
+                const blob = new Blob([dataString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `planning_backup_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                showToast('Sauvegarde JSON téléchargée', 'success');
+            } catch (error) {
+                console.error('Erreur export JSON:', error);
+                showToast('Erreur lors de l\'export', 'error');
+            }
         }
-        renderPlanning();
-        updateSummary();
-        saveData();
-        showToast(`Semaine du ${weekDisplay} vidée`, 'success');
-    }
-}
         
-} 
+        function importFromJSON() {
+            try {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                input.style.display = 'none';
+                
+                input.onchange = function(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const importedData = JSON.parse(e.target.result);
+                            
+                            // Vérifier que c'est bien un fichier de planning
+                            if (!importedData.employees && !importedData.version) {
+                                showToast('Ce fichier ne semble pas être une sauvegarde de planning', 'error');
+                                return;
+                            }
+                            
+                            const exportDate = importedData.exportDate ? 
+                                new Date(importedData.exportDate).toLocaleDateString('fr-FR') : 
+                                'Date inconnue';
+                            
+                            if (confirm(`Importer cette sauvegarde du ${exportDate} ?\n\n⚠️ Cela remplacera TOUTES les données actuelles.\n\nVoulez-vous continuer ?`)) {
+                                saveStateForUndo(); // Sauvegarder l'état actuel pour pouvoir annuler
+                                
+                                // Importer les données
+                                if (Array.isArray(importedData.employees)) {
+                                    globalState.employees = importedData.employees;
+                                }
+                                
+                                if (Array.isArray(importedData.customTemplates)) {
+                                    globalState.customTemplates = importedData.customTemplates;
+                                }
+                                
+                                if (Array.isArray(importedData.timeSlots)) {
+                                    globalState.timeSlots = importedData.timeSlots;
+                                }
+                                
+                                if (Array.isArray(importedData.weekTemplates)) {
+                                    globalState.weekTemplates = importedData.weekTemplates;
+                                }
+                                
+                                // Mettre à jour l'affichage
+                                renderPlanning();
+                                renderTimeSlots();
+                                loadCustomTemplates();
+                                updateSummary();
+                                updateWeekTemplateSelect();
+                                saveData(); // Sauvegarder localement
+                                
+                                const employeesCount = importedData.employees?.length || 0;
+                                showToast(`✅ Sauvegarde importée avec succès ! (${employeesCount} employés)`, 'success');
+                            }
+                        } catch (parseError) {
+                            console.error('Erreur parsing JSON:', parseError);
+                            showToast('❌ Fichier JSON invalide ou corrompu', 'error');
+                        }
+                    };
+                    
+                    reader.onerror = function() {
+                        showToast('❌ Erreur de lecture du fichier', 'error');
+                    };
+                    
+                    reader.readAsText(file);
+                };
+                
+                document.body.appendChild(input);
+                input.click();
+                document.body.removeChild(input);
+                
+            } catch (error) {
+                console.error('Erreur import JSON:', error);
+                showToast('❌ Erreur lors de l\'import', 'error');
+            }
+        }
+
+        function clearCurrentWeek() { 
+            const weekKey = getWeekKey();
+            const weekStart = new Date(globalState.currentWeek);
+            const weekEnd = new Date(globalState.currentWeek);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            
+            const weekDisplay = `${weekStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} - ${weekEnd.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`;
+            
+            if (confirm(`Vider uniquement la semaine du ${weekDisplay} ?`)) {
+                saveStateForUndo(); // ← AJOUT POUR L'ANNULATION
+                
+                if (Array.isArray(globalState.employees)) {
+                    globalState.employees.forEach(emp => {
+                        if (emp.planning && emp.planning[weekKey]) {
+                            delete emp.planning[weekKey];
+                        }
+                    });
+                }
+                renderPlanning();
+                updateSummary();
+                saveData();
+                showToast(`Semaine du ${weekDisplay} vidée`, 'success');
+            }
+        }
+
         // ================================
-// SYSTÈME D'ANNULATION (CTRL+Z)
-// ================================
+        // SYSTÈME D'ANNULATION (CTRL+Z)
+        // ================================
 
-function saveStateForUndo() {
-    try {
-        // Sauvegarder l'état actuel
-        const currentState = {
-            employees: JSON.parse(JSON.stringify(globalState.employees || [])),
-            customTemplates: JSON.parse(JSON.stringify(globalState.customTemplates || [])),
-            timeSlots: JSON.parse(JSON.stringify(globalState.timeSlots || [])),
-            timestamp: Date.now()
-        };
-        
-        undoStack.push(currentState);
-        
-        // Limiter la taille de la pile
-        if (undoStack.length > MAX_UNDO_STEPS) {
-            undoStack.shift();
+        function saveStateForUndo() {
+            try {
+                // Sauvegarder l'état actuel
+                const currentState = {
+                    employees: JSON.parse(JSON.stringify(globalState.employees || [])),
+                    customTemplates: JSON.parse(JSON.stringify(globalState.customTemplates || [])),
+                    timeSlots: JSON.parse(JSON.stringify(globalState.timeSlots || [])),
+                    timestamp: Date.now()
+                };
+                
+                undoStack.push(currentState);
+                
+                // Limiter la taille de la pile
+                if (undoStack.length > MAX_UNDO_STEPS) {
+                    undoStack.shift();
+                }
+                
+                // Vider la pile redo quand on fait une nouvelle action
+                redoStack = [];
+                
+                updateUndoRedoButtons();
+                
+            } catch (error) {
+                console.error('Erreur save state for undo:', error);
+            }
         }
-        
-        // Vider la pile redo quand on fait une nouvelle action
-        redoStack = [];
-        
-        updateUndoRedoButtons();
-        
-    } catch (error) {
-        console.error('Erreur save state for undo:', error);
-    }
-}
 
-function undo() {
-    try {
-        if (undoStack.length === 0) {
-            showToast('Rien à annuler', 'error');
-            return;
+        function undo() {
+            try {
+                if (undoStack.length === 0) {
+                    showToast('Rien à annuler', 'error');
+                    return;
+                }
+                
+                // Sauvegarder l'état actuel dans redo
+                const currentState = {
+                    employees: JSON.parse(JSON.stringify(globalState.employees || [])),
+                    customTemplates: JSON.parse(JSON.stringify(globalState.customTemplates || [])),
+                    timeSlots: JSON.parse(JSON.stringify(globalState.timeSlots || []))
+                };
+                redoStack.push(currentState);
+                
+                // Restaurer l'état précédent
+                const previousState = undoStack.pop();
+                globalState.employees = previousState.employees;
+                globalState.customTemplates = previousState.customTemplates;
+                globalState.timeSlots = previousState.timeSlots;
+                
+                // Mettre à jour l'affichage
+                renderPlanning();
+                renderTimeSlots();
+                loadCustomTemplates();
+                updateSummary();
+                updateUndoRedoButtons();
+                saveData();
+                
+                showToast('Action annulée', 'success');
+                
+            } catch (error) {
+                console.error('Erreur undo:', error);
+                showToast('Erreur lors de l\'annulation', 'error');
+            }
         }
-        
-        // Sauvegarder l'état actuel dans redo
-        const currentState = {
-            employees: JSON.parse(JSON.stringify(globalState.employees || [])),
-            customTemplates: JSON.parse(JSON.stringify(globalState.customTemplates || [])),
-            timeSlots: JSON.parse(JSON.stringify(globalState.timeSlots || []))
-        };
-        redoStack.push(currentState);
-        
-        // Restaurer l'état précédent
-        const previousState = undoStack.pop();
-        globalState.employees = previousState.employees;
-        globalState.customTemplates = previousState.customTemplates;
-        globalState.timeSlots = previousState.timeSlots;
-        
-        // Mettre à jour l'affichage
-        renderPlanning();
-        renderTimeSlots();
-        loadCustomTemplates();
-        updateSummary();
-        updateUndoRedoButtons();
-        saveData();
-        
-        showToast('Action annulée', 'success');
-        
-    } catch (error) {
-        console.error('Erreur undo:', error);
-        showToast('Erreur lors de l\'annulation', 'error');
-    }
-}
 
-function redo() {
-    try {
-        if (redoStack.length === 0) {
-            showToast('Rien à refaire', 'error');
-            return;
+        function redo() {
+            try {
+                if (redoStack.length === 0) {
+                    showToast('Rien à refaire', 'error');
+                    return;
+                }
+                
+                // Sauvegarder l'état actuel dans undo
+                const currentState = {
+                    employees: JSON.parse(JSON.stringify(globalState.employees || [])),
+                    customTemplates: JSON.parse(JSON.stringify(globalState.customTemplates || [])),
+                    timeSlots: JSON.parse(JSON.stringify(globalState.timeSlots || []))
+                };
+                undoStack.push(currentState);
+                
+                // Restaurer l'état suivant
+                const nextState = redoStack.pop();
+                globalState.employees = nextState.employees;
+                globalState.customTemplates = nextState.customTemplates;
+                globalState.timeSlots = nextState.timeSlots;
+                
+                // Mettre à jour l'affichage
+                renderPlanning();
+                renderTimeSlots();
+                loadCustomTemplates();
+                updateSummary();
+                updateUndoRedoButtons();
+                saveData();
+                
+                showToast('Action refaite', 'success');
+                
+            } catch (error) {
+                console.error('Erreur redo:', error);
+                showToast('Erreur lors du refaire', 'error');
+            }
         }
-        
-        // Sauvegarder l'état actuel dans undo
-        const currentState = {
-            employees: JSON.parse(JSON.stringify(globalState.employees || [])),
-            customTemplates: JSON.parse(JSON.stringify(globalState.customTemplates || [])),
-            timeSlots: JSON.parse(JSON.stringify(globalState.timeSlots || []))
-        };
-        undoStack.push(currentState);
-        
-        // Restaurer l'état suivant
-        const nextState = redoStack.pop();
-        globalState.employees = nextState.employees;
-        globalState.customTemplates = nextState.customTemplates;
-        globalState.timeSlots = nextState.timeSlots;
-        
-        // Mettre à jour l'affichage
-        renderPlanning();
-        renderTimeSlots();
-        loadCustomTemplates();
-        updateSummary();
-        updateUndoRedoButtons();
-        saveData();
-        
-        showToast('Action refaite', 'success');
-        
-    } catch (error) {
-        console.error('Erreur redo:', error);
-        showToast('Erreur lors du refaire', 'error');
-    }
-}
 
-function updateUndoRedoButtons() {
-    const undoBtn = document.getElementById('undoBtn');
-    const redoBtn = document.getElementById('redoBtn');
-    
-    if (undoBtn) {
-        undoBtn.disabled = undoStack.length === 0;
-        undoBtn.style.opacity = undoStack.length === 0 ? '0.5' : '1';
-        undoBtn.textContent = `↶ Annuler ${undoStack.length > 0 ? `(${undoStack.length})` : ''}`;
-    }
-    
-    if (redoBtn) {
-        redoBtn.disabled = redoStack.length === 0;
-        redoBtn.style.opacity = redoStack.length === 0 ? '0.5' : '1';
-        redoBtn.textContent = `↷ Refaire ${redoStack.length > 0 ? `(${redoStack.length})` : ''}`;
-    }
-}
+        function updateUndoRedoButtons() {
+            const undoBtn = document.getElementById('undoBtn');
+            const redoBtn = document.getElementById('redoBtn');
+            
+            if (undoBtn) {
+                undoBtn.disabled = undoStack.length === 0;
+                undoBtn.style.opacity = undoStack.length === 0 ? '0.5' : '1';
+                undoBtn.textContent = `↶ Annuler ${undoStack.length > 0 ? `(${undoStack.length})` : ''}`;
+            }
+            
+            if (redoBtn) {
+                redoBtn.disabled = redoStack.length === 0;
+                redoBtn.style.opacity = redoStack.length === 0 ? '0.5' : '1';
+                redoBtn.textContent = `↷ Refaire ${redoStack.length > 0 ? `(${redoStack.length})` : ''}`;
+            }
+        }
 
         function showToast(message, type = 'success') {
             try {
@@ -3583,12 +3588,10 @@ function updateUndoRedoButtons() {
         function saveWeekTemplate() { showToast('Fonctionnalité en développement', 'error'); }
         function applyWeekTemplate() { showToast('Fonctionnalité en développement', 'error'); }
         function deleteWeekTemplate() { showToast('Fonctionnalité en développement', 'error'); }
+
         // ================================
         // NOUVELLES FONCTIONS POUR ÉDITION ET DÉPLACEMENT
         // ================================
-        
-        let draggedShiftData = null;
-        let draggedEmployeeData = null;
 
         function editShiftTime(employeeId, day, shiftId) {
             try {
@@ -3724,144 +3727,141 @@ function updateUndoRedoButtons() {
         // ================================
         // FONCTIONS POUR DÉPLACER LES EMPLOYÉS
         // ================================
-        
-        let draggedEmployeeData = null;
 
         function makeEmployeeDraggable(employeeCell, employeeId) {
-    if (!globalState.isAdminMode) return;
-    
-    employeeCell.classList.add('draggable-employee');
-    employeeCell.draggable = true;
-    
-    employeeCell.addEventListener('dragstart', (e) => handleEmployeeDragStart(e, employeeId));
-    employeeCell.addEventListener('dragend', handleEmployeeDragEnd);
-}
-
-function handleEmployeeDragStart(e, employeeId) {
-    if (!globalState.isAdminMode) return;
-    
-    const employee = globalState.employees.find(emp => emp.id === employeeId);
-    if (!employee) return;
-    
-    draggedEmployeeData = {
-        employeeId: employeeId,
-        employee: { ...employee },
-        originalIndex: globalState.employees.findIndex(emp => emp.id === employeeId)
-    };
-    
-    e.currentTarget.classList.add('dragging-employee');
-    setupEmployeeDropZones();
-    showToast(`Déplacement de ${employee.name}...`, 'success');
-}
-
-function handleEmployeeDragEnd(e) {
-    e.currentTarget.classList.remove('dragging-employee');
-    cleanupEmployeeDropZones();
-    draggedEmployeeData = null;
-}
-
-function setupEmployeeDropZones() {
-    const grid = document.getElementById('planningGrid');
-    if (!grid) return;
-    
-    cleanupEmployeeDropZones();
-    
-    const employeeCells = grid.querySelectorAll('.employee-cell');
-    
-    employeeCells.forEach((empCell, index) => {
-        const dropZone = document.createElement('div');
-        dropZone.className = 'employee-drop-zone';
-        dropZone.dataset.insertIndex = index;
-        dropZone.style.cssText = `
-            grid-column: 1 / -1;
-            height: 20px;
-            background: rgba(102, 126, 234, 0.05);
-            border: 2px dashed transparent;
-            transition: all 0.3s ease;
-            cursor: copy;
-            margin: 1px 0;
-        `;
-        
-        dropZone.addEventListener('dragover', handleEmployeeDragOver);
-        dropZone.addEventListener('dragleave', handleEmployeeDragLeave);
-        dropZone.addEventListener('drop', (e) => handleEmployeeDrop(e, index));
-        
-        grid.insertBefore(dropZone, empCell);
-    });
-    
-    // Zone finale
-    const finalDropZone = document.createElement('div');
-    finalDropZone.className = 'employee-drop-zone';
-    finalDropZone.dataset.insertIndex = employeeCells.length;
-    finalDropZone.style.cssText = `
-        grid-column: 1 / -1;
-        height: 20px;
-        background: rgba(102, 126, 234, 0.05);
-        border: 2px dashed transparent;
-        transition: all 0.3s ease;
-        cursor: copy;
-        margin: 1px 0;
-    `;
-    
-    finalDropZone.addEventListener('dragover', handleEmployeeDragOver);
-    finalDropZone.addEventListener('dragleave', handleEmployeeDragLeave);
-    finalDropZone.addEventListener('drop', (e) => handleEmployeeDrop(e, employeeCells.length));
-    
-    grid.appendChild(finalDropZone);
-}
-
-function cleanupEmployeeDropZones() {
-    const dropZones = document.querySelectorAll('.employee-drop-zone');
-    dropZones.forEach(zone => zone.remove());
-}
-
-function handleEmployeeDragOver(e) {
-    e.preventDefault();
-    e.currentTarget.style.border = '2px dashed #667eea';
-    e.currentTarget.style.background = 'rgba(102, 126, 234, 0.1)';
-}
-
-function handleEmployeeDragLeave(e) {
-    e.currentTarget.style.border = '2px dashed transparent';
-    e.currentTarget.style.background = 'transparent';
-}
-
-function handleEmployeeDrop(e, insertIndex) {
-    e.preventDefault();
-    e.currentTarget.style.border = '2px dashed transparent';
-    e.currentTarget.style.background = 'transparent';
-    
-    if (!draggedEmployeeData) return;
-    
-    try {
-        const { employeeId, originalIndex } = draggedEmployeeData;
-        
-        if (insertIndex === originalIndex || insertIndex === originalIndex + 1) {
-            showToast('Position inchangée', 'error');
-            return;
+            if (!globalState.isAdminMode) return;
+            
+            employeeCell.classList.add('draggable-employee');
+            employeeCell.draggable = true;
+            
+            employeeCell.addEventListener('dragstart', (e) => handleEmployeeDragStart(e, employeeId));
+            employeeCell.addEventListener('dragend', handleEmployeeDragEnd);
         }
-        
-        const employee = globalState.employees.splice(originalIndex, 1)[0];
-        let newIndex = insertIndex;
-        
-        if (insertIndex > originalIndex) {
-            newIndex = insertIndex - 1;
+
+        function handleEmployeeDragStart(e, employeeId) {
+            if (!globalState.isAdminMode) return;
+            
+            const employee = globalState.employees.find(emp => emp.id === employeeId);
+            if (!employee) return;
+            
+            draggedEmployeeData = {
+                employeeId: employeeId,
+                employee: { ...employee },
+                originalIndex: globalState.employees.findIndex(emp => emp.id === employeeId)
+            };
+            
+            e.currentTarget.classList.add('dragging-employee');
+            setupEmployeeDropZones();
+            showToast(`Déplacement de ${employee.name}...`, 'success');
         }
-        
-        globalState.employees.splice(newIndex, 0, employee);
-        
-        renderPlanning();
-        updateSummary();
-        saveData();
-        
-        showToast(`${employee.name} déplacé à la position ${newIndex + 1}`, 'success');
-        
-    } catch (error) {
-        console.error('Erreur déplacement employé:', error);
-        showToast('Erreur lors du déplacement', 'error');
-    }
-}
-    
+
+        function handleEmployeeDragEnd(e) {
+            e.currentTarget.classList.remove('dragging-employee');
+            cleanupEmployeeDropZones();
+            draggedEmployeeData = null;
+        }
+
+        function setupEmployeeDropZones() {
+            const grid = document.getElementById('planningGrid');
+            if (!grid) return;
+            
+            cleanupEmployeeDropZones();
+            
+            const employeeCells = grid.querySelectorAll('.employee-cell');
+            
+            employeeCells.forEach((empCell, index) => {
+                const dropZone = document.createElement('div');
+                dropZone.className = 'employee-drop-zone';
+                dropZone.dataset.insertIndex = index;
+                dropZone.style.cssText = `
+                    grid-column: 1 / -1;
+                    height: 20px;
+                    background: rgba(102, 126, 234, 0.05);
+                    border: 2px dashed transparent;
+                    transition: all 0.3s ease;
+                    cursor: copy;
+                    margin: 1px 0;
+                `;
+                
+                dropZone.addEventListener('dragover', handleEmployeeDragOver);
+                dropZone.addEventListener('dragleave', handleEmployeeDragLeave);
+                dropZone.addEventListener('drop', (e) => handleEmployeeDrop(e, index));
+                
+                grid.insertBefore(dropZone, empCell);
+            });
+            
+            // Zone finale
+            const finalDropZone = document.createElement('div');
+            finalDropZone.className = 'employee-drop-zone';
+            finalDropZone.dataset.insertIndex = employeeCells.length;
+            finalDropZone.style.cssText = `
+                grid-column: 1 / -1;
+                height: 20px;
+                background: rgba(102, 126, 234, 0.05);
+                border: 2px dashed transparent;
+                transition: all 0.3s ease;
+                cursor: copy;
+                margin: 1px 0;
+            `;
+            
+            finalDropZone.addEventListener('dragover', handleEmployeeDragOver);
+            finalDropZone.addEventListener('dragleave', handleEmployeeDragLeave);
+            finalDropZone.addEventListener('drop', (e) => handleEmployeeDrop(e, employeeCells.length));
+            
+            grid.appendChild(finalDropZone);
+        }
+
+        function cleanupEmployeeDropZones() {
+            const dropZones = document.querySelectorAll('.employee-drop-zone');
+            dropZones.forEach(zone => zone.remove());
+        }
+
+        function handleEmployeeDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.style.border = '2px dashed #667eea';
+            e.currentTarget.style.background = 'rgba(102, 126, 234, 0.1)';
+        }
+
+        function handleEmployeeDragLeave(e) {
+            e.currentTarget.style.border = '2px dashed transparent';
+            e.currentTarget.style.background = 'transparent';
+        }
+
+        function handleEmployeeDrop(e, insertIndex) {
+            e.preventDefault();
+            e.currentTarget.style.border = '2px dashed transparent';
+            e.currentTarget.style.background = 'transparent';
+            
+            if (!draggedEmployeeData) return;
+            
+            try {
+                const { employeeId, originalIndex } = draggedEmployeeData;
+                
+                if (insertIndex === originalIndex || insertIndex === originalIndex + 1) {
+                    showToast('Position inchangée', 'error');
+                    return;
+                }
+                
+                const employee = globalState.employees.splice(originalIndex, 1)[0];
+                let newIndex = insertIndex;
+                
+                if (insertIndex > originalIndex) {
+                    newIndex = insertIndex - 1;
+                }
+                
+                globalState.employees.splice(newIndex, 0, employee);
+                
+                renderPlanning();
+                updateSummary();
+                saveData();
+                
+                showToast(`${employee.name} déplacé à la position ${newIndex + 1}`, 'success');
+                
+            } catch (error) {
+                console.error('Erreur déplacement employé:', error);
+                showToast('Erreur lors du déplacement', 'error');
+            }
+        }
 
         console.log(`
 🎉 Planning Hebdomadaire Initialisé avec succès!
@@ -3870,7 +3870,7 @@ function handleEmployeeDrop(e, insertIndex) {
 - resetPlanning() : Réinitialise tout
 - globalState : État actuel des données
 
-🔑 Mot de passe admin: admin123
+🔑 Mot de passe admin: 123123
         `);
     </script>
 </body>
