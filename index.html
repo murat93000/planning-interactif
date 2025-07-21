@@ -3588,6 +3588,7 @@ function updateUndoRedoButtons() {
         // ================================
         
         let draggedShiftData = null;
+        let draggedEmployeeData = null;
 
         function editShiftTime(employeeId, day, shiftId) {
             try {
@@ -3727,73 +3728,46 @@ function updateUndoRedoButtons() {
         let draggedEmployeeData = null;
 
         function makeEmployeeDraggable(employeeCell, employeeId) {
-            if (!globalState.isAdminMode) return;
-            
-            employeeCell.classList.add('draggable-employee');
-            employeeCell.draggable = true;
-            
-            employeeCell.addEventListener('dragstart', (e) => handleEmployeeDragStart(e, employeeId));
-            employeeCell.addEventListener('dragend', handleEmployeeDragEnd);
-        }
+    if (!globalState.isAdminMode) return;
+    
+    employeeCell.classList.add('draggable-employee');
+    employeeCell.draggable = true;
+    
+    employeeCell.addEventListener('dragstart', (e) => handleEmployeeDragStart(e, employeeId));
+    employeeCell.addEventListener('dragend', handleEmployeeDragEnd);
+}
 
-        function handleEmployeeDragStart(e, employeeId) {
-            if (!globalState.isAdminMode) return;
-            
-            const employee = globalState.employees.find(emp => emp.id === employeeId);
-            if (!employee) return;
-            
-            draggedEmployeeData = {
-                employeeId: employeeId,
-                employee: { ...employee },
-                originalIndex: globalState.employees.findIndex(emp => emp.id === employeeId)
-            };
-            
-            e.currentTarget.classList.add('dragging-employee');
-            
-            // Préparer les zones de drop
-            setupEmployeeDropZones();
-            
-            showToast(`Déplacement de ${employee.name}...`, 'success');
-        }
+function handleEmployeeDragStart(e, employeeId) {
+    if (!globalState.isAdminMode) return;
+    
+    const employee = globalState.employees.find(emp => emp.id === employeeId);
+    if (!employee) return;
+    
+    draggedEmployeeData = {
+        employeeId: employeeId,
+        employee: { ...employee },
+        originalIndex: globalState.employees.findIndex(emp => emp.id === employeeId)
+    };
+    
+    e.currentTarget.classList.add('dragging-employee');
+    setupEmployeeDropZones();
+    showToast(`Déplacement de ${employee.name}...`, 'success');
+}
 
-        function handleEmployeeDragEnd(e) {
-            e.currentTarget.classList.remove('dragging-employee');
-            
-            // Nettoyer les zones de drop
-            cleanupEmployeeDropZones();
-            
-            draggedEmployeeData = null;
-        }
-
-        let isCreatingDropZones = false; // Variable de protection
+function handleEmployeeDragEnd(e) {
+    e.currentTarget.classList.remove('dragging-employee');
+    cleanupEmployeeDropZones();
+    draggedEmployeeData = null;
+}
 
 function setupEmployeeDropZones() {
     const grid = document.getElementById('planningGrid');
     if (!grid) return;
     
-    // Protection contre les appels multiples
-    if (isCreatingDropZones) {
-        console.log('⚠️ Création zones déjà en cours, ignoré');
-        return;
-    }
-    
-    isCreatingDropZones = true;
-    console.log('🎯 Création zones de drop...');
-    
-    // Nettoyer les anciennes zones
     cleanupEmployeeDropZones();
     
-    // Trouver toutes les cellules employés
     const employeeCells = grid.querySelectorAll('.employee-cell');
-    console.log('👥 Employés trouvés:', employeeCells.length);
     
-    if (employeeCells.length === 0) {
-        console.log('❌ Aucun employé trouvé');
-        isCreatingDropZones = false;
-        return;
-    }
-    
-    // Créer une zone AVANT chaque employé
     employeeCells.forEach((empCell, index) => {
         const dropZone = document.createElement('div');
         dropZone.className = 'employee-drop-zone';
@@ -3812,11 +3786,10 @@ function setupEmployeeDropZones() {
         dropZone.addEventListener('dragleave', handleEmployeeDragLeave);
         dropZone.addEventListener('drop', (e) => handleEmployeeDrop(e, index));
         
-        // Insérer AVANT la ligne de l'employé
         grid.insertBefore(dropZone, empCell);
     });
     
-    // Zone APRÈS le dernier employé
+    // Zone finale
     const finalDropZone = document.createElement('div');
     finalDropZone.className = 'employee-drop-zone';
     finalDropZone.dataset.insertIndex = employeeCells.length;
@@ -3835,86 +3808,59 @@ function setupEmployeeDropZones() {
     finalDropZone.addEventListener('drop', (e) => handleEmployeeDrop(e, employeeCells.length));
     
     grid.appendChild(finalDropZone);
-    
-    const totalZones = document.querySelectorAll('.employee-drop-zone').length;
-    console.log('✅ Zones créées:', totalZones);
-    
-    // Libérer la protection après un délai
-    setTimeout(() => {
-        isCreatingDropZones = false;
-        console.log('🔓 Protection libérée');
-    }, 100);
 }
 
-        function cleanupEmployeeDropZones() {
-            const dropZones = document.querySelectorAll('.employee-drop-zone');
-            dropZones.forEach(zone => zone.remove());
+function cleanupEmployeeDropZones() {
+    const dropZones = document.querySelectorAll('.employee-drop-zone');
+    dropZones.forEach(zone => zone.remove());
+}
+
+function handleEmployeeDragOver(e) {
+    e.preventDefault();
+    e.currentTarget.style.border = '2px dashed #667eea';
+    e.currentTarget.style.background = 'rgba(102, 126, 234, 0.1)';
+}
+
+function handleEmployeeDragLeave(e) {
+    e.currentTarget.style.border = '2px dashed transparent';
+    e.currentTarget.style.background = 'transparent';
+}
+
+function handleEmployeeDrop(e, insertIndex) {
+    e.preventDefault();
+    e.currentTarget.style.border = '2px dashed transparent';
+    e.currentTarget.style.background = 'transparent';
+    
+    if (!draggedEmployeeData) return;
+    
+    try {
+        const { employeeId, originalIndex } = draggedEmployeeData;
+        
+        if (insertIndex === originalIndex || insertIndex === originalIndex + 1) {
+            showToast('Position inchangée', 'error');
+            return;
         }
-
-        function handleEmployeeDragOver(e) {
-            e.preventDefault();
-            e.currentTarget.style.border = '2px dashed #667eea';
-            e.currentTarget.style.background = 'rgba(102, 126, 234, 0.1)';
+        
+        const employee = globalState.employees.splice(originalIndex, 1)[0];
+        let newIndex = insertIndex;
+        
+        if (insertIndex > originalIndex) {
+            newIndex = insertIndex - 1;
         }
-
-        function handleEmployeeDragLeave(e) {
-            e.currentTarget.style.border = '2px dashed transparent';
-            e.currentTarget.style.background = 'transparent';
-        }
-
-        function handleEmployeeDrop(e, insertIndex) {
-            e.preventDefault();
-            e.currentTarget.style.border = '2px dashed transparent';
-            e.currentTarget.style.background = 'transparent';
-            
-            if (!draggedEmployeeData) return;
-            
-            try {
-                const { employeeId, originalIndex } = draggedEmployeeData;
-                
-                // Ne rien faire si on dépose au même endroit
-                if (insertIndex === originalIndex || insertIndex === originalIndex + 1) {
-                    showToast('Position inchangée', 'error');
-                    return;
-                }
-                
-                // Supprimer l'employé de sa position actuelle
-                const employee = globalState.employees.splice(originalIndex, 1)[0];
-                
-                // Calculer la nouvelle position correctement
-                let newIndex = insertIndex;
-
-                // Si on déplace vers le bas
-                if (insertIndex > originalIndex) {
-                    newIndex = insertIndex - 1;
-                }
-                // Si on déplace vers le haut  
-                else if (insertIndex < originalIndex) {
-                    newIndex = insertIndex;
-                }
-                // Même position = annuler
-                else {
-                    showToast('Position inchangée', 'error');
-                    return;
-                }
-
-                console.log(`Déplacement: ${originalIndex} → ${newIndex} (insertIndex: ${insertIndex})`);
-                
-                // Insérer à la nouvelle position
-                globalState.employees.splice(newIndex, 0, employee);
-                
-                // Mettre à jour l'affichage
-                renderPlanning();
-                updateSummary();
-                saveData();
-                
-                showToast(`${employee.name} déplacé à la position ${newIndex + 1}`, 'success');
-                
-            } catch (error) {
-                console.error('Erreur déplacement employé:', error);
-                showToast('Erreur lors du déplacement', 'error');
-            }
-        }
+        
+        globalState.employees.splice(newIndex, 0, employee);
+        
+        renderPlanning();
+        updateSummary();
+        saveData();
+        
+        showToast(`${employee.name} déplacé à la position ${newIndex + 1}`, 'success');
+        
+    } catch (error) {
+        console.error('Erreur déplacement employé:', error);
+        showToast('Erreur lors du déplacement', 'error');
+    }
+}
     
 
         console.log(`
