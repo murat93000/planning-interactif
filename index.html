@@ -885,6 +885,7 @@
         <div class="auth-section">
             <button class="btn" id="modeBtn" onclick="toggleMode()">🔒 Mode Lecture</button>
             <button class="btn" id="authBtn" onclick="toggleAuth()">🔑 Se connecter</button>
+            <button class="btn warning" onclick="logoutEmployee()" style="margin-left: 10px;">🚪 Déconnexion</button>
             <div class="admin-panel" style="margin-top: 15px;">
                 <button class="btn admin" onclick="openEmployeeModal()">👤 Ajouter Employé</button>
                 <button class="btn admin" onclick="openBulkFillModal()">📅 Remplissage par Date</button>
@@ -1132,6 +1133,24 @@
             </form>
         </div>
     </div>
+    <!-- Modal pour authentification employé -->
+    <div id="employeeAuthModal" class="modal">
+        <div class="modal-content">
+            <h2>🔒 Accès Planning</h2>
+            <p style="text-align: center; color: #6b7280; margin-bottom: 20px;">
+                Entrez le mot de passe pour accéder au planning
+            </p>
+            <form id="employeeAuthForm">
+                <div class="form-group">
+                    <label>Mot de passe employé:</label>
+                    <input type="password" id="employeePassword" required placeholder="Tapez le mot de passe...">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn admin">🔓 Accéder au Planning</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script>
         // ================================
@@ -1232,6 +1251,13 @@
                 authBtn.className = 'btn';
             }
         }
+        function logoutEmployee() {
+    if (confirm('Voulez-vous vraiment vous déconnecter ?')) {
+        sessionStorage.removeItem('employeeAuth');
+        isEmployeeAuthenticated = false;
+        location.reload(); // Recharger la page
+    }
+}
 
         // ================================
         // FONCTIONS D'AUTHENTIFICATION
@@ -1544,6 +1570,8 @@
         // ================================
         // Configuration sécurisée
         const ADMIN_PASSWORD = '123123';
+        const EMPLOYEE_PASSWORD = '2010';
+let isEmployeeAuthenticated = false;
 
         // Système d'annulation
         let undoStack = [];
@@ -1585,26 +1613,26 @@
         });
 
         function initializeApp() {
-            const today = new Date();
-            globalState.currentWeek = new Date(today);
-            globalState.currentWeek.setDate(today.getDate() - today.getDay() + 1);
-            
-            setupEventListeners();
-            updateWeekDisplay();
-            renderTimeSlots();
-            renderPlanning();
-            updateSummary();
-            updateWeekTemplateSelect();
-            
-            // Charger les données (local d'abord, puis cloud si connecté)
-            loadData();
-            
-            // Activer l'auto-sauvegarde cloud si possible
-            setTimeout(() => {
-                if (isFirebaseEnabled && currentUser) {
-                    enableAutoSaveCloud();
-                }
-            }, 2000);
+    const today = new Date();
+    globalState.currentWeek = new Date(today);
+    globalState.currentWeek.setDate(today.getDate() - today.getDay() + 1);
+    
+    setupEventListeners();
+    updateWeekDisplay();
+    renderTimeSlots();
+    
+    // Vérifier l'authentification employé d'abord
+    checkEmployeeAuthentication();
+    
+    // Charger les données (local d'abord, puis cloud si connecté)
+    loadData();
+    
+    // Activer l'auto-sauvegarde cloud si possible
+    setTimeout(() => {
+        if (isFirebaseEnabled && currentUser) {
+            enableAutoSaveCloud();
+        }
+    }, 2000);
             
             showToast('Planning initialisé avec succès', 'success');
         }
@@ -1617,16 +1645,22 @@
                 const bulkFillForm = document.getElementById('bulkFillForm');
                 
                 if (employeeForm) {
-                    employeeForm.addEventListener('submit', handleEmployeeSubmit);
-                }
-                
-                if (passwordForm) {
-                    passwordForm.addEventListener('submit', handlePasswordSubmit);
-                }
-                
-                if (bulkFillForm) {
-                    bulkFillForm.addEventListener('submit', handleBulkFillSubmit);
-                }
+    employeeForm.addEventListener('submit', handleEmployeeSubmit);
+}
+
+if (passwordForm) {
+    passwordForm.addEventListener('submit', handlePasswordSubmit);
+}
+
+if (bulkFillForm) {
+    bulkFillForm.addEventListener('submit', handleBulkFillSubmit);
+}
+
+// Authentification employé
+const employeeAuthForm = document.getElementById('employeeAuthForm');
+if (employeeAuthForm) {
+    employeeAuthForm.addEventListener('submit', handleEmployeeAuthSubmit);
+}
                 
                 // Événements pour les templates
                 document.querySelectorAll('.template').forEach(template => {
@@ -1648,6 +1682,91 @@
                 console.error('Erreur setup événements:', error);
             }
         }
+        function checkEmployeeAuthentication() {
+    // Vérifier si déjà authentifié (sessionStorage)
+    const isAuth = sessionStorage.getItem('employeeAuth');
+    
+    if (isAuth === 'true') {
+        isEmployeeAuthenticated = true;
+        showPlanningContent();
+    } else {
+        showEmployeeAuthModal();
+    }
+}
+
+function showEmployeeAuthModal() {
+    // Cacher tout le contenu
+    hidePlanningContent();
+    
+    // Afficher le modal d'authentification
+    const modal = document.getElementById('employeeAuthModal');
+    if (modal) {
+        modal.style.display = 'block';
+        
+        // Focus sur le champ mot de passe
+        setTimeout(() => {
+            const passwordField = document.getElementById('employeePassword');
+            if (passwordField) passwordField.focus();
+        }, 100);
+    }
+}
+
+function hidePlanningContent() {
+    const container = document.querySelector('.container');
+    if (container) {
+        container.style.display = 'none';
+    }
+}
+
+function showPlanningContent() {
+    const container = document.querySelector('.container');
+    if (container) {
+        container.style.display = 'block';
+    }
+    
+    renderPlanning();
+    updateSummary();
+    showToast('Planning chargé avec succès', 'success');
+}
+
+function handleEmployeeAuthSubmit(e) {
+    try {
+        e.preventDefault();
+        
+        const passwordInput = document.getElementById('employeePassword');
+        if (!passwordInput) {
+            showToast('Erreur d\'interface', 'error');
+            return;
+        }
+        
+        const password = passwordInput.value;
+        
+        if (password === EMPLOYEE_PASSWORD) {
+            isEmployeeAuthenticated = true;
+            
+            // Sauvegarder l'authentification pour la session
+            sessionStorage.setItem('employeeAuth', 'true');
+            
+            // Fermer le modal
+            const modal = document.getElementById('employeeAuthModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+            
+            // Afficher le planning
+            showPlanningContent();
+            
+            showToast('Accès autorisé - Bienvenue !', 'success');
+        } else {
+            showToast('Mot de passe incorrect', 'error');
+            passwordInput.value = '';
+            passwordInput.focus();
+        }
+    } catch (error) {
+        console.error('Erreur authentification employé:', error);
+        showToast('Erreur de connexion', 'error');
+    }
+}
 
         function handleKeyboardShortcuts(e) {
             try {
