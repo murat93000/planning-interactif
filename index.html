@@ -95,6 +95,7 @@
         .btn.warning {
             background: linear-gradient(135deg, #f59e0b, #d97706);
         }
+        
 
         /* Barre latérale fixe à droite */
         .sidebar {
@@ -874,7 +875,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📅 Planning Optic2000 Cloud</h1>
+            <h1>📅 Planning BLINK Cloud</h1>
             <p>Système de gestion d'équipe boutique BLINK avec synchronisation cloud Firebase</p>
             <div id="connectionStatus" style="margin-top: 10px; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600;">
                 <span id="statusText">🔄 Connexion en cours...</span>
@@ -898,6 +899,7 @@
                 <button class="btn warning" onclick="exportToJSON()">📥 Export JSON</button>
                 <button class="btn warning" onclick="importFromJSON()">📤 Import JSON</button>
                 <button class="btn danger" onclick="clearCurrentWeek()">🗑️ Vider Semaine Courante</button>
+                <button class="btn warning" onclick="openArchivesModal()" style="margin-left: 10px;">📦 Archives</button>
             </div>
         </div>
 
@@ -2672,7 +2674,10 @@ function handleEmployeeAuthSubmit(e) {
                 }
                 
                 // Lignes des employés
-                globalState.employees.forEach(employee => {
+                // Lignes des employés (sauf archivés)
+globalState.employees.forEach(employee => {
+    // Ne pas afficher les employés archivés
+    if (employee.archived) return;
                     // Cellule employé
                     const empCell = document.createElement('div');
                     empCell.className = 'employee-cell';
@@ -3109,23 +3114,97 @@ function handleEmployeeAuthSubmit(e) {
         }
 
         function removeEmployee(employeeId) {
-            try {
-                const employee = globalState.employees.find(emp => emp.id === employeeId);
-                if (!employee) return;
-                
-                if (confirm(`Supprimer ${employee.name} ?`)) {
-                    saveStateForUndo(); // ← AJOUT POUR L'ANNULATION
-                    
-                    globalState.employees = globalState.employees.filter(emp => emp.id !== employeeId);
-                    renderPlanning();
-                    updateSummary();
-                    saveData();
-                    showToast('Employé supprimé', 'success');
-                }
-            } catch (error) {
-                console.error('Erreur remove employee:', error);
-            }
+    try {
+        const employee = globalState.employees.find(emp => emp.id === employeeId);
+        if (!employee) return;
+        
+        // Créer un dialogue personnalisé
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.style.display = 'block';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 450px;">
+                <h2 style="margin-bottom: 20px; color: #374151;">Retirer ${employee.name} du planning ?</h2>
+                <p style="margin-bottom: 20px; color: #6b7280; line-height: 1.6;">
+                    Choisissez une action :
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <button class="btn admin" onclick="archiveEmployee('${employeeId}')" style="padding: 15px; font-size: 15px;">
+                        📦 Archiver (recommandé)
+                        <div style="font-size: 12px; opacity: 0.8; margin-top: 5px; font-weight: normal;">
+                            Conserve tout l'historique, masque du planning actuel
+                        </div>
+                    </button>
+                    <button class="btn danger" onclick="confirmDeleteEmployee('${employeeId}')" style="padding: 15px; font-size: 15px;">
+                        🗑️ Supprimer définitivement
+                        <div style="font-size: 12px; opacity: 0.8; margin-top: 5px; font-weight: normal;">
+                            Efface tout l'historique de manière irréversible
+                        </div>
+                    </button>
+                    <button class="btn" onclick="closeModal()" style="padding: 12px;">
+                        Annuler
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+        
+    } catch (error) {
+        console.error('Erreur remove employee:', error);
+    }
+}
+
+function archiveEmployee(employeeId) {
+    try {
+        const employee = globalState.employees.find(emp => emp.id === employeeId);
+        if (!employee) return;
+        
+        saveStateForUndo();
+        
+        employee.archived = true;
+        employee.archivedDate = new Date().toISOString();
+        
+        closeModal();
+        renderPlanning();
+        updateSummary();
+        saveData();
+        
+        showToast(`${employee.name} archivé (historique conservé)`, 'success');
+        
+    } catch (error) {
+        console.error('Erreur archive employee:', error);
+        showToast('Erreur lors de l\'archivage', 'error');
+    }
+}
+
+function confirmDeleteEmployee(employeeId) {
+    try {
+        const employee = globalState.employees.find(emp => emp.id === employeeId);
+        if (!employee) return;
+        
+        if (confirm(`⚠️ CONFIRMER LA SUPPRESSION DÉFINITIVE ?\n\n${employee.name} et tout son historique seront perdus.\n\nCette action est IRRÉVERSIBLE.`)) {
+            saveStateForUndo();
+            
+            globalState.employees = globalState.employees.filter(emp => emp.id !== employeeId);
+            
+            closeModal();
+            renderPlanning();
+            updateSummary();
+            saveData();
+            
+            showToast('Employé supprimé définitivement', 'success');
         }
+        
+    } catch (error) {
+        console.error('Erreur delete employee:', error);
+        showToast('Erreur lors de la suppression', 'error');
+    }
+}
 
         function updateSummary() {
             try {
@@ -3755,7 +3834,131 @@ function handleEmployeeAuthSubmit(e) {
         // ================================
 // GESTION DES SEMAINES TYPES
 // ================================
+// ================================
+// GESTION DES ARCHIVES
+// ================================
 
+function openArchivesModal() {
+    try {
+        const modal = document.getElementById('archivesModal');
+        const archivesList = document.getElementById('archivesList');
+        
+        if (!modal || !archivesList) return;
+        
+        archivesList.innerHTML = '';
+        
+        const archivedEmployees = globalState.employees.filter(emp => emp.archived);
+        
+        if (archivedEmployees.length === 0) {
+            archivesList.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #6b7280;">
+                    <p style="font-size: 18px; margin-bottom: 10px;">Aucun employé archivé</p>
+                    <p style="font-size: 14px;">Les employés archivés apparaîtront ici.</p>
+                </div>
+            `;
+        } else {
+            archivedEmployees.forEach(employee => {
+                const archivedDate = new Date(employee.archivedDate).toLocaleDateString('fr-FR', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+                
+                // Calculer le nombre de semaines dans l'historique
+                let weekCount = 0;
+                if (employee.planning) {
+                    weekCount = Object.keys(employee.planning).length;
+                }
+                
+                const archiveCard = document.createElement('div');
+                archiveCard.style.cssText = `
+                    background: linear-gradient(135deg, rgba(107, 114, 128, 0.1), rgba(75, 85, 99, 0.05));
+                    padding: 20px;
+                    border-radius: 12px;
+                    border: 1px solid rgba(107, 114, 128, 0.2);
+                `;
+                
+                archiveCard.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <div>
+                            <h4 style="color: #374151; font-size: 18px; margin-bottom: 5px;">${employee.name}</h4>
+                            <p style="color: #6b7280; font-size: 14px;">${employee.role}</p>
+                            <p style="color: #6b7280; font-size: 12px; margin-top: 5px;">Archivé le ${archivedDate}</p>
+                            <p style="color: #8b5cf6; font-size: 12px; font-weight: 600; margin-top: 5px;">📊 ${weekCount} semaine(s) d'historique</p>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn admin" onclick="restoreEmployee('${employee.id}')" style="padding: 8px 16px; font-size: 13px;">
+                                ↩️ Restaurer
+                            </button>
+                            <button class="btn danger" onclick="deleteArchivedEmployee('${employee.id}')" style="padding: 8px 16px; font-size: 13px;">
+                                🗑️ Supprimer
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                archivesList.appendChild(archiveCard);
+            });
+        }
+        
+        modal.style.display = 'block';
+        
+    } catch (error) {
+        console.error('Erreur open archives modal:', error);
+        showToast('Erreur d\'ouverture des archives', 'error');
+    }
+}
+
+function restoreEmployee(employeeId) {
+    try {
+        const employee = globalState.employees.find(emp => emp.id === employeeId);
+        if (!employee) return;
+        
+        if (confirm(`Restaurer ${employee.name} dans le planning actif ?`)) {
+            saveStateForUndo();
+            
+            delete employee.archived;
+            delete employee.archivedDate;
+            
+            closeModal();
+            renderPlanning();
+            updateSummary();
+            saveData();
+            
+            showToast(`${employee.name} restauré dans le planning`, 'success');
+        }
+        
+    } catch (error) {
+        console.error('Erreur restore employee:', error);
+        showToast('Erreur lors de la restauration', 'error');
+    }
+}
+
+function deleteArchivedEmployee(employeeId) {
+    try {
+        const employee = globalState.employees.find(emp => emp.id === employeeId);
+        if (!employee) return;
+        
+        if (confirm(`⚠️ Supprimer définitivement ${employee.name} ?\n\nTout l'historique (${Object.keys(employee.planning || {}).length} semaines) sera perdu.`)) {
+            saveStateForUndo();
+            
+            globalState.employees = globalState.employees.filter(emp => emp.id !== employeeId);
+            
+            // Rafraîchir le modal des archives
+            openArchivesModal();
+            
+            saveData();
+            showToast(`${employee.name} supprimé définitivement`, 'success');
+        }
+        
+    } catch (error) {
+        console.error('Erreur delete archived employee:', error);
+        showToast('Erreur lors de la suppression', 'error');
+    }
+}
+
+// Stubs pour les fonctions non implémentées
+function saveWeekTemplate() { showToast('Fonctionnalité en développement', 'error'); }
 function saveWeekTemplate() {
     try {
         const templateName = prompt('Nom de la semaine type (ex: Semaine Normale, Vacances été...) :');
@@ -4213,8 +4416,20 @@ function deleteWeekTemplate() {
 🔑 Mot de passe admin: 123123
         `);
     </script>
+    <!-- Modal pour les employés archivés -->
+<div id="archivesModal" class="modal">
+    <div class="modal-content" style="max-width: 700px; max-height: 80vh; overflow-y: auto;">
+        <h2>📦 Employés Archivés</h2>
+        <p style="color: #6b7280; margin-bottom: 20px; font-size: 14px;">
+            Les employés archivés sont masqués du planning mais leur historique est conservé.
+        </p>
+        <div id="archivesList" style="display: flex; flex-direction: column; gap: 15px;">
+            <!-- Les archives seront générées ici -->
+        </div>
+        <div class="form-actions" style="margin-top: 20px;">
+            <button type="button" class="btn" onclick="closeModal()">Fermer</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
-
-
-
