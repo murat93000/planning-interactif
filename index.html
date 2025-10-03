@@ -3208,7 +3208,8 @@ function confirmDeleteEmployee(employeeId) {
 
         function updateSummary() {
             try {
-                const empCount = globalState.employees?.length || 0;
+                // Compter seulement les employés actifs (non archivés)
+const empCount = globalState.employees?.filter(emp => !emp.archived).length || 0;
                 let totalShifts = 0;
                 let totalHours = 0;
                 
@@ -3958,7 +3959,7 @@ function deleteArchivedEmployee(employeeId) {
 }
 
 // Stubs pour les fonctions non implémentées
-function saveWeekTemplate() { showToast('Fonctionnalité en développement', 'error'); }
+
 function saveWeekTemplate() {
     try {
         const templateName = prompt('Nom de la semaine type (ex: Semaine Normale, Vacances été...) :');
@@ -4433,4 +4434,5 @@ function deleteWeekTemplate() {
 </div>
 </body>
 </html>
+
 
