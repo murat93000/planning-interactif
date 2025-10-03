@@ -1597,28 +1597,24 @@ let isEmployeeAuthenticated = false;
 
         // État global avec validation
         let globalState = {
-            employees: [],
-            currentWeek: new Date(),
-            isAdminMode: false,
-            draggedItem: null,
-            customTemplates: [],
-            timeSlots: [
-                { id: 'journeeA', name: 'Journée A', start: '09:00', end: '18:30' },
-                { id: 'journeeB', name: 'Journée B', start: '10:30', end: '19:30' },
-                { id: 'journeeC', name: 'Journée C', start: '07:00', end: '15:00' },
-                { id: 'matin', name: 'Matin', start: '08:00', end: '12:00' },
-                { id: 'apremidi', name: 'Après-midi', start: '13:00', end: '17:00' }
-            ],
-            weekTemplates: [],
-            copiedShift: null,
-            copiedWeek: null
-        };
+    employees: [],
+    currentWeek: new Date(),
+    // ... tout le contenu
+    copiedWeek: null
+};
 
-        // Initialisation sécurisée
-        document.addEventListener('DOMContentLoaded', function() {
-            try {
-                // Initialiser Firebase en premier
-                initFirebase();
+// ================================
+// FONCTION HELPER POUR EMPLOYÉS ACTIFS
+// ================================
+function getActiveEmployees() {
+    return globalState.employees.filter(emp => !emp.archived);
+}
+
+// Initialisation sécurisée
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        // Initialiser Firebase en premier
+        initFirebase();
                 
                 // Puis initialiser l'application
                 initializeApp();
@@ -2078,21 +2074,23 @@ function handleEmployeeAuthSubmit(e) {
         function openBulkFillModal() {
             try {
                 // Peupler la liste des employés
-                const employeeSelect = document.getElementById('bulkEmployeeSelect');
-                if (employeeSelect) {
-                    // Garder les options par défaut et ajouter les employés
-                    const defaultOptions = employeeSelect.innerHTML;
-                    employeeSelect.innerHTML = defaultOptions;
-                    
-                    if (Array.isArray(globalState.employees)) {
-                        globalState.employees.forEach(employee => {
-                            const option = document.createElement('option');
-                            option.value = employee.id;
-                            option.textContent = `${employee.name} (${employee.role})`;
-                            employeeSelect.appendChild(option);
-                        });
-                    }
-                }
+                // Peupler la liste des employés
+const employeeSelect = document.getElementById('bulkEmployeeSelect');
+if (employeeSelect) {
+    // Garder les options par défaut et ajouter les employés
+    const defaultOptions = employeeSelect.innerHTML;
+    employeeSelect.innerHTML = defaultOptions;
+    
+    const activeEmployees = getActiveEmployees();
+    if (activeEmployees.length > 0) {
+        activeEmployees.forEach(employee => {
+            const option = document.createElement('option');
+            option.value = employee.id;
+            option.textContent = `${employee.name} (${employee.role})`;
+            employeeSelect.appendChild(option);
+        });
+    }
+}
                 
                 // Peupler les types de cases
                 const caseTypeSelect = document.getElementById('bulkCaseType');
@@ -3207,27 +3205,27 @@ function confirmDeleteEmployee(employeeId) {
 }
 
         function updateSummary() {
-            try {
-                // Compter seulement les employés actifs (non archivés)
-const empCount = globalState.employees?.filter(emp => !emp.archived).length || 0;
-                let totalShifts = 0;
-                let totalHours = 0;
-                
-                const weekKey = getWeekKey();
-                if (Array.isArray(globalState.employees)) {
-                    globalState.employees.forEach(employee => {
-                        if (employee.planning && employee.planning[weekKey]) {
-                            Object.values(employee.planning[weekKey]).forEach(dayShifts => {
-                                totalShifts += dayShifts.length;
-                                dayShifts.forEach(shift => {
-                                    if (shift.type === 'work' && shift.hours) {
-                                        const hours = parseHours(shift.hours);
-                                        totalHours += hours;
-                                    }
-                                });
-                            });
+    try {
+        // Compter seulement les employés actifs (non archivés)
+        const empCount = globalState.employees?.filter(emp => !emp.archived).length || 0;
+        let totalShifts = 0;
+        let totalHours = 0;
+        
+        const weekKey = getWeekKey();
+        const activeEmployees = getActiveEmployees();
+        activeEmployees.forEach(employee => {
+            if (employee.planning && employee.planning[weekKey]) {
+                Object.values(employee.planning[weekKey]).forEach(dayShifts => {
+                    totalShifts += dayShifts.length;
+                    dayShifts.forEach(shift => {
+                        if (shift.type === 'work' && shift.hours) {
+                            const hours = parseHours(shift.hours);
+                            totalHours += hours;
                         }
                     });
+                });
+            }
+        });
                 }
                 
                 const occupationRate = empCount > 0 ? Math.round((totalShifts / (empCount * 7)) * 100) : 0;
@@ -3246,22 +3244,23 @@ const empCount = globalState.employees?.filter(emp => !emp.archived).length || 0
         }
 
         function updateEmployeeRecap() {
-            try {
-                const container = document.getElementById('employeeRecap');
-                if (!container || !globalState.isAdminMode) return;
-                
-                container.innerHTML = '';
-                
-                const weekKey = getWeekKey();
-                
-                if (Array.isArray(globalState.employees)) {
-                    globalState.employees.forEach(employee => {
-                        let workHours = 0;
-                        let workDays = 0;
-                        let absences = 0;
-                        let conges = 0;
-                        let repos = 0;
-                        let cours = 0;
+    try {
+        const container = document.getElementById('employeeRecap');
+        if (!container || !globalState.isAdminMode) return;
+        
+        container.innerHTML = '';
+        
+        const weekKey = getWeekKey();
+        
+        const activeEmployees = getActiveEmployees();
+        if (activeEmployees.length > 0) {
+            activeEmployees.forEach(employee => {
+                let workHours = 0;
+                let workDays = 0;
+                let absences = 0;
+                let conges = 0;
+                let repos = 0;
+                let cours = 0;
                         
                         if (employee.planning && employee.planning[weekKey]) {
                             Object.values(employee.planning[weekKey]).forEach(dayShifts => {
@@ -4434,5 +4433,6 @@ function deleteWeekTemplate() {
 </div>
 </body>
 </html>
+
 
 
