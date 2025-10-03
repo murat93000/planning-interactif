@@ -3265,15 +3265,35 @@ function handleEmployeeAuthSubmit(e) {
         }
 
         function updateWeekTemplateSelect() {
-            try {
-                const select = document.getElementById('weekTemplateSelect');
-                if (!select) return;
-                
-                select.innerHTML = '<option value="">Sélectionner une semaine type...</option>';
-            } catch (error) {
-                console.error('Erreur update week template select:', error);
-            }
+    try {
+        const select = document.getElementById('weekTemplateSelect');
+        if (!select) return;
+        
+        select.innerHTML = '<option value="">Sélectionner une semaine type...</option>';
+        
+        if (!Array.isArray(globalState.weekTemplates)) {
+            globalState.weekTemplates = [];
+            return;
         }
+        
+        globalState.weekTemplates.forEach(template => {
+            const option = document.createElement('option');
+            option.value = template.id;
+            
+            const date = new Date(template.createdAt).toLocaleDateString('fr-FR', { 
+                day: 'numeric', 
+                month: 'short', 
+                year: 'numeric' 
+            });
+            
+            option.textContent = `${template.name} (créé le ${date})`;
+            select.appendChild(option);
+        });
+        
+    } catch (error) {
+        console.error('Erreur update week template select:', error);
+    }
+}
 
         // Système de sauvegarde amélioré
         function saveData() {
@@ -3734,10 +3754,182 @@ function handleEmployeeAuthSubmit(e) {
             }
         }
 
-        // Stubs pour les fonctions non implémentées
-        function saveWeekTemplate() { showToast('Fonctionnalité en développement', 'error'); }
-        function applyWeekTemplate() { showToast('Fonctionnalité en développement', 'error'); }
-        function deleteWeekTemplate() { showToast('Fonctionnalité en développement', 'error'); }
+        // ================================
+// GESTION DES SEMAINES TYPES
+// ================================
+
+function saveWeekTemplate() {
+    try {
+        const templateName = prompt('Nom de la semaine type (ex: Semaine Normale, Vacances été...) :');
+        
+        if (!templateName || !templateName.trim()) {
+            showToast('Nom requis', 'error');
+            return;
+        }
+        
+        // Vérifier qu'il y a des données à sauvegarder
+        const weekKey = getWeekKey();
+        let hasData = false;
+        
+        if (Array.isArray(globalState.employees)) {
+            globalState.employees.forEach(employee => {
+                if (employee.planning && employee.planning[weekKey]) {
+                    hasData = true;
+                }
+            });
+        }
+        
+        if (!hasData) {
+            showToast('Aucun planning cette semaine à sauvegarder', 'error');
+            return;
+        }
+        
+        // Vérifier si le nom existe déjà
+        if (!Array.isArray(globalState.weekTemplates)) {
+            globalState.weekTemplates = [];
+        }
+        
+        const existingIndex = globalState.weekTemplates.findIndex(t => t.name === templateName.trim());
+        
+        if (existingIndex !== -1) {
+            if (!confirm(`Une semaine type "${templateName}" existe déjà. Voulez-vous la remplacer ?`)) {
+                return;
+            }
+            // Supprimer l'ancienne
+            globalState.weekTemplates.splice(existingIndex, 1);
+        }
+        
+        // Sauvegarder la semaine courante
+        const weekTemplate = {
+            id: generateId(),
+            name: templateName.trim(),
+            data: {},
+            createdAt: new Date().toISOString()
+        };
+        
+        // Copier les plannings de tous les employés
+        globalState.employees.forEach(employee => {
+            if (employee.planning && employee.planning[weekKey]) {
+                weekTemplate.data[employee.id] = {
+                    employeeName: employee.name,
+                    employeeRole: employee.role,
+                    planning: JSON.parse(JSON.stringify(employee.planning[weekKey]))
+                };
+            }
+        });
+        
+        globalState.weekTemplates.push(weekTemplate);
+        updateWeekTemplateSelect();
+        saveData();
+        
+        showToast(`Semaine type "${templateName}" sauvegardée`, 'success');
+        
+    } catch (error) {
+        console.error('Erreur save week template:', error);
+        showToast('Erreur lors de la sauvegarde', 'error');
+    }
+}
+
+function applyWeekTemplate() {
+    try {
+        const select = document.getElementById('weekTemplateSelect');
+        const selectedId = select.value;
+        
+        if (!selectedId) {
+            showToast('Sélectionnez une semaine type', 'error');
+            return;
+        }
+        
+        const template = globalState.weekTemplates.find(t => t.id === selectedId);
+        if (!template) {
+            showToast('Semaine type introuvable', 'error');
+            return;
+        }
+        
+        if (!confirm(`Appliquer la semaine type "${template.name}" ?\n\n⚠️ Cela remplacera le planning de la semaine courante.`)) {
+            return;
+        }
+        
+        saveStateForUndo(); // Pour pouvoir annuler
+        
+        const weekKey = getWeekKey();
+        let appliedCount = 0;
+        
+        // Vider la semaine courante
+        globalState.employees.forEach(emp => {
+            if (emp.planning && emp.planning[weekKey]) {
+                delete emp.planning[weekKey];
+            }
+        });
+        
+        // Appliquer le template
+        Object.keys(template.data).forEach(templateEmployeeId => {
+            const templateData = template.data[templateEmployeeId];
+            
+            // Chercher l'employé correspondant (par nom, car les IDs peuvent avoir changé)
+            const currentEmployee = globalState.employees.find(emp => 
+                emp.name === templateData.employeeName
+            );
+            
+            if (currentEmployee) {
+                if (!currentEmployee.planning) currentEmployee.planning = {};
+                
+                // Copier le planning en générant de nouveaux IDs
+                currentEmployee.planning[weekKey] = {};
+                Object.keys(templateData.planning).forEach(day => {
+                    currentEmployee.planning[weekKey][day] = templateData.planning[day].map(shift => ({
+                        ...shift,
+                        id: generateId() // Nouveau ID pour chaque shift
+                    }));
+                });
+                
+                appliedCount++;
+            }
+        });
+        
+        renderPlanning();
+        updateSummary();
+        saveData();
+        
+        showToast(`Semaine type "${template.name}" appliquée à ${appliedCount} employé(s)`, 'success');
+        
+    } catch (error) {
+        console.error('Erreur apply week template:', error);
+        showToast('Erreur lors de l\'application', 'error');
+    }
+}
+
+function deleteWeekTemplate() {
+    try {
+        const select = document.getElementById('weekTemplateSelect');
+        const selectedId = select.value;
+        
+        if (!selectedId) {
+            showToast('Sélectionnez une semaine type', 'error');
+            return;
+        }
+        
+        const template = globalState.weekTemplates.find(t => t.id === selectedId);
+        if (!template) {
+            showToast('Semaine type introuvable', 'error');
+            return;
+        }
+        
+        if (!confirm(`Supprimer la semaine type "${template.name}" ?\n\nCette action est irréversible.`)) {
+            return;
+        }
+        
+        globalState.weekTemplates = globalState.weekTemplates.filter(t => t.id !== selectedId);
+        updateWeekTemplateSelect();
+        saveData();
+        
+        showToast(`Semaine type "${template.name}" supprimée`, 'success');
+        
+    } catch (error) {
+        console.error('Erreur delete week template:', error);
+        showToast('Erreur lors de la suppression', 'error');
+    }
+}
 
         // ================================
         // NOUVELLES FONCTIONS POUR ÉDITION ET DÉPLACEMENT
@@ -4025,3 +4217,4 @@ function handleEmployeeAuthSubmit(e) {
     </script>
 </body>
 </html>
+
