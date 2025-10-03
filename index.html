@@ -1,9 +1,11 @@
+****blink****
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planning Hebdomadaire - Version Cloud</title>
+    <title>Planning BLINK - Version Cloud</title>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -874,8 +876,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📅 Planning Hebdomadaire Cloud</h1>
-            <p>Système de gestion d'équipe avec synchronisation cloud Firebase</p>
+            <h1>📅 Planning BLINK Cloud</h1>
+            <p>Système de gestion d'équipe boutique BLINK avec synchronisation cloud Firebase</p>
             <div id="connectionStatus" style="margin-top: 10px; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600;">
                 <span id="statusText">🔄 Connexion en cours...</span>
                 <span id="userInfo" style="margin-left: 10px;"></span>
@@ -1133,7 +1135,7 @@
             </form>
         </div>
     </div>
-    <!-- Modal pour authentification employé -->
+<!-- Modal pour authentification employé -->
     <div id="employeeAuthModal" class="modal">
         <div class="modal-content">
             <h2>🔒 Accès Planning</h2>
@@ -1151,7 +1153,6 @@
             </form>
         </div>
     </div>
-
     <script>
         // ================================
         // CONFIGURATION FIREBASE
@@ -1209,6 +1210,13 @@
                 return false;
             }
         }
+        function logoutEmployee() {
+    if (confirm('Voulez-vous vraiment vous déconnecter ?')) {
+        sessionStorage.removeItem('employeeAuth');
+        isEmployeeAuthenticated = false;
+        location.reload(); // Recharger la page
+    }
+}
 
         function updateConnectionStatus(status, message) {
             const statusDiv = document.getElementById('connectionStatus');
@@ -1251,13 +1259,6 @@
                 authBtn.className = 'btn';
             }
         }
-        function logoutEmployee() {
-    if (confirm('Voulez-vous vraiment vous déconnecter ?')) {
-        sessionStorage.removeItem('employeeAuth');
-        isEmployeeAuthenticated = false;
-        location.reload(); // Recharger la page
-    }
-}
 
         // ================================
         // FONCTIONS D'AUTHENTIFICATION
@@ -1380,6 +1381,7 @@
                     customTemplates: cleanCustomTemplates,
                     timeSlots: cleanTimeSlots,
                     weekTemplates: globalState.weekTemplates || [],
+                    currentWeek: globalState.currentWeek.toISOString(),
                     lastSave: new Date().toISOString(),
                     version: '3.1',
                     userId: currentUser ? currentUser.uid : 'shared'
@@ -1463,9 +1465,24 @@
                             renderTimeSlots();
                             console.log('⏰ Créneaux chargés:', globalState.timeSlots.length);
                         }
+                        if (cloudData.currentWeek) {
+    globalState.currentWeek = new Date(cloudData.currentWeek);
+    updateWeekDisplay();
+}
 
                         renderPlanning();
                         updateSummary();
+                        
+                        // ✅ SAUVEGARDER LOCALEMENT après sync cloud
+                        localStorage.setItem('planning_data', JSON.stringify({
+                            employees: globalState.employees,
+                            customTemplates: globalState.customTemplates,
+                            timeSlots: globalState.timeSlots,
+                            weekTemplates: globalState.weekTemplates,
+                            lastSave: cloudData.lastSave,
+                            version: cloudData.version
+                        }));
+                        
                         showToast('📡 Données synchronisées depuis le cloud', 'success');
                     } else {
                         console.log('❌ Aucune donnée cloud trouvée dans "main"');
@@ -1624,15 +1641,22 @@ let isEmployeeAuthenticated = false;
     // Vérifier l'authentification employé d'abord
     checkEmployeeAuthentication();
     
-    // Charger les données (local d'abord, puis cloud si connecté)
-    loadData();
-    
-    // Activer l'auto-sauvegarde cloud si possible
-    setTimeout(() => {
-        if (isFirebaseEnabled && currentUser) {
-            enableAutoSaveCloud();
-        }
-    }, 2000);
+    // ⚠️ ATTENDRE Firebase avant de charger les données
+    if (isFirebaseEnabled) {
+        console.log('⏳ Attente de Firebase Auth...');
+        // Attendre que Firebase soit prêt
+        setTimeout(() => {
+            loadData(); // Chargera depuis Cloud si connecté
+            
+            // Activer l'auto-sauvegarde
+            if (currentUser) {
+                enableAutoSaveCloud();
+            }
+        }, 1500);
+    } else {
+        // Mode local uniquement
+        loadData();
+    }
             
             showToast('Planning initialisé avec succès', 'success');
         }
@@ -1682,7 +1706,7 @@ if (employeeAuthForm) {
                 console.error('Erreur setup événements:', error);
             }
         }
-        function checkEmployeeAuthentication() {
+function checkEmployeeAuthentication() {
     // Vérifier si déjà authentifié (sessionStorage)
     const isAuth = sessionStorage.getItem('employeeAuth');
     
@@ -1767,7 +1791,6 @@ function handleEmployeeAuthSubmit(e) {
         showToast('Erreur de connexion', 'error');
     }
 }
-
         function handleKeyboardShortcuts(e) {
             try {
                 if (e.ctrlKey || e.metaKey) {
@@ -3316,20 +3339,28 @@ function handleEmployeeAuthSubmit(e) {
         }
 
         function loadData() {
-            try {
-                let loadedData = null;
-                
-                // Charger depuis localStorage
-                try {
-                    const localData = localStorage.getItem('planning_data');
-                    if (localData) {
-                        loadedData = JSON.parse(localData);
-                    }
-                } catch (e) {
-                    console.warn('localStorage non disponible');
-                }
-                
-                if (loadedData) {
+    try {
+        // 🔥 PRIORITÉ AU CLOUD : Attendre Firebase d'abord
+        if (isFirebaseEnabled && currentUser) {
+            console.log('⏳ Chargement depuis Firebase prioritaire...');
+            loadFromCloud();
+            return; // Ne pas charger le localStorage si Firebase est dispo
+        }
+        
+        // Sinon, fallback sur localStorage
+        let loadedData = null;
+        
+        try {
+            const localData = localStorage.getItem('planning_data');
+            if (localData) {
+                loadedData = JSON.parse(localData);
+                console.log('📁 Chargement depuis localStorage (mode hors ligne)');
+            }
+        } catch (e) {
+            console.warn('localStorage non disponible');
+        }
+        
+        if (loadedData) {
                     // Valider et appliquer les données
                     if (Array.isArray(loadedData.employees)) {
                         globalState.employees = loadedData.employees;
