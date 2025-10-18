@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -3412,18 +3413,11 @@ function confirmDeleteEmployee(employeeId) {
 
         // Système de sauvegarde amélioré
         function saveData() {
-    console.log('🔵 saveData() appelée');
-    console.log('🔍 isFirebaseEnabled:', isFirebaseEnabled);
-    console.log('🔍 currentUser:', currentUser);
-    
     // Sauvegarde IMMÉDIATE sur Cloud Firebase
     if (isFirebaseEnabled && currentUser) {
-        console.log('✅ Conditions OK - Appel saveToCloudSilent()');
-        saveToCloudSilent();
+        saveToCloudSilent(); // Sauvegarde immédiate (sans délai)
     } else {
         console.warn('⚠️ Firebase non disponible - Modifications non sauvegardées');
-        console.log('isFirebaseEnabled:', isFirebaseEnabled);
-        console.log('currentUser:', currentUser);
     }
 }
     
@@ -3431,54 +3425,49 @@ function confirmDeleteEmployee(employeeId) {
         
 
         function saveToCloudSilent() {
-    console.log('🟢 saveToCloudSilent() DÉMARRÉ');
-    console.log('🔍 db:', db);
-    
-    if (!isFirebaseEnabled || !currentUser || !db) {
-        console.log('❌ Conditions non remplies:');
-        console.log('  - isFirebaseEnabled:', isFirebaseEnabled);
-        console.log('  - currentUser:', currentUser);
-        console.log('  - db:', db);
-        return;
-    }
+    if (!isFirebaseEnabled || !currentUser || !db) return;
 
     try {
-        console.log('🚀 Début de la sauvegarde...');
-        
-        // ... reste du code
-```
+        // 🧹 NETTOYAGE : Supprimer les valeurs undefined
+        const cleanData = (obj) => {
+            if (Array.isArray(obj)) {
+                return obj.map(item => cleanData(item)).filter(item => item !== undefined);
+            }
+            if (obj && typeof obj === 'object') {
+                const cleaned = {};
+                Object.keys(obj).forEach(key => {
+                    const value = cleanData(obj[key]);
+                    if (value !== undefined) {
+                        cleaned[key] = value;
+                    }
+                });
+                return cleaned;
+            }
+            return obj;
+        };
 
----
+        const dataToSave = {
+            employees: cleanData(globalState.employees || []),
+            customTemplates: cleanData(globalState.customTemplates || []),
+            timeSlots: cleanData(globalState.timeSlots || []),
+            weekTemplates: cleanData(globalState.weekTemplates || []),
+            lastSave: new Date().toISOString(),
+            version: '3.1',
+            userId: currentUser.uid
+        };
 
-## 🧪 TEST
-
-1. **Sauvegardez** (Ctrl+S)
-2. **Rechargez la page** (F5)
-3. **Ouvrez la Console** (F12)
-4. **Faites UNE modification** (ex: ajoutez un créneau)
-5. **Regardez ce qui s'affiche dans la console**
-
----
-
-## 📊 RÉSULTATS POSSIBLES
-
-### ✅ Si vous voyez :
-```
-🔵 saveData() appelée
-🔍 isFirebaseEnabled: false
-```
-→ Firebase n'est pas initialisé correctement
-
-### ✅ Si vous voyez :
-```
-🔵 saveData() appelée
-🔍 currentUser: null
-```
-→ L'utilisateur n'est pas connecté
-
-### ✅ Si vous ne voyez RIEN :
-```
-(console vide)
+        db.collection('plannings').doc(currentUser.uid).set(dataToSave)
+            .then(() => {
+                console.log('✅ Auto-sauvegarde cloud réussie');
+            })
+            .catch((error) => {
+                console.error('❌ Erreur auto-sauvegarde cloud:', error);
+            });
+            
+    } catch (error) {
+        console.error('❌ Erreur auto-sauvegarde:', error);
+    }
+}
 
         function loadData() {
     try {
@@ -4469,7 +4458,6 @@ function deleteWeekTemplate() {
 </div>
 </body>
 </html>
-
 
 
 
