@@ -1533,9 +1533,9 @@
                 }));
                 
                 showToast('📡 Données synchronisées depuis le cloud', 'success');
-                
-                // ✨ AFFICHER L'INFO CLOUD
-                updateCloudInfo(cloudData.lastSave);
+
+// ✨ AFFICHER L'INFO CLOUD
+// updateCloudInfo(cloudData.lastSave);  // ← J'AI AJOUTÉ // DEVANT
                 
             } else {
                 console.log('❌ Aucune donnée cloud trouvée dans "main"');
@@ -1628,11 +1628,12 @@ function updateCloudInfo(lastSaveDate) {
                             // Sauvegarder localement
                             saveDataLocal();
                             
-                            showToast('✅ Données cloud rechargées avec succès', 'success');
-                            
-                            // ✨ AFFICHER L'INFO CLOUD
-                            if (cloudData.lastSave) {
-                                updateCloudInfo(cloudData.lastSave);
+                           showToast('✅ Données cloud rechargées avec succès', 'success');
+
+// ✨ AFFICHER L'INFO CLOUD
+// if (cloudData.lastSave) {
+//     updateCloudInfo(cloudData.lastSave);
+// }
                             }
                             
                         } else {
@@ -4532,6 +4533,7 @@ function deleteWeekTemplate() {
 </div>
 </body>
 </html>
+
 
 
 
