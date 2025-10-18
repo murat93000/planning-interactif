@@ -870,44 +870,6 @@
             0%, 100% { opacity: 0.8; }
             50% { opacity: 1; }
         }
-        .cloud-info {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-            padding: 12px 20px;
-            border-radius: 12px;
-            text-align: center;
-            margin-bottom: 20px;
-            font-size: 14px;
-            font-weight: 600;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-            display: none; /* Caché par défaut */
-        }
-
-        .cloud-info.show {
-            display: block;
-            animation: slideDown 0.5s ease;
-        }
-
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .cloud-info .icon {
-            font-size: 18px;
-            margin-right: 8px;
-        }
-
-        .cloud-info .date {
-            font-weight: 700;
-            margin-left: 5px;
-        }
     </style>
 </head>
 <body>
@@ -998,17 +960,11 @@
             </div>
         </div>
 
-                <div class="week-nav">
-    <button class="btn" onclick="changeWeek(-1)">⬅️ Semaine précédente</button>
-    <div class="current-week" id="weekDisplay">Semaine courante</div>
-    <button class="btn" onclick="changeWeek(1)">Semaine suivante ➡️</button>
-</div>
-
-<!-- ✨ COLLEZ CE BLOC ICI ✨ -->
-
-
-<div class="planning-grid">
-    <div class="grid" id="planningGrid">
+        <div class="week-nav">
+            <button class="btn" onclick="changeWeek(-1)">⬅️ Semaine précédente</button>
+            <div class="current-week" id="weekDisplay">Semaine courante</div>
+            <button class="btn" onclick="changeWeek(1)">Semaine suivante ➡️</button>
+        </div>
 
         <div class="planning-grid">
             <div class="grid" id="planningGrid">
@@ -1481,74 +1437,65 @@
         }
 
         function loadFromCloud() {
-    if (!isFirebaseEnabled || !db) {
-        return;
-    }
-
-    // Charger depuis le document partagé "main"
-    db.collection('plannings').doc('main').get()
-        .then((doc) => {
-            if (doc.exists) {
-                const cloudData = doc.data();
-                console.log('📡 Données cloud trouvées (main):', cloudData);
-
-                // Merger avec les données locales ou utiliser les données cloud
-                if (cloudData.employees && Array.isArray(cloudData.employees)) {
-                    globalState.employees = cloudData.employees;
-                    console.log('👥 Employés chargés:', globalState.employees.length);
-                }
-
-                if (cloudData.customTemplates && Array.isArray(cloudData.customTemplates)) {
-                    globalState.customTemplates = cloudData.customTemplates;
-                    loadCustomTemplates();
-                    console.log('🎨 Templates chargés:', globalState.customTemplates.length);
-                }
-
-                if (cloudData.timeSlots && Array.isArray(cloudData.timeSlots)) {
-                    globalState.timeSlots = cloudData.timeSlots;
-                    renderTimeSlots();
-                    console.log('⏰ Créneaux chargés:', globalState.timeSlots.length);
-                }
-                
-                if (cloudData.currentWeek) {
-                    globalState.currentWeek = new Date(cloudData.currentWeek);
-                    updateWeekDisplay();
-                }
-
-                renderPlanning();
-                updateSummary();
-                
-                // ✅ SAUVEGARDER LOCALEMENT après sync cloud
-                localStorage.setItem('planning_data', JSON.stringify({
-                    employees: globalState.employees,
-                    customTemplates: globalState.customTemplates,
-                    timeSlots: globalState.timeSlots,
-                    weekTemplates: globalState.weekTemplates,
-                    lastSave: cloudData.lastSave,
-                    version: cloudData.version
-                }));
-                
-                showToast('📡 Données synchronisées depuis le cloud', 'success');
-
-  // ← J'AI AJOUTÉ // DEVANT
-                
-            } else {
-                console.log('❌ Aucune donnée cloud trouvée dans "main"');
-                // Charger les données locales si disponibles
-                loadData();
+            if (!isFirebaseEnabled || !db) {
+                return;
             }
-        })
-        .catch((error) => {
-            console.error('❌ Erreur chargement cloud:', error);
-            showToast('Erreur chargement cloud, utilisation des données locales', 'error');
-            loadData();
-        });
+
+            // Charger depuis le document partagé "main"
+            db.collection('plannings').doc('main').get()
+                .then((doc) => {
+                    if (doc.exists) {
+                        const cloudData = doc.data();
+                        console.log('📡 Données cloud trouvées (main):', cloudData);
+
+                        // Merger avec les données locales ou utiliser les données cloud
+                        if (cloudData.employees && Array.isArray(cloudData.employees)) {
+                            globalState.employees = cloudData.employees;
+                            console.log('👥 Employés chargés:', globalState.employees.length);
+                        }
+
+                        if (cloudData.customTemplates && Array.isArray(cloudData.customTemplates)) {
+                            globalState.customTemplates = cloudData.customTemplates;
+                            loadCustomTemplates();
+                            console.log('🎨 Templates chargés:', globalState.customTemplates.length);
+                        }
+
+                        if (cloudData.timeSlots && Array.isArray(cloudData.timeSlots)) {
+                            globalState.timeSlots = cloudData.timeSlots;
+                            renderTimeSlots();
+                            console.log('⏰ Créneaux chargés:', globalState.timeSlots.length);
+                        }
+                        if (cloudData.currentWeek) {
+    globalState.currentWeek = new Date(cloudData.currentWeek);
+    updateWeekDisplay();
 }
 
-// ✨ FONCTION UPDATECLOUDINFO SÉPARÉE
-
-
-       
+                        renderPlanning();
+                        updateSummary();
+                        
+                        // ✅ SAUVEGARDER LOCALEMENT après sync cloud
+                        localStorage.setItem('planning_data', JSON.stringify({
+                            employees: globalState.employees,
+                            customTemplates: globalState.customTemplates,
+                            timeSlots: globalState.timeSlots,
+                            weekTemplates: globalState.weekTemplates,
+                            lastSave: cloudData.lastSave,
+                            version: cloudData.version
+                        }));
+                        
+                        showToast('📡 Données synchronisées depuis le cloud', 'success');
+                    } else {
+                        console.log('❌ Aucune donnée cloud trouvée dans "main"');
+                        // Charger les données locales si disponibles
+                        loadData();
+                    }
+                })
+                .catch((error) => {
+                    console.error('❌ Erreur chargement cloud:', error);
+                    showToast('Erreur chargement cloud, utilisation des données locales', 'error');
+                    loadData();
+                });
+        }
 
         function forceLoadFromCloud() {
             if (!isFirebaseEnabled || !db) {
@@ -1588,11 +1535,7 @@
                             // Sauvegarder localement
                             saveDataLocal();
                             
-                           showToast('✅ Données cloud rechargées avec succès', 'success');
-
-
-                            }
-                            
+                            showToast('✅ Données cloud rechargées avec succès', 'success');
                         } else {
                             showToast('❌ Aucune donnée cloud trouvée', 'error');
                         }
@@ -4490,12 +4433,6 @@ function deleteWeekTemplate() {
 </div>
 </body>
 </html>
-
-
-
-
-
-
 
 
 
