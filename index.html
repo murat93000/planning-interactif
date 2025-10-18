@@ -1588,67 +1588,7 @@ function updateCloudInfo(lastSaveDate) {
     }
 }
 
-        function forceLoadFromCloud() {
-
-            // Charger depuis le document partagé "main"
-            db.collection('plannings').doc('main').get()
-                .then((doc) => {
-                    if (doc.exists) {
-                        const cloudData = doc.data();
-                        console.log('📡 Données cloud trouvées (main):', cloudData);
-
-                        // Merger avec les données locales ou utiliser les données cloud
-                        if (cloudData.employees && Array.isArray(cloudData.employees)) {
-                            globalState.employees = cloudData.employees;
-                            console.log('👥 Employés chargés:', globalState.employees.length);
-                        }
-
-                        if (cloudData.customTemplates && Array.isArray(cloudData.customTemplates)) {
-                            globalState.customTemplates = cloudData.customTemplates;
-                            loadCustomTemplates();
-                            console.log('🎨 Templates chargés:', globalState.customTemplates.length);
-                        }
-
-                        if (cloudData.timeSlots && Array.isArray(cloudData.timeSlots)) {
-                            globalState.timeSlots = cloudData.timeSlots;
-                            renderTimeSlots();
-                            console.log('⏰ Créneaux chargés:', globalState.timeSlots.length);
-                        }
-                        if (cloudData.currentWeek) {
-    globalState.currentWeek = new Date(cloudData.currentWeek);
-    updateWeekDisplay();
-}
-
-                        renderPlanning();
-                        updateSummary();
-                        
-                        // ✅ SAUVEGARDER LOCALEMENT après sync cloud
-                        localStorage.setItem('planning_data', JSON.stringify({
-                            employees: globalState.employees,
-                            customTemplates: globalState.customTemplates,
-                            timeSlots: globalState.timeSlots,
-                            weekTemplates: globalState.weekTemplates,
-                            lastSave: cloudData.lastSave,
-                            version: cloudData.version
-                        }));
-                        
-                        showToast('📡 Données synchronisées depuis le cloud', 'success');
-
-// ✨ AFFICHER L'INFO CLOUD
-updateCloudInfo(cloudData.lastSave);
-                        
-                    } else {
-                        console.log('❌ Aucune donnée cloud trouvée dans "main"');
-                        // Charger les données locales si disponibles
-                        loadData();
-                    }
-                })
-                .catch((error) => {
-                    console.error('❌ Erreur chargement cloud:', error);
-                    showToast('Erreur chargement cloud, utilisation des données locales', 'error');
-                    loadData();
-                });
-        }
+       
 
         function forceLoadFromCloud() {
             if (!isFirebaseEnabled || !db) {
@@ -4592,6 +4532,7 @@ function deleteWeekTemplate() {
 </div>
 </body>
 </html>
+
 
 
 
