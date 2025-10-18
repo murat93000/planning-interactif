@@ -3412,13 +3412,11 @@ function confirmDeleteEmployee(employeeId) {
 
         // Système de sauvegarde amélioré
         function saveData() {
-    // Sauvegarde UNIQUEMENT sur Cloud Firebase
+    // Sauvegarde IMMÉDIATE sur Cloud Firebase
     if (isFirebaseEnabled && currentUser) {
-        setTimeout(() => {
-            saveToCloudSilent(); // Version silencieuse pour l'auto-save
-        }, 1000);
+        saveToCloudSilent(); // Sauvegarde immédiate (sans délai)
     } else {
-        console.warn('⚠️ Sauvegarde locale désactivée - Firebase requis');
+        console.warn('⚠️ Firebase non disponible - Modifications non sauvegardées');
     }
 }
     
@@ -4437,6 +4435,7 @@ function deleteWeekTemplate() {
 </div>
 </body>
 </html>
+
 
 
 
