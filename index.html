@@ -1005,11 +1005,7 @@
 </div>
 
 <!-- ✨ COLLEZ CE BLOC ICI ✨ -->
-<div class="cloud-info" id="cloudInfo">
-    <span class="icon">☁️</span>
-    <span id="cloudInfoText">Planning chargé depuis le cloud</span>
-</div>
-<!-- ✨ FIN DU NOUVEAU BLOC ✨ -->
+
 
 <div class="planning-grid">
     <div class="grid" id="planningGrid">
@@ -1534,8 +1530,7 @@
                 
                 showToast('📡 Données synchronisées depuis le cloud', 'success');
 
-// ✨ AFFICHER L'INFO CLOUD
-// updateCloudInfo(cloudData.lastSave);  // ← J'AI AJOUTÉ // DEVANT
+  // ← J'AI AJOUTÉ // DEVANT
                 
             } else {
                 console.log('❌ Aucune donnée cloud trouvée dans "main"');
@@ -1551,42 +1546,7 @@
 }
 
 // ✨ FONCTION UPDATECLOUDINFO SÉPARÉE
-function updateCloudInfo(lastSaveDate) {
-    try {
-        const cloudInfo = document.getElementById('cloudInfo');
-        const cloudInfoText = document.getElementById('cloudInfoText');
-        
-        if (!cloudInfo || !cloudInfoText) return;
-        
-        if (lastSaveDate) {
-            const date = new Date(lastSaveDate);
-            const formattedDate = date.toLocaleDateString('fr-FR', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric'
-            });
-            const formattedTime = date.toLocaleTimeString('fr-FR', {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            
-            cloudInfoText.innerHTML = `
-                <span class="icon">☁️</span>
-                Planning téléchargé du cloud - Sauvegarde du 
-                <span class="date">${formattedDate} à ${formattedTime}</span>
-            `;
-            
-            cloudInfo.classList.add('show');
-            
-            // Masquer automatiquement après 10 secondes
-            setTimeout(() => {
-                cloudInfo.classList.remove('show');
-            }, 10000);
-        }
-    } catch (error) {
-        console.error('Erreur update cloud info:', error);
-    }
-}
+
 
        
 
@@ -1630,10 +1590,7 @@ function updateCloudInfo(lastSaveDate) {
                             
                            showToast('✅ Données cloud rechargées avec succès', 'success');
 
-// ✨ AFFICHER L'INFO CLOUD
-// if (cloudData.lastSave) {
-//     updateCloudInfo(cloudData.lastSave);
-// }
+
                             }
                             
                         } else {
@@ -4533,6 +4490,7 @@ function deleteWeekTemplate() {
 </div>
 </body>
 </html>
+
 
 
 
