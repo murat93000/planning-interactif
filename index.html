@@ -3858,6 +3858,47 @@ function confirmDeleteEmployee(employeeId) {
                 console.error('Erreur show toast:', error);
             }
         }
+        // Notification de synchronisation cloud
+function showCloudSyncInfo(lastSaveDate) {
+    try {
+        // Créer la notification si elle n'existe pas
+        let cloudInfo = document.getElementById('cloudSyncInfo');
+        
+        if (!cloudInfo) {
+            cloudInfo = document.createElement('div');
+            cloudInfo.id = 'cloudSyncInfo';
+            cloudInfo.className = 'cloud-sync-info';
+            document.body.appendChild(cloudInfo);
+        }
+        
+        if (lastSaveDate) {
+            const date = new Date(lastSaveDate);
+            const formattedDate = date.toLocaleDateString('fr-FR', {
+                day: 'numeric',
+                month: 'short'
+            });
+            const formattedTime = date.toLocaleTimeString('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            cloudInfo.innerHTML = `
+                <span class="icon">☁️</span>
+                Dernière synchro: ${formattedDate} à ${formattedTime}
+            `;
+            
+            // Afficher
+            cloudInfo.classList.add('show');
+            
+            // Masquer après 5 secondes
+            setTimeout(() => {
+                cloudInfo.classList.remove('show');
+            }, 5000);
+        }
+    } catch (error) {
+        console.error('Erreur affichage info cloud:', error);
+    }
+}
 
         // ================================
 // GESTION DES SEMAINES TYPES
@@ -4461,6 +4502,7 @@ function deleteWeekTemplate() {
 </div>
 </body>
 </html>
+
 
 
 
