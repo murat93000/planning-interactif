@@ -1563,7 +1563,12 @@
                             // Sauvegarder localement
                             saveDataLocal();
                             
-                            showToast('✅ Données cloud rechargées avec succès', 'success');
+                            sshowToast('✅ Données cloud rechargées avec succès', 'success');
+
+// Afficher l'info de synchronisation
+if (cloudData.lastSave) {
+    showCloudSyncInfo(cloudData.lastSave);
+}
                         } else {
                             showToast('❌ Aucune donnée cloud trouvée', 'error');
                         }
@@ -4502,6 +4507,7 @@ function deleteWeekTemplate() {
 </div>
 </body>
 </html>
+
 
 
 
