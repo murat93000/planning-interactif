@@ -1512,6 +1512,11 @@
                         }));
                         
                         showToast('📡 Données synchronisées depuis le cloud', 'success');
+
+// Afficher l'info de synchronisation
+if (cloudData.lastSave) {
+    showCloudSyncInfo(cloudData.lastSave);
+}
                     } else {
                         console.log('❌ Aucune donnée cloud trouvée dans "main"');
                         // Charger les données locales si disponibles
@@ -4507,6 +4512,7 @@ function deleteWeekTemplate() {
 </div>
 </body>
 </html>
+
 
 
 
