@@ -1437,7 +1437,7 @@
                         showToast(`Erreur Firebase: ${error.message}`, 'error');
                         
                         // 🔄 FALLBACK : Sauvegarde locale en cas d'erreur
-                        saveDataLocal();
+                        
                     });
                     
             } catch (error) {
@@ -1457,7 +1457,7 @@
                 
                 // 🔄 FALLBACK : Tentative de sauvegarde locale
                 try {
-                    saveDataLocal();
+                    
                 } catch (fallbackError) {
                     showToast('Erreur sauvegarde locale également', 'error');
                 }
@@ -1566,7 +1566,7 @@ if (cloudData.lastSave) {
                             updateSummary();
                             
                             // Sauvegarder localement
-                            saveDataLocal();
+                            
                             
                             showToast('✅ Données cloud rechargées avec succès', 'success');
 
@@ -3412,43 +3412,18 @@ function confirmDeleteEmployee(employeeId) {
 
         // Système de sauvegarde amélioré
         function saveData() {
-            saveDataLocal();
-            
-            // Auto-sauvegarde cloud si connecté (mais sans message répétitif)
-            if (isFirebaseEnabled && currentUser) {
-                setTimeout(() => {
-                    saveToCloudSilent(); // Version silencieuse pour l'auto-save
-                }, 1000);
-            }
-        }
+    // Sauvegarde UNIQUEMENT sur Cloud Firebase
+    if (isFirebaseEnabled && currentUser) {
+        setTimeout(() => {
+            saveToCloudSilent(); // Version silencieuse pour l'auto-save
+        }, 1000);
+    } else {
+        console.warn('⚠️ Sauvegarde locale désactivée - Firebase requis');
+    }
+}
+    
 
-        function saveDataLocal() {
-            try {
-                const dataToSave = {
-                    employees: globalState.employees || [],
-                    customTemplates: globalState.customTemplates || [],
-                    timeSlots: globalState.timeSlots || [],
-                    weekTemplates: globalState.weekTemplates || [],
-                    lastSave: new Date().toISOString(),
-                    version: '3.0'
-                };
-                
-                const dataString = JSON.stringify(dataToSave);
-                
-                // Sauvegarde localStorage
-                try {
-                    localStorage.setItem('planning_data', dataString);
-                    showToast('💾 Sauvegardé localement', 'success');
-                } catch (e) {
-                    console.warn('localStorage non disponible');
-                    showToast('Erreur sauvegarde locale', 'error');
-                }
-                
-            } catch (error) {
-                console.error('Erreur sauvegarde:', error);
-                showToast('Erreur de sauvegarde', 'error');
-            }
-        }
+        
 
         function saveToCloudSilent() {
             if (!isFirebaseEnabled || !currentUser || !db) return;
@@ -3475,73 +3450,23 @@ function confirmDeleteEmployee(employeeId) {
 
         function loadData() {
     try {
-        // 🔥 PRIORITÉ AU CLOUD : Attendre Firebase d'abord
+        // 🔥 CHARGEMENT UNIQUEMENT DEPUIS CLOUD
         if (isFirebaseEnabled && currentUser) {
-            console.log('⏳ Chargement depuis Firebase prioritaire...');
+            console.log('⏳ Chargement depuis Firebase...');
             loadFromCloud();
-            return; // Ne pas charger le localStorage si Firebase est dispo
+            return;
         }
         
-        // Sinon, fallback sur localStorage
-        let loadedData = null;
+        // Si pas de Firebase, afficher un avertissement
+        console.warn('⚠️ Firebase non disponible - Impossible de charger les données');
+        showToast('⚠️ Connexion Firebase requise', 'error');
+        createDefaultData();
         
-        try {
-            const localData = localStorage.getItem('planning_data');
-            if (localData) {
-                loadedData = JSON.parse(localData);
-                console.log('📁 Chargement depuis localStorage (mode hors ligne)');
-            }
-        } catch (e) {
-            console.warn('localStorage non disponible');
-        }
-        
-        if (loadedData) {
-                    // Valider et appliquer les données
-                    if (Array.isArray(loadedData.employees)) {
-                        globalState.employees = loadedData.employees;
-                    }
-                    
-                    if (Array.isArray(loadedData.customTemplates)) {
-                        globalState.customTemplates = loadedData.customTemplates;
-                        
-                        loadedData.customTemplates.forEach(template => {
-                            const customTemplate = document.createElement('div');
-                            customTemplate.className = 'template custom';
-                            customTemplate.draggable = true;
-                            customTemplate.dataset.type = 'custom';
-                            customTemplate.style.background = template.color ? 
-                                `linear-gradient(135deg, ${template.color}, ${adjustColor(template.color, -20)})` :
-                                'linear-gradient(135deg, #8b5cf6, #7c3aed)';
-                            customTemplate.innerHTML = `⚙️ ${template.text}`;
-                            
-                            customTemplate.addEventListener('dragstart', handleDragStart);
-                            customTemplate.addEventListener('dragend', handleDragEnd);
-                            
-                            document.getElementById('templatesContainer').appendChild(customTemplate);
-                        });
-                    }
-                    
-                    if (Array.isArray(loadedData.timeSlots)) {
-                        globalState.timeSlots = loadedData.timeSlots;
-                        renderTimeSlots();
-                    }
-                    
-                    if (Array.isArray(loadedData.weekTemplates)) {
-                        globalState.weekTemplates = loadedData.weekTemplates;
-                        updateWeekTemplateSelect();
-                    }
-                    
-                    renderPlanning();
-                    updateSummary();
-                    showToast('Planning chargé', 'success');
-                } else {
-                    createDefaultData();
-                }
-            } catch (error) {
-                console.error('Erreur chargement:', error);
-                createDefaultData();
-            }
-        }
+    } catch (error) {
+        console.error('Erreur chargement:', error);
+        createDefaultData();
+    }
+}
 
         function createDefaultData() {
             try {
@@ -4512,6 +4437,7 @@ function deleteWeekTemplate() {
 </div>
 </body>
 </html>
+
 
 
 
