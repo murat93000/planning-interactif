@@ -1791,8 +1791,9 @@ function showPlanningContent() {
         container.style.display = 'block';
     }
     
+    // ✅ FORCER la mise à jour complète
     renderPlanning();
-    updateSummary();
+    updateSummary(); // ← Ceci appellera updateMonthlyRecap()
     showToast('Planning chargé avec succès', 'success');
 }
 
@@ -2664,15 +2665,15 @@ if (employeeSelect) {
         }
 
         function changeWeek(direction) {
-            try {
-                globalState.currentWeek.setDate(globalState.currentWeek.getDate() + (direction * 7));
-                updateWeekDisplay();
-                renderPlanning();
-                saveData();
-            } catch (error) {
-                console.error('Erreur change week:', error);
-            }
-        }
+    try {
+        globalState.currentWeek.setDate(globalState.currentWeek.getDate() + (direction * 7));
+        updateWeekDisplay();
+        renderPlanning();
+        updateSummary(); // ← Déjà présent, s'assurer qu'il est là
+    } catch (error) {
+        console.error('Erreur change week:', error);
+    }
+}
 
         function renderPlanning() {
             try {
@@ -3390,6 +3391,8 @@ function confirmDeleteEmployee(employeeId) {
 
 function updateMonthlyRecap() {
     try {
+        console.log('🔵 updateMonthlyRecap() appelée'); // ← AJOUTEZ CETTE LIGNE
+        console.log('🔍 isAdminMode:', globalState.isAdminMode); // ← AJOUTEZ CETTE LIGNE
         const container = document.getElementById('monthlyRecap');
         const monthNameDisplay = document.getElementById('currentMonthName');
         
@@ -4605,6 +4608,7 @@ function deleteWeekTemplate() {
 </div>
 </body>
 </html>
+
 
 
 
