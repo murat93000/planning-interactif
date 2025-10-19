@@ -1015,7 +1015,15 @@
                 <div class="value" id="occupationRate">0%</div>
             </div>
         </div>
-
+<!-- Récapitulatif MENSUEL -->
+<div class="monthly-recap admin-panel" style="margin-bottom: 30px;">
+    <h3 style="text-align: center; margin-bottom: 20px; color: #374151; font-size: 1.8em;">
+        📅 Récapitulatif Mensuel - <span id="currentMonthName">Janvier 2025</span>
+    </h3>
+    <div id="monthlyRecap" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+        <!-- Les cartes mensuelles seront générées ici -->
+    </div>
+</div>
         <!-- Récapitulatif détaillé par employé -->
         <div class="employee-recap admin-panel">
             <h3 style="text-align: center; margin-bottom: 20px; color: #374151; font-size: 1.8em;">📊 Récapitulatif Détaillé par Employé</h3>
@@ -3265,23 +3273,23 @@ function confirmDeleteEmployee(employeeId) {
                 });
             }
         });
-      
-                
-                const occupationRate = empCount > 0 ? Math.round((totalShifts / (empCount * 7)) * 100) : 0;
-                
-                document.getElementById('empCount').textContent = empCount;
-                document.getElementById('shiftCount').textContent = totalShifts;
-                document.getElementById('occupationRate').textContent = occupationRate + '%';
-                
-                updateEmployeeRecap();
-            } catch (error) {
-                console.error('Erreur update summary:', error);
-                document.getElementById('empCount').textContent = '0';
-                document.getElementById('shiftCount').textContent = '0';
-                document.getElementById('occupationRate').textContent = '0%';
-            }
-        }
-
+        
+        const occupationRate = empCount > 0 ? Math.round((totalShifts / (empCount * 7)) * 100) : 0;
+        
+        document.getElementById('empCount').textContent = empCount;
+        document.getElementById('shiftCount').textContent = totalShifts;
+        document.getElementById('occupationRate').textContent = occupationRate + '%';
+        
+        updateEmployeeRecap();
+        updateMonthlyRecap(); // ← LIGNE AJOUTÉE
+        
+    } catch (error) {
+        console.error('Erreur update summary:', error);
+        document.getElementById('empCount').textContent = '0';
+        document.getElementById('shiftCount').textContent = '0';
+        document.getElementById('occupationRate').textContent = '0%';
+    }
+}
         function updateEmployeeRecap() {
     try {
         const container = document.getElementById('employeeRecap');
@@ -3300,85 +3308,224 @@ function confirmDeleteEmployee(employeeId) {
                 let conges = 0;
                 let repos = 0;
                 let cours = 0;
-                        
-                        if (employee.planning && employee.planning[weekKey]) {
-                            Object.values(employee.planning[weekKey]).forEach(dayShifts => {
-                                let hasWork = false;
-                                dayShifts.forEach(shift => {
-                                    switch(shift.type) {
-                                        case 'work':
-                                            if (shift.hours) {
-                                                const hours = parseHours(shift.hours);
-                                                workHours += hours;
-                                                hasWork = true;
-                                            }
-                                            break;
-                                        case 'absent':
-                                            absences++;
-                                            break;
-                                        case 'conges':
-                                            conges++;
-                                            break;
-                                        case 'repos':
-                                            repos++;
-                                            break;
-                                        case 'cours':
-                                            cours++;
-                                            break;
+                
+                if (employee.planning && employee.planning[weekKey]) {
+                    Object.values(employee.planning[weekKey]).forEach(dayShifts => {
+                        let hasWork = false;
+                        dayShifts.forEach(shift => {
+                            switch(shift.type) {
+                                case 'work':
+                                    if (shift.hours) {
+                                        const hours = parseHours(shift.hours);
+                                        workHours += hours;
+                                        hasWork = true;
                                     }
-                                });
-                                if (hasWork) workDays++;
-                            });
-                        }
-                        
-                        const overtime = Math.max(0, workHours - 35);
-                        
-                        const recapCard = document.createElement('div');
-                        recapCard.style.cssText = `
-                            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
-                            padding: 20px;
-                            border-radius: 16px;
-                            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-                            border: 1px solid rgba(255, 255, 255, 0.3);
-                        `;
-                        
-                        recapCard.innerHTML = `
-                            <h4 style="color: #374151; margin-bottom: 15px; font-size: 1.2em; font-weight: 700;">${employee.name}</h4>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
-                                <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(102, 126, 234, 0.1); border-radius: 8px;">
-                                    <span style="font-weight: 600;">⏰ Heures travail:</span>
-                                    <span style="font-weight: 700; color: ${workHours > 35 ? '#ef4444' : '#10b981'};">${formatHours(workHours)}</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
-                                    <span style="font-weight: 600;">⚡ Heures sup:</span>
-                                    <span style="font-weight: 700; color: #ef4444;">${formatHours(overtime)}</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(107, 114, 128, 0.1); border-radius: 8px;">
-                                    <span style="font-weight: 600;">📅 Jours travail:</span>
-                                    <span style="font-weight: 700; color: #6b7280;">${workDays}</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(16, 185, 129, 0.1); border-radius: 8px;">
-                                    <span style="font-weight: 600;">🏖️ Congés:</span>
-                                    <span style="font-weight: 700; color: #10b981;">${conges}</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
-                                    <span style="font-weight: 600;">❌ Absences:</span>
-                                    <span style="font-weight: 700; color: #ef4444;">${absences}</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(245, 158, 11, 0.1); border-radius: 8px;">
-                                    <span style="font-weight: 600;">😴 Repos:</span>
-                                    <span style="font-weight: 700; color: #6b7280;">${repos}</span>
-                                </div>
-                            </div>
-                        `;
-                        
-                        container.appendChild(recapCard);
+                                    break;
+                                case 'absent':
+                                    absences++;
+                                    break;
+                                case 'conges':
+                                    conges++;
+                                    break;
+                                case 'repos':
+                                    repos++;
+                                    break;
+                                case 'cours':
+                                    cours++;
+                                    break;
+                            }
+                        });
+                        if (hasWork) workDays++;
                     });
                 }
-            } catch (error) {
-                console.error('Erreur update employee recap:', error);
-            }
+                
+                const overtime = Math.max(0, workHours - 35);
+                
+                const recapCard = document.createElement('div');
+                recapCard.style.cssText = `
+                    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
+                    padding: 20px;
+                    border-radius: 16px;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+                    border: 1px solid rgba(255, 255, 255, 0.3);
+                `;
+                
+                recapCard.innerHTML = `
+                    <h4 style="color: #374151; margin-bottom: 15px; font-size: 1.2em; font-weight: 700;">${employee.name}</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
+                        <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(102, 126, 234, 0.1); border-radius: 8px;">
+                            <span style="font-weight: 600;">⏰ Heures travail:</span>
+                            <span style="font-weight: 700; color: ${workHours > 35 ? '#ef4444' : '#10b981'};">${formatHours(workHours)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
+                            <span style="font-weight: 600;">⚡ Heures sup:</span>
+                            <span style="font-weight: 700; color: #ef4444;">${formatHours(overtime)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(107, 114, 128, 0.1); border-radius: 8px;">
+                            <span style="font-weight: 600;">📅 Jours travail:</span>
+                            <span style="font-weight: 700; color: #6b7280;">${workDays}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(16, 185, 129, 0.1); border-radius: 8px;">
+                            <span style="font-weight: 600;">🏖️ Congés:</span>
+                            <span style="font-weight: 700; color: #10b981;">${conges}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
+                            <span style="font-weight: 600;">❌ Absences:</span>
+                            <span style="font-weight: 700; color: #ef4444;">${absences}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(245, 158, 11, 0.1); border-radius: 8px;">
+                            <span style="font-weight: 600;">😴 Repos:</span>
+                            <span style="font-weight: 700; color: #6b7280;">${repos}</span>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(recapCard);
+            });
         }
+    } catch (error) {
+        console.error('Erreur update employee recap:', error);
+    }
+}
+
+function updateMonthlyRecap() {
+    try {
+        const container = document.getElementById('monthlyRecap');
+        const monthNameDisplay = document.getElementById('currentMonthName');
+        
+        if (!container || !globalState.isAdminMode) return;
+        
+        container.innerHTML = '';
+        
+        // Déterminer le mois de la semaine courante
+        const currentDate = new Date(globalState.currentWeek);
+        const monthName = currentDate.toLocaleDateString('fr-FR', { 
+            month: 'long', 
+            year: 'numeric' 
+        });
+        
+        if (monthNameDisplay) {
+            monthNameDisplay.textContent = monthName;
+        }
+        
+        // Calculer le début et la fin du mois
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        
+        // Pour chaque employé actif
+        const activeEmployees = getActiveEmployees();
+        
+        if (activeEmployees.length > 0) {
+            activeEmployees.forEach(employee => {
+                let totalWorkHours = 0;
+                let totalWorkDays = 0;
+                let totalAbsences = 0;
+                let totalConges = 0;
+                let totalRepos = 0;
+                let totalCours = 0;
+                
+                // Parcourir toutes les semaines du mois
+                let currentWeekDate = new Date(firstDay);
+                
+                while (currentWeekDate <= lastDay) {
+                    // Calculer la clé de la semaine
+                    const weekStart = new Date(currentWeekDate);
+                    weekStart.setDate(currentWeekDate.getDate() - currentWeekDate.getDay() + 1);
+                    
+                    const weekYear = weekStart.getFullYear();
+                    const firstDayOfYear = new Date(weekYear, 0, 1);
+                    const pastDays = (weekStart - firstDayOfYear) / 86400000;
+                    const weekNumber = Math.ceil((pastDays + firstDayOfYear.getDay() + 1) / 7);
+                    const weekKey = `${weekYear}-W${weekNumber}`;
+                    
+                    // Vérifier si l'employé a un planning pour cette semaine
+                    if (employee.planning && employee.planning[weekKey]) {
+                        Object.values(employee.planning[weekKey]).forEach(dayShifts => {
+                            let hasWork = false;
+                            
+                            dayShifts.forEach(shift => {
+                                switch(shift.type) {
+                                    case 'work':
+                                        if (shift.hours) {
+                                            const hours = parseHours(shift.hours);
+                                            totalWorkHours += hours;
+                                            hasWork = true;
+                                        }
+                                        break;
+                                    case 'absent':
+                                        totalAbsences++;
+                                        break;
+                                    case 'conges':
+                                        totalConges++;
+                                        break;
+                                    case 'repos':
+                                        totalRepos++;
+                                        break;
+                                    case 'cours':
+                                        totalCours++;
+                                        break;
+                                }
+                            });
+                            
+                            if (hasWork) totalWorkDays++;
+                        });
+                    }
+                    
+                    // Passer à la semaine suivante
+                    currentWeekDate.setDate(currentWeekDate.getDate() + 7);
+                }
+                
+                const overtime = Math.max(0, totalWorkHours - (totalWorkDays * 7));
+                
+                // Créer la carte mensuelle
+                const recapCard = document.createElement('div');
+                recapCard.style.cssText = `
+                    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05));
+                    padding: 20px;
+                    border-radius: 16px;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+                    border: 2px solid rgba(102, 126, 234, 0.2);
+                `;
+                
+                recapCard.innerHTML = `
+                    <h4 style="color: #667eea; margin-bottom: 15px; font-size: 1.3em; font-weight: 700; text-align: center;">${employee.name}</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
+                        <div style="display: flex; justify-content: space-between; padding: 10px; background: rgba(102, 126, 234, 0.15); border-radius: 8px;">
+                            <span style="font-weight: 600;">⏰ Heures totales:</span>
+                            <span style="font-weight: 700; color: ${totalWorkHours > 140 ? '#ef4444' : '#10b981'}; font-size: 16px;">${formatHours(totalWorkHours)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
+                            <span style="font-weight: 600;">⚡ Heures sup:</span>
+                            <span style="font-weight: 700; color: #ef4444; font-size: 16px;">${formatHours(overtime)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px; background: rgba(107, 114, 128, 0.1); border-radius: 8px;">
+                            <span style="font-weight: 600;">📅 Jours travaillés:</span>
+                            <span style="font-weight: 700; color: #6b7280; font-size: 16px;">${totalWorkDays}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 8px;">
+                            <span style="font-weight: 600;">🏖️ Congés:</span>
+                            <span style="font-weight: 700; color: #10b981; font-size: 16px;">${totalConges}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
+                            <span style="font-weight: 600;">❌ Absences:</span>
+                            <span style="font-weight: 700; color: #ef4444; font-size: 16px;">${totalAbsences}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px; background: rgba(245, 158, 11, 0.1); border-radius: 8px;">
+                            <span style="font-weight: 600;">📚 Cours:</span>
+                            <span style="font-weight: 700; color: #f59e0b; font-size: 16px;">${totalCours}</span>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(recapCard);
+            });
+        }
+    } catch (error) {
+        console.error('Erreur update monthly recap:', error);
+    }
+}
 
         function updateWeekTemplateSelect() {
     try {
@@ -4458,6 +4605,7 @@ function deleteWeekTemplate() {
 </div>
 </body>
 </html>
+
 
 
 
