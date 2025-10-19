@@ -3397,12 +3397,26 @@ function confirmDeleteEmployee(employeeId) {
 
 function updateMonthlyRecap() {
     try {
-        console.log('🔵 updateMonthlyRecap() appelée'); // ← AJOUTEZ CETTE LIGNE
-        console.log('🔍 isAdminMode:', globalState.isAdminMode); // ← AJOUTEZ CETTE LIGNE
+        console.log('🔵 updateMonthlyRecap() appelée');
+        console.log('🔍 isAdminMode:', globalState.isAdminMode);
+        
         const container = document.getElementById('monthlyRecap');
         const monthNameDisplay = document.getElementById('currentMonthName');
         
-        if (!container || !globalState.isAdminMode) return;
+        // ✅ VÉRIFIER SI LE CONTAINER EXISTE
+        if (!container) {
+            console.log('❌ Container monthlyRecap introuvable');
+            return;
+        }
+        
+        // ✅ VÉRIFIER SI ON EST EN MODE ADMIN
+        if (!globalState.isAdminMode) {
+            console.log('❌ Mode admin désactivé');
+            container.innerHTML = ''; // Vider si pas en mode admin
+            return;
+        }
+        
+        console.log('✅ Mode admin activé, génération du récap...');
         
         container.innerHTML = '';
         
@@ -3425,6 +3439,8 @@ function updateMonthlyRecap() {
         
         // Pour chaque employé actif
         const activeEmployees = getActiveEmployees();
+        
+        console.log(`📊 ${activeEmployees.length} employés actifs trouvés`);
         
         if (activeEmployees.length > 0) {
             activeEmployees.forEach(employee => {
@@ -3530,12 +3546,32 @@ function updateMonthlyRecap() {
                 
                 container.appendChild(recapCard);
             });
+            
+            console.log('✅ Cartes mensuelles générées avec succès');
         }
     } catch (error) {
-        console.error('Erreur update monthly recap:', error);
+        console.error('❌ Erreur update monthly recap:', error);
+        console.error('📍 Stack:', error.stack);
     }
 }
+```
 
+---
+
+## 🧪 TESTEZ MAINTENANT
+
+1. **Remplacez toute la fonction** `updateMonthlyRecap()` par celle ci-dessus
+2. **Sauvegardez** (Ctrl+S)
+3. **Rechargez COMPLÈTEMENT** (Ctrl+Shift+R)
+4. **Mot de passe** : `2010`
+5. **Mode Admin** : `123123`
+6. **Regardez la console** (F12) pour voir les messages de debug
+
+Vous devriez voir :
+```
+✅ Mode admin activé, génération du récap...
+📊 8 employés actifs trouvés
+✅ Cartes mensuelles générées avec succès
         function updateWeekTemplateSelect() {
     try {
         const select = document.getElementById('weekTemplateSelect');
@@ -4614,6 +4650,7 @@ function deleteWeekTemplate() {
 </div>
 </body>
 </html>
+
 
 
 
