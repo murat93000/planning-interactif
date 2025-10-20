@@ -1765,7 +1765,25 @@ transform: translateX(0);
             showToast('Erreur de connexion', 'error');
         }
     }
+function logoutEmployee() {
+    if (confirm('Voulez-vous vraiment vous déconnecter ?')) {
+        sessionStorage.removeItem('employeeAuth');
+        isEmployeeAuthenticated = false;
+        location.reload();
+    }
+}
 
+function toggleAuth() {
+    if (!isFirebaseEnabled) {
+        showToast('Firebase non configuré', 'error');
+        return;
+    }
+    if (currentUser) {
+        signOut();
+    } else {
+        signInAnonymously();
+    }
+}
     function handleKeyboardShortcuts(e) {
         try {
             if (e.ctrlKey || e.metaKey) {
@@ -4433,12 +4451,11 @@ let totalHours = 0;
         }
     }  // <- Cette accolade ferme le try-catch
 
-    console.log('Planning Hebdomadaire Initialise avec succes!');
-    console.log('Mot de passe admin: 123123');
-    console.log('Mot de passe employe: 2010');
+    
 </script>
 </body>
 </html>
+
 
 
 
