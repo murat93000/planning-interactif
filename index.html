@@ -4435,19 +4435,13 @@ let totalHours = 0;
             console.error('Erreur delete archived employee:', error);
             showToast('Erreur lors de la suppression', 'error');
         }
-    }
+    }  // <- Cette accolade ferme le try-catch
 
-    console.log(`
-    🎉 Planning Hebdomadaire Initialisé avec succès!
-
-🔧 Commandes de dépannage disponibles:
-- resetPlanning() : Réinitialise tout
-- globalState : État actuel des données
-
-🔑 Mot de passe admin: 123123
-🔑 Mot de passe employé: 2010
-        `);
-    </script>
+    console.log('Planning Hebdomadaire Initialise avec succes!');
+    console.log('Mot de passe admin: 123123');
+    console.log('Mot de passe employe: 2010');
+</script>
 </body>
 </html>
+
 
