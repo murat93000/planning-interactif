@@ -1694,15 +1694,11 @@ transform: translateX(0);
     }
 
     function checkEmployeeAuthentication() {
-        const isAuth = sessionStorage.getItem('employeeAuth');
-        
-        if (isAuth === 'true') {
-            isEmployeeAuthenticated = true;
-            showPlanningContent();
-        } else {
-            showEmployeeAuthModal();
-        }
-    }
+    // Authentification désactivée - accès direct
+    isEmployeeAuthenticated = true;
+    sessionStorage.setItem('employeeAuth', 'true');
+    showPlanningContent();
+}
 
     function showEmployeeAuthModal() {
         hidePlanningContent();
@@ -4443,5 +4439,6 @@ let totalHours = 0;
 </script>
 </body>
 </html>
+
 
 
