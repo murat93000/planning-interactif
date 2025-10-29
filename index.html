@@ -3500,48 +3500,49 @@ let totalHours = 0;
     }
 
     function saveToCloudSilent() {
-        if (!isFirebaseEnabled || !currentUser || !db) return;
+    if (!isFirebaseEnabled || !currentUser || !db) return;
 
-        try {
-            const cleanData = (obj) => {
-                if (Array.isArray(obj)) {
-                    return obj.map(item => cleanData(item)).filter(item => item !== undefined);
-                }
-                if (obj && typeof obj === 'object') {
-                    const cleaned = {};
-                    Object.keys(obj).forEach(key => {
-                        const value = cleanData(obj[key]);
-                        if (value !== undefined) {
-                            cleaned[key] = value;
-                        }
-                    });
-                    return cleaned;
-                }
-                return obj;
-            };
-
-            const dataToSave = {
-                employees: cleanData(globalState.employees || []),
-                customTemplates: cleanData(globalState.customTemplates || []),
-                timeSlots: cleanData(globalState.timeSlots || []),
-                weekTemplates: cleanData(globalState.weekTemplates || []),
-                lastSave: new Date().toISOString(),
-                version: '3.1',
-                userId: currentUser.uid
-            };
-
-            db.collection('plannings').doc(currentUser.uid).set(dataToSave)
-                .then(() => {
-                    console.log('✅ Auto-sauvegarde cloud réussie');
-                })
-                .catch((error) => {
-                    console.error('❌ Erreur auto-sauvegarde cloud:', error);
+    try {
+        const cleanData = (obj) => {
+            if (Array.isArray(obj)) {
+                return obj.map(item => cleanData(item)).filter(item => item !== undefined);
+            }
+            if (obj && typeof obj === 'object') {
+                const cleaned = {};
+                Object.keys(obj).forEach(key => {
+                    const value = cleanData(obj[key]);
+                    if (value !== undefined) {
+                        cleaned[key] = value;
+                    }
                 });
-                
-        } catch (error) {
-            console.error('❌ Erreur auto-sauvegarde:', error);
-        }
+                return cleaned;
+            }
+            return obj;
+        };
+
+        const dataToSave = {
+            employees: cleanData(globalState.employees || []),
+            customTemplates: cleanData(globalState.customTemplates || []),
+            timeSlots: cleanData(globalState.timeSlots || []),
+            weekTemplates: cleanData(globalState.weekTemplates || []), // 🔥 CORRECTION : Ajouter weekTemplates
+            currentWeek: globalState.currentWeek.toISOString(), // 🔥 AJOUT : Sauvegarder la semaine courante
+            lastSave: new Date().toISOString(),
+            version: '3.1',
+            userId: currentUser.uid
+        };
+
+        db.collection('plannings').doc('main').set(dataToSave) // 🔥 CORRECTION : Utiliser 'main' au lieu de currentUser.uid
+            .then(() => {
+                console.log('✅ Auto-sauvegarde cloud réussie');
+            })
+            .catch((error) => {
+                console.error('❌ Erreur auto-sauvegarde cloud:', error);
+            });
+            
+    } catch (error) {
+        console.error('❌ Erreur auto-sauvegarde:', error);
     }
+}
 
     function loadData() {
         try {
@@ -4460,6 +4461,7 @@ let totalHours = 0;
 </script>
 </body>
 </html>
+
 
 
 
