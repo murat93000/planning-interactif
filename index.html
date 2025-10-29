@@ -1482,64 +1482,71 @@
 }
 
     function loadFromCloud() {
-        if (!isFirebaseEnabled || !db) return;
+    if (!isFirebaseEnabled || !db) return;
 
-        db.collection('plannings').doc('main').get()
-            .then((doc) => {
-                if (doc.exists) {
-                    const cloudData = doc.data();
-                    console.log('📡 Données cloud trouvées (main):', cloudData);
+    db.collection('plannings').doc('main').get()
+        .then((doc) => {
+            if (doc.exists) {
+                const cloudData = doc.data();
+                console.log('📡 Données cloud trouvées (main):', cloudData);
 
-                    if (cloudData.employees && Array.isArray(cloudData.employees)) {
-                        globalState.employees = cloudData.employees;
-                        console.log('👥 Employés chargés:', globalState.employees.length);
-                    }
-
-                    if (cloudData.customTemplates && Array.isArray(cloudData.customTemplates)) {
-                        globalState.customTemplates = cloudData.customTemplates;
-                        loadCustomTemplates();
-                        console.log('🎨 Templates chargés:', globalState.customTemplates.length);
-                    }
-
-                    if (cloudData.timeSlots && Array.isArray(cloudData.timeSlots)) {
-                        globalState.timeSlots = cloudData.timeSlots;
-                        renderTimeSlots();
-                        console.log('⏰ Créneaux chargés:', globalState.timeSlots.length);
-                    }
-
-                    if (cloudData.currentWeek) {
-                        globalState.currentWeek = new Date(cloudData.currentWeek);
-                        updateWeekDisplay();
-                    }
-
-                    renderPlanning();
-                    updateSummary();
-                    
-                    localStorage.setItem('planning_data', JSON.stringify({
-                        employees: globalState.employees,
-                        customTemplates: globalState.customTemplates,
-                        timeSlots: globalState.timeSlots,
-                        weekTemplates: globalState.weekTemplates,
-                        lastSave: cloudData.lastSave,
-                        version: cloudData.version
-                    }));
-                    
-                    showToast('📡 Données synchronisées depuis le cloud', 'success');
-
-                    if (cloudData.lastSave) {
-                        showCloudSyncInfo(cloudData.lastSave);
-                    }
-                } else {
-                    console.log('❌ Aucune donnée cloud trouvée dans "main"');
-                    loadData();
+                if (cloudData.employees && Array.isArray(cloudData.employees)) {
+                    globalState.employees = cloudData.employees;
+                    console.log('👥 Employés chargés:', globalState.employees.length);
                 }
-            })
-            .catch((error) => {
-                console.error('❌ Erreur chargement cloud:', error);
-                showToast('Erreur chargement cloud, utilisation des données locales', 'error');
+
+                if (cloudData.customTemplates && Array.isArray(cloudData.customTemplates)) {
+                    globalState.customTemplates = cloudData.customTemplates;
+                    loadCustomTemplates();
+                    console.log('🎨 Templates chargés:', globalState.customTemplates.length);
+                }
+
+                if (cloudData.timeSlots && Array.isArray(cloudData.timeSlots)) {
+                    globalState.timeSlots = cloudData.timeSlots;
+                    renderTimeSlots();
+                    console.log('⏰ Créneaux chargés:', globalState.timeSlots.length);
+                }
+
+                // 🔥 AJOUT : Charger les semaines types
+                if (cloudData.weekTemplates && Array.isArray(cloudData.weekTemplates)) {
+                    globalState.weekTemplates = cloudData.weekTemplates;
+                    updateWeekTemplateSelect();
+                    console.log('📋 Semaines types chargées:', globalState.weekTemplates.length);
+                }
+
+                if (cloudData.currentWeek) {
+                    globalState.currentWeek = new Date(cloudData.currentWeek);
+                    updateWeekDisplay();
+                }
+
+                renderPlanning();
+                updateSummary();
+                
+                localStorage.setItem('planning_data', JSON.stringify({
+                    employees: globalState.employees,
+                    customTemplates: globalState.customTemplates,
+                    timeSlots: globalState.timeSlots,
+                    weekTemplates: globalState.weekTemplates, // 🔥 AJOUT : Sauvegarder aussi en local
+                    lastSave: cloudData.lastSave,
+                    version: cloudData.version
+                }));
+                
+                showToast('📡 Données synchronisées depuis le cloud', 'success');
+
+                if (cloudData.lastSave) {
+                    showCloudSyncInfo(cloudData.lastSave);
+                }
+            } else {
+                console.log('❌ Aucune donnée cloud trouvée dans "main"');
                 loadData();
-            });
-    }
+            }
+        })
+        .catch((error) => {
+            console.error('❌ Erreur chargement cloud:', error);
+            showToast('Erreur chargement cloud, utilisation des données locales', 'error');
+            loadData();
+        });
+}
 
     function forceLoadFromCloud() {
         if (!isFirebaseEnabled || !db) {
@@ -4461,6 +4468,7 @@ let totalHours = 0;
 </script>
 </body>
 </html>
+
 
 
 
