@@ -3318,11 +3318,17 @@ Veux-tu que je te donne le code avec TOUT le JavaScript inclus d'un seul coup ?R
     }
 
     function checkEmployeeAuthentication() {
-        isEmployeeAuthenticated = true;
-        sessionStorage.setItem('employeeAuth', 'true');
-        showPlanningContent();
+    isEmployeeAuthenticated = true;
+    sessionStorage.setItem('employeeAuth', 'true');
+    showPlanningContent();
+    
+    // FORCER LE CHARGEMENT IMMÉDIAT
+    if (!isFirebaseEnabled || !currentUser) {
+        createDefaultData();
+        renderPlanning();
+        updateSummary();
     }
-
+}
     function showPlanningContent() {
         const container = document.querySelector('.container');
         if (container) {
@@ -5170,3 +5176,4 @@ Veux-tu que je te donne le code avec TOUT le JavaScript inclus d'un seul coup ?R
 </script>
 </body>
 </html>
+
