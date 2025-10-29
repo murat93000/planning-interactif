@@ -2590,128 +2590,133 @@ function toggleAuth() {
     }
 
     function renderPlanning() {
-        try {
-            const grid = document.getElementById('planningGrid');
-            if (!grid) return;
+    try {
+        const grid = document.getElementById('planningGrid');
+        if (!grid) return;
+        
+        grid.innerHTML = '';
+        
+        const cornerHeader = document.createElement('div');
+        cornerHeader.className = 'grid-header';
+        cornerHeader.textContent = '👤 Employés';
+        grid.appendChild(cornerHeader);
+        
+        const days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+        days.forEach((day, index) => {
+            const dayHeader = document.createElement('div');
+            dayHeader.className = 'grid-header';
+            const date = new Date(globalState.currentWeek);
+            date.setDate(date.getDate() + index);
+            dayHeader.innerHTML = `${day}<br><small>${date.getDate()}</small>`;
+            grid.appendChild(dayHeader);
+        });
+        
+        // 🔥 CORRECTION : Utiliser getActiveEmployees() au lieu de globalState.employees
+        const activeEmployees = getActiveEmployees();
+        
+        if (activeEmployees.length === 0) {
+            const emptyMessage = document.createElement('div');
+            emptyMessage.style.cssText = `
+                grid-column: 1 / -1;
+                text-align: center;
+                padding: 40px;
+                color: #6b7280;
+                background: rgba(255, 255, 255, 0.8);
+                border-radius: 12px;
+                margin: 10px;
+            `;
+            emptyMessage.innerHTML = `
+                <h3 style="margin-bottom: 10px;">Aucun employé actif</h3>
+                <p>Passez en mode administrateur pour commencer à créer votre planning</p>
+            `;
+            grid.appendChild(emptyMessage);
+            return;
+        }
+        
+        // 🔥 CORRECTION : Boucler sur activeEmployees au lieu de globalState.employees
+        activeEmployees.forEach(employee => {
+            // Plus besoin de if (employee.archived) return; 
+            // car activeEmployees ne contient déjà que les employés non archivés
             
-            grid.innerHTML = '';
+            const empCell = document.createElement('div');
+            empCell.className = 'employee-cell';
             
-            const cornerHeader = document.createElement('div');
-            cornerHeader.className = 'grid-header';
-            cornerHeader.textContent = '👤 Employés';
-            grid.appendChild(cornerHeader);
+            makeEmployeeDraggable(empCell, employee.id);
             
-            const days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
-            days.forEach((day, index) => {
-                const dayHeader = document.createElement('div');
-                dayHeader.className = 'grid-header';
-                const date = new Date(globalState.currentWeek);
-                date.setDate(date.getDate() + index);
-                dayHeader.innerHTML = `${day}<br><small>${date.getDate()}</small>`;
-                grid.appendChild(dayHeader);
-            });
+            let weekHours = 0;
+            let workDays = 0;
+            const weekKey = getWeekKey();
             
-            if (!Array.isArray(globalState.employees) || globalState.employees.length === 0) {
-                const emptyMessage = document.createElement('div');
-                emptyMessage.style.cssText = `
-                    grid-column: 1 / -1;
-                    text-align: center;
-                    padding: 40px;
-                    color: #6b7280;
-                    background: rgba(255, 255, 255, 0.8);
-                    border-radius: 12px;
-                    margin: 10px;
-                `;
-                emptyMessage.innerHTML = `
-                    <h3 style="margin-bottom: 10px;">Aucun employé ajouté</h3>
-                    <p>Passez en mode administrateur pour commencer à créer votre planning</p>
-                `;
-                grid.appendChild(emptyMessage);
-                return;
-            }
-            
-            globalState.employees.forEach(employee => {
-                if (employee.archived) return;
-                
-                const empCell = document.createElement('div');
-                empCell.className = 'employee-cell';
-                
-                makeEmployeeDraggable(empCell, employee.id);
-                
-                let weekHours = 0;
-                let workDays = 0;
-                const weekKey = getWeekKey();
-                
-                if (employee.planning && employee.planning[weekKey]) {
-                    Object.values(employee.planning[weekKey]).forEach(dayShifts => {
-                        let hasWork = false;
-                        dayShifts.forEach(shift => {
-                            if (shift.type === 'work' && shift.hours) {
-                                const hours = parseHours(shift.hours);
-                                weekHours += hours;
-                                hasWork = true;
-                            }
-                        });
-                        if (hasWork) workDays++;
-                    });
-                }
-                
-                empCell.innerHTML = `
-                    <div class="employee-name">
-                        ${globalState.isAdminMode ? '⬍⬍ ' : ''}${employee.name}
-                    </div>
-                    <div class="employee-role">${employee.role}</div>
-                    <div class="employee-hours">${formatHours(weekHours)} | ${workDays} jours</div>
-                    ${globalState.isAdminMode ? `
-                        <button class="remove-emp" onclick="removeEmployee('${employee.id}')" title="Supprimer">×</button>
-                        <button class="copy-week-btn" onclick="copyEmployeeWeek('${employee.id}')" title="Copier semaine">📋</button>
-                        <button class="paste-week-btn" onclick="pasteEmployeeWeek('${employee.id}')" title="Coller semaine" style="opacity: ${globalState.copiedWeek ? '1' : '0.3'};">📥</button>
-                    ` : ''}
-                `;
-                
-                if (globalState.isAdminMode) {
-                    empCell.addEventListener('contextmenu', (e) => {
-                        e.preventDefault();
-                        if (globalState.copiedWeek) {
-                            pasteEmployeeWeek(employee.id);
+            if (employee.planning && employee.planning[weekKey]) {
+                Object.values(employee.planning[weekKey]).forEach(dayShifts => {
+                    let hasWork = false;
+                    dayShifts.forEach(shift => {
+                        if (shift.type === 'work' && shift.hours) {
+                            const hours = parseHours(shift.hours);
+                            weekHours += hours;
+                            hasWork = true;
                         }
                     });
-                }
-                
-                grid.appendChild(empCell);
-                
-                for (let day = 0; day < 7; day++) {
-                    const dayCell = document.createElement('div');
-                    dayCell.className = 'day-cell';
-                    dayCell.dataset.employeeId = employee.id;
-                    dayCell.dataset.day = day;
-                    
-                    if (globalState.isAdminMode) {
-                        dayCell.addEventListener('dragover', handleDragOver);
-                        dayCell.addEventListener('dragleave', handleDragLeave);
-                        dayCell.addEventListener('drop', handleDrop);
-                    }
-                    
-                    const weekKey = getWeekKey();
-                    if (employee.planning && employee.planning[weekKey] && employee.planning[weekKey][day]) {
-                        employee.planning[weekKey][day].forEach(shift => {
-                            const shiftCard = createShiftCard(shift, employee.id, day);
-                            dayCell.appendChild(shiftCard);
-                        });
-                    }
-                    
-                    grid.appendChild(dayCell);
-                }
-            });
-            
-        } catch (error) {
-            console.error('Erreur render planning:', error);
-            const grid = document.getElementById('planningGrid');
-            if (grid) {
-                grid.innerHTML = '<div style="text-align: center; padding: 40px; color: #374151;"><h3>Erreur de chargement du planning</h3></div>';
+                    if (hasWork) workDays++;
+                });
             }
+            
+            empCell.innerHTML = `
+                <div class="employee-name">
+                    ${globalState.isAdminMode ? '⬍⬍ ' : ''}${employee.name}
+                </div>
+                <div class="employee-role">${employee.role}</div>
+                <div class="employee-hours">${formatHours(weekHours)} | ${workDays} jours</div>
+                ${globalState.isAdminMode ? `
+                    <button class="remove-emp" onclick="removeEmployee('${employee.id}')" title="Supprimer">×</button>
+                    <button class="copy-week-btn" onclick="copyEmployeeWeek('${employee.id}')" title="Copier semaine">📋</button>
+                    <button class="paste-week-btn" onclick="pasteEmployeeWeek('${employee.id}')" title="Coller semaine" style="opacity: ${globalState.copiedWeek ? '1' : '0.3'};">📥</button>
+                ` : ''}
+            `;
+            
+            if (globalState.isAdminMode) {
+                empCell.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    if (globalState.copiedWeek) {
+                        pasteEmployeeWeek(employee.id);
+                    }
+                });
+            }
+            
+            grid.appendChild(empCell);
+            
+            for (let day = 0; day < 7; day++) {
+                const dayCell = document.createElement('div');
+                dayCell.className = 'day-cell';
+                dayCell.dataset.employeeId = employee.id;
+                dayCell.dataset.day = day;
+                
+                if (globalState.isAdminMode) {
+                    dayCell.addEventListener('dragover', handleDragOver);
+                    dayCell.addEventListener('dragleave', handleDragLeave);
+                    dayCell.addEventListener('drop', handleDrop);
+                }
+                
+                const weekKey = getWeekKey();
+                if (employee.planning && employee.planning[weekKey] && employee.planning[weekKey][day]) {
+                    employee.planning[weekKey][day].forEach(shift => {
+                        const shiftCard = createShiftCard(shift, employee.id, day);
+                        dayCell.appendChild(shiftCard);
+                    });
+                }
+                
+                grid.appendChild(dayCell);
+            }
+        });
+        
+    } catch (error) {
+        console.error('Erreur render planning:', error);
+        const grid = document.getElementById('planningGrid');
+        if (grid) {
+            grid.innerHTML = '<div style="text-align: center; padding: 40px; color: #374151;"><h3>Erreur de chargement du planning</h3></div>';
         }
     }
+}
 
     function createShiftCard(shift, employeeId, day) {
         try {
@@ -4452,6 +4457,7 @@ let totalHours = 0;
 </script>
 </body>
 </html>
+
 
 
 
