@@ -1379,104 +1379,107 @@
     }
 
     function saveToCloud() {
-        if (!isFirebaseEnabled || !db) {
-            showToast('Firebase non disponible', 'error');
+    if (!isFirebaseEnabled || !db) {
+        showToast('Firebase non disponible', 'error');
+        return;
+    }
+
+    try {
+        console.log('🔍 Vérification globalState:', globalState);
+        
+        if (!globalState) {
+            showToast('❌ Données non initialisées', 'error');
             return;
         }
 
-        try {
-            console.log('🔍 Vérification globalState:', globalState);
-            
-            if (!globalState) {
-                showToast('❌ Données non initialisées', 'error');
-                return;
-            }
-
-            const cleanEmployees = (globalState.employees || []).map(emp => {
-                const cleanEmp = {
-                    id: emp.id,
-                    name: emp.name || '',
-                    role: emp.role || '',
-                    planning: {}
-                };
-                
-                if (emp.planning && typeof emp.planning === 'object') {
-                    Object.keys(emp.planning).forEach(weekKey => {
-                        if (emp.planning[weekKey] && typeof emp.planning[weekKey] === 'object') {
-                            cleanEmp.planning[weekKey] = {};
-                            Object.keys(emp.planning[weekKey]).forEach(day => {
-                                if (Array.isArray(emp.planning[weekKey][day])) {
-                                    cleanEmp.planning[weekKey][day] = emp.planning[weekKey][day].map(shift => ({
-                                        id: shift.id || generateId(),
-                                        type: shift.type || 'work',
-                                        text: shift.text || '',
-                                        hours: shift.hours || '',
-                                        backgroundColor: shift.backgroundColor || '',
-                                        slot: shift.slot ? {
-                                            id: shift.slot.id,
-                                            name: shift.slot.name,
-                                            start: shift.slot.start,
-                                            end: shift.slot.end
-                                        } : null
-                                    })).filter(shift => shift.id);
-                                }
-                            });
-                        }
-                    });
-                }
-                
-                return cleanEmp;
-            });
-
-            const cleanCustomTemplates = (globalState.customTemplates || []).map(template => ({
-                id: template.id || generateId(),
-                text: template.text || '',
-                color: template.color || '#8b5cf6'
-            })).filter(template => template.text);
-
-            const cleanTimeSlots = (globalState.timeSlots || []).map(slot => ({
-                id: slot.id || generateId(),
-                name: slot.name || '',
-                start: slot.start || '09:00',
-                end: slot.end || '18:00'
-            })).filter(slot => slot.name);
-
-            const dataToSave = {
-                employees: cleanEmployees,
-                customTemplates: cleanCustomTemplates,
-                timeSlots: cleanTimeSlots,
-                weekTemplates: globalState.weekTemplates || [],
-                currentWeek: globalState.currentWeek.toISOString(),
-                lastSave: new Date().toISOString(),
-                version: '3.1',
-                userId: currentUser ? currentUser.uid : 'shared'
+        const cleanEmployees = (globalState.employees || []).map(emp => {
+            const cleanEmp = {
+                id: emp.id,
+                name: emp.name || '',
+                role: emp.role || '',
+                planning: {},
+                // 🔥 AJOUT : Sauvegarder les propriétés d'archivage
+                archived: emp.archived || false,
+                archivedDate: emp.archivedDate || null
             };
-
-            const dataString = JSON.stringify(dataToSave);
-            const sizeKB = Math.round(dataString.length / 1024);
-            console.log(`📊 Taille des données: ${sizeKB} KB`);
             
-            if (sizeKB > 900) {
-                showToast(`⚠️ Données volumineuses (${sizeKB} KB). Sauvegarde risquée.`, 'error');
-            }
-
-            console.log('💾 Début sauvegarde Firebase...');
-            
-            db.collection('plannings').doc('main').set(dataToSave)
-                .then(() => {
-                    showToast(`☁️ Sauvegardé sur le cloud ! (${sizeKB} KB)`, 'success');
-                    console.log('✅ Sauvegarde cloud réussie');
-                })
-                .catch((error) => {
-                    console.error('❌ Erreur sauvegarde Firebase:', error);
-                    showToast(`Erreur Firebase: ${error.message}`, 'error');
+            if (emp.planning && typeof emp.planning === 'object') {
+                Object.keys(emp.planning).forEach(weekKey => {
+                    if (emp.planning[weekKey] && typeof emp.planning[weekKey] === 'object') {
+                        cleanEmp.planning[weekKey] = {};
+                        Object.keys(emp.planning[weekKey]).forEach(day => {
+                            if (Array.isArray(emp.planning[weekKey][day])) {
+                                cleanEmp.planning[weekKey][day] = emp.planning[weekKey][day].map(shift => ({
+                                    id: shift.id || generateId(),
+                                    type: shift.type || 'work',
+                                    text: shift.text || '',
+                                    hours: shift.hours || '',
+                                    backgroundColor: shift.backgroundColor || '',
+                                    slot: shift.slot ? {
+                                        id: shift.slot.id,
+                                        name: shift.slot.name,
+                                        start: shift.slot.start,
+                                        end: shift.slot.end
+                                    } : null
+                                })).filter(shift => shift.id);
+                            }
+                        });
+                    }
                 });
-                
-        } catch (error) {
-            console.error('❌ Erreur dans saveToCloud:', error);
-            showToast(`Erreur préparation: ${error.message}`, 'error');
+            }
+            
+            return cleanEmp;
+        });
+
+        const cleanCustomTemplates = (globalState.customTemplates || []).map(template => ({
+            id: template.id || generateId(),
+            text: template.text || '',
+            color: template.color || '#8b5cf6'
+        })).filter(template => template.text);
+
+        const cleanTimeSlots = (globalState.timeSlots || []).map(slot => ({
+            id: slot.id || generateId(),
+            name: slot.name || '',
+            start: slot.start || '09:00',
+            end: slot.end || '18:00'
+        })).filter(slot => slot.name);
+
+        const dataToSave = {
+            employees: cleanEmployees,
+            customTemplates: cleanCustomTemplates,
+            timeSlots: cleanTimeSlots,
+            weekTemplates: globalState.weekTemplates || [],
+            currentWeek: globalState.currentWeek.toISOString(),
+            lastSave: new Date().toISOString(),
+            version: '3.1',
+            userId: currentUser ? currentUser.uid : 'shared'
+        };
+
+        const dataString = JSON.stringify(dataToSave);
+        const sizeKB = Math.round(dataString.length / 1024);
+        console.log(`📊 Taille des données: ${sizeKB} KB`);
+        
+        if (sizeKB > 900) {
+            showToast(`⚠️ Données volumineuses (${sizeKB} KB). Sauvegarde risquée.`, 'error');
         }
+
+        console.log('💾 Début sauvegarde Firebase...');
+        
+        db.collection('plannings').doc('main').set(dataToSave)
+            .then(() => {
+                showToast(`☁️ Sauvegardé sur le cloud ! (${sizeKB} KB)`, 'success');
+                console.log('✅ Sauvegarde cloud réussie');
+            })
+            .catch((error) => {
+                console.error('❌ Erreur sauvegarde Firebase:', error);
+                showToast(`Erreur Firebase: ${error.message}`, 'error');
+            });
+            
+    } catch (error) {
+        console.error('❌ Erreur dans saveToCloud:', error);
+        showToast(`Erreur préparation: ${error.message}`, 'error');
     }
+}
 
     function loadFromCloud() {
         if (!isFirebaseEnabled || !db) return;
@@ -4457,6 +4460,7 @@ let totalHours = 0;
 </script>
 </body>
 </html>
+
 
 
 
