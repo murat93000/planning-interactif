@@ -3278,17 +3278,20 @@ Veux-tu que je te donne le code avec TOUT le JavaScript inclus d'un seul coup ?R
         
         checkEmployeeAuthentication();
         
+        // CHARGER LES DONNÉES IMMÉDIATEMENT
+        createDefaultData();
+        renderPlanning();
+        updateSummary();
+        
         if (isFirebaseEnabled) {
             console.log('⏳ Attente de Firebase Auth...');
             setTimeout(() => {
-                loadData();
+                loadFromCloud();
                 
                 if (currentUser) {
                     enableAutoSaveCloud();
                 }
             }, 1500);
-        } else {
-            loadData();
         }
         
         showToast('Planning initialisé avec succès', 'success');
@@ -5177,5 +5180,6 @@ Veux-tu que je te donne le code avec TOUT le JavaScript inclus d'un seul coup ?R
 </script>
 </body>
 </html>
+
 
 
