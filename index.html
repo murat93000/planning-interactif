@@ -1411,20 +1411,23 @@
         if (currentUser) {
             signOut();
         } else {
-            signInAnonymously();
+            signInWithGoogle();
         }
     }
 
-    function signInAnonymously() {
+    function signInWithGoogle() {
         if (!auth) return;
 
-        auth.signInAnonymously()
-            .then(() => {
-                showToast('Connexion réussie', 'success');
+        const provider = new firebase.auth.GoogleAuthProvider();
+        
+        auth.signInWithPopup(provider)
+            .then((result) => {
+                showToast('Connexion Google réussie ✅', 'success');
+                console.log('Utilisateur connecté:', result.user.email);
             })
             .catch((error) => {
-                console.error('Erreur connexion:', error);
-                showToast('Erreur de connexion', 'error');
+                console.error('Erreur connexion Google:', error);
+                showToast('Erreur de connexion Google', 'error');
             });
     }
 
@@ -1874,7 +1877,7 @@ function toggleAuth() {
     if (currentUser) {
         signOut();
     } else {
-        signInAnonymously();
+        signInWithGoogle();
     }
 }
     function handleKeyboardShortcuts(e) {
@@ -4595,6 +4598,7 @@ let totalHours = 0;
 </script>
 </body>
 </html>
+
 
 
 
