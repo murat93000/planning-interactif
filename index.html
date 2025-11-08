@@ -3709,7 +3709,13 @@ while (currentWeekStart <= lastDayOfMonth) {
         try {
             globalState = {
                 employees: [],
-                currentWeek: new Date(),
+                currentWeek: (() => {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    today.setDate(today.getDate() + diff);
+    return today;
+})(),
                 isAdminMode: false,
                 draggedItem: null,
                 customTemplates: [],
@@ -4604,6 +4610,7 @@ while (currentWeekStart <= lastDayOfMonth) {
 </script>
 </body>
 </html>
+
 
 
 
