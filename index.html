@@ -938,7 +938,7 @@
         margin-right: 8px;
     }
 /* 🔒 SÉCURITÉ : Désactivation en mode lecteur */
-    body:not(.admin-mode) .btn:not(.mode-toggle-btn):not(.btn-login):not(.btn-cancel),
+    body:not(.admin-mode) .btn:not(.mode-toggle-btn):not(.btn-login):not(.btn-cancel):not(.week-nav-btn),
     body:not(.admin-mode) input:not(#adminPassword):not(#employeePassword),
     body:not(.admin-mode) select,
     body:not(.admin-mode) textarea,
@@ -1093,9 +1093,9 @@
     </div>
 
     <div class="week-nav">
-        <button class="btn" onclick="changeWeek(-1)">⬅️ Semaine précédente</button>
+        <button class="btn week-nav-btn" onclick="changeWeek(-1)">⬅️ Semaine précédente</button>
         <div class="current-week" id="weekDisplay">Semaine courante</div>
-        <button class="btn" onclick="changeWeek(1)">Semaine suivante ➡️</button>
+        <button class="btn week-nav-btn" onclick="changeWeek(1)">Semaine suivante ➡️</button>
     </div>
 
     <div class="planning-grid">
@@ -1720,7 +1720,9 @@
     function initializeApp() {
         const today = new Date();
         globalState.currentWeek = new Date(today);
-        globalState.currentWeek.setDate(today.getDate() - today.getDay() + 1);
+        const dayOfWeek = today.getDay();
+const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+globalState.currentWeek.setDate(today.getDate() + diff);
         
         setupEventListeners();
         updateWeekDisplay();
@@ -4598,6 +4600,7 @@ let totalHours = 0;
 </script>
 </body>
 </html>
+
 
 
 
