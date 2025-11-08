@@ -3469,14 +3469,14 @@ let totalHours = 0;
             let conges = 0;
             let repos = 0;
             let cours = 0;
-            
-            // Parcourir toutes les semaines du mois
-            let currentWeekStart = new Date(firstDayOfMonth);
-            currconst dayOfWeek3 = currentWeekStart.getDay();
+
+// Parcourir toutes les semaines du mois
+let currentWeekStart = new Date(firstDayOfMonth);
+const dayOfWeek3 = currentWeekStart.getDay();
 const diff3 = dayOfWeek3 === 0 ? -6 : 1 - dayOfWeek3;
-currentWeekStart.setDate(currentWeekStart.getDate() + diff3);entWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay() + 1);
-            
-            while (currentWeekStart <= lastDayOfMonth) {
+currentWeekStart.setDate(currentWeekStart.getDate() + diff3);
+
+while (currentWeekStart <= lastDayOfMonth) {
                 const year = currentWeekStart.getFullYear();
                 const firstDay = new Date(year, 0, 1);
                 const pastDays = (currentWeekStart - firstDay) / 86400000;
@@ -4604,6 +4604,7 @@ currentWeekStart.setDate(currentWeekStart.getDate() + diff3);entWeekStart.setDat
 </script>
 </body>
 </html>
+
 
 
 
