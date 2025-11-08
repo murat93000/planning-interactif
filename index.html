@@ -2380,7 +2380,9 @@ function toggleAuth() {
     function applyShiftToEmployeeDay(employee, date, shiftData, replaceExisting) {
         try {
             const weekStart = new Date(date);
-            weekStart.setDate(date.getDate() - date.getDay() + 1);
+            const dayOfWeek2 = date.getDay();
+const diff2 = dayOfWeek2 === 0 ? -6 : 1 - dayOfWeek2;
+weekStart.setDate(date.getDate() + diff2);
             
             const year = weekStart.getFullYear();
             const firstDay = new Date(year, 0, 1);
@@ -3470,7 +3472,9 @@ let totalHours = 0;
             
             // Parcourir toutes les semaines du mois
             let currentWeekStart = new Date(firstDayOfMonth);
-            currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay() + 1);
+            currconst dayOfWeek3 = currentWeekStart.getDay();
+const diff3 = dayOfWeek3 === 0 ? -6 : 1 - dayOfWeek3;
+currentWeekStart.setDate(currentWeekStart.getDate() + diff3);entWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay() + 1);
             
             while (currentWeekStart <= lastDayOfMonth) {
                 const year = currentWeekStart.getFullYear();
@@ -4600,6 +4604,7 @@ let totalHours = 0;
 </script>
 </body>
 </html>
+
 
 
 
