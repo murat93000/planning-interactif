@@ -2133,22 +2133,24 @@ function toggleAuth() {
 
     function updateModeDisplay() {
         try {
-            const modeBtn = document.getElementById('modeBtn');
+            // 🔒 AJOUT : Gérer la classe admin-mode sur le body
+            if (globalState.isAdminMode) {
+                document.body.classList.add('admin-mode');
+            } else {
+                document.body.classList.remove('admin-mode');
+            }
+            
             const adminPanels = document.querySelectorAll('.admin-panel');
             const sidebar = document.getElementById('sidebar');
             
             if (globalState.isAdminMode) {
-                modeBtn.textContent = '🔓 Mode Admin';
-                modeBtn.className = 'btn admin';
                 adminPanels.forEach(panel => panel.style.display = 'block');
-                sidebar.classList.add('show');
+                if (sidebar) sidebar.classList.add('show');
                 addDeleteButtonsToTemplates();
                 updateSidebarContent();
             } else {
-                modeBtn.textContent = '🔒 Mode Lecture';
-                modeBtn.className = 'btn';
                 adminPanels.forEach(panel => panel.style.display = 'none');
-                sidebar.classList.remove('show');
+                if (sidebar) sidebar.classList.remove('show');
                 removeDeleteButtonsFromTemplates();
             }
             
@@ -4593,6 +4595,7 @@ let totalHours = 0;
 </script>
 </body>
 </html>
+
 
 
 
