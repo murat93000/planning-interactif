@@ -1589,9 +1589,13 @@
                 }
 
                 if (cloudData.currentWeek) {
-                    globalState.currentWeek = new Date(cloudData.currentWeek);
-                    updateWeekDisplay();
-                }
+    const loadedDate = new Date(cloudData.currentWeek);
+    const dayOfWeek = loadedDate.getDay();
+    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    loadedDate.setDate(loadedDate.getDate() + diff);
+    globalState.currentWeek = loadedDate;
+    updateWeekDisplay();
+}
 
                 renderPlanning();
                 updateSummary();
@@ -4610,6 +4614,7 @@ while (currentWeekStart <= lastDayOfMonth) {
 </script>
 </body>
 </html>
+
 
 
 
