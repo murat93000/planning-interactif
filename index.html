@@ -938,7 +938,7 @@
         margin-right: 8px;
     }
 /* 🔒 SÉCURITÉ : Désactivation en mode lecteur */
-    body:not(.admin-mode) .btn:not(.mode-toggle-btn):not(.btn-login):not(.btn-cancel):not(.week-nav-btn),
+    body:not(.admin-mode) .btn:not(.mode-toggle-btn):not(.btn-login):not(.btn-cancel):not(.week-nav-btn):not(.modal-btn),
     body:not(.admin-mode) input:not(#adminPassword):not(#employeePassword),
     body:not(.admin-mode) select,
     body:not(.admin-mode) textarea,
@@ -1155,7 +1155,7 @@
                 <input type="text" id="modalEmpRole" required>
             </div>
             <div class="form-actions">
-                <button type="button" class="btn" onclick="closeModal()">Annuler</button>
+                <button type="button" class="btn modal-btn" onclick="closeModal()">Annuler</button>
                 <button type="submit" class="btn admin">Ajouter</button>
             </div>
         </form>
@@ -1256,7 +1256,7 @@
             </div>
             <div class="form-actions">
                 <button type="button" class="btn" onclick="closeModal()">Annuler</button>
-                <button type="submit" class="btn admin">Valider</button>
+                <button type="submit" class="btn admin modal-btn">Valider</button>
             </div>
         </form>
     </div>
@@ -4600,6 +4600,7 @@ let totalHours = 0;
 </script>
 </body>
 </html>
+
 
 
 
