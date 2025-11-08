@@ -937,9 +937,80 @@
         font-size: 16px;
         margin-right: 8px;
     }
+/* 🔒 SÉCURITÉ : Désactivation en mode lecteur */
+    body:not(.admin-mode) .btn:not(.mode-toggle-btn),
+    body:not(.admin-mode) input:not(#adminPassword):not(#employeePassword),
+    body:not(.admin-mode) select,
+    body:not(.admin-mode) textarea,
+    body:not(.admin-mode) .template,
+    body:not(.admin-mode) .time-slot-template,
+    body:not(.admin-mode) [draggable="true"] {
+        pointer-events: none;
+        opacity: 0.5;
+        cursor: not-allowed !important;
+    }
+
+    body:not(.admin-mode) .time-slot,
+    body:not(.admin-mode) .employee-cell {
+        cursor: default !important;
+    }
+
+    /* 🔒 Barre de statut Admin */
+    .admin-status-bar {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 25px;
+        border-radius: 16px;
+        font-weight: 700;
+        font-size: 14px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        backdrop-filter: blur(20px);
+        transition: all 0.3s ease;
+    }
+
+    .admin-status-bar.reader-mode {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+    }
+
+    .admin-status-bar.admin-mode {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+    }
+
+    .admin-status-bar button {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        padding: 8px 16px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 12px;
+        transition: all 0.3s ease;
+    }
+
+    .admin-status-bar button:hover {
+        background: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.5);
+        transform: scale(1.05);
+    }
+       
 </style>
 </head>
 <body>
+
+<!-- 🔒 NOUVEAUTÉ : Barre de statut Admin -->
+<div class="admin-status-bar reader-mode" id="adminStatusBar">
+    <span id="statusText">🔒 Mode Lecteur</span>
+    <button class="mode-toggle-btn" onclick="toggleMode()">Déverrouiller</button>
+</div>
+
     <div class="container">
         <div class="header">
             <h1>📅 Planning Optic2000 Cloud</h1>
@@ -1652,6 +1723,21 @@
         updateWeekDisplay();
         renderTimeSlots();
         
+        // 🔒 NOUVEAUTÉ : Initialiser en mode lecteur
+        document.body.classList.remove('admin-mode');
+        globalState.isAdminMode = false;
+        
+        const statusBar = document.getElementById('adminStatusBar');
+        const statusText = document.getElementById('statusText');
+        
+        if (statusBar && statusText) {
+            statusBar.className = 'admin-status-bar reader-mode';
+            statusText.textContent = '🔒 Mode Lecteur';
+        }
+        
+        console.log('🔒 Application démarrée en Mode Lecteur');
+        
+               
         checkEmployeeAuthentication();
         
         if (isFirebaseEnabled) {
@@ -1879,14 +1965,35 @@ function toggleAuth() {
             console.log('toggleMode appelé, mode actuel:', globalState.isAdminMode);
             
             if (globalState.isAdminMode) {
+                // Désactiver le mode admin
                 globalState.isAdminMode = false;
+                document.body.classList.remove('admin-mode');
+                
+                // Mettre à jour la barre de statut
+                const statusBar = document.getElementById('adminStatusBar');
+                const statusText = document.getElementById('statusText');
+                
+                if (statusBar && statusText) {
+                    statusBar.className = 'admin-status-bar reader-mode';
+                    statusText.textContent = '🔒 Mode Lecteur';
+                    
+                    // Changer le bouton
+                    const button = statusBar.querySelector('button');
+                    if (button) {
+                        button.textContent = 'Déverrouiller';
+                        button.onclick = toggleMode;
+                    }
+                }
+                
                 updateModeDisplay();
                 showToast('Mode lecture activé', 'success');
             } else {
+                // Demander le mot de passe pour activer
                 openModal('passwordModal');
             }
+            
         } catch (error) {
-            console.error('Erreur toggle mode:', error);
+            console.error('Erreur toggleMode:', error);
             showToast('Erreur changement de mode', 'error');
         }
     }
@@ -1933,34 +2040,52 @@ function toggleAuth() {
     }
 
     function handlePasswordSubmit(e) {
+        e.preventDefault();
+        
         try {
-            e.preventDefault();
-            console.log('Soumission mot de passe...');
-            
             const passwordInput = document.getElementById('adminPassword');
             if (!passwordInput) {
-                console.error('Input mot de passe non trouvé');
-                showToast('Erreur d\'interface', 'error');
+                console.error('Champ mot de passe introuvable');
                 return;
             }
             
             const password = passwordInput.value;
-            console.log('Mot de passe saisi:', password.length, 'caractères');
             
             if (password === ADMIN_PASSWORD) {
+                // ✅ MOT DE PASSE CORRECT
                 globalState.isAdminMode = true;
-                updateModeDisplay();
+                document.body.classList.add('admin-mode');
+                
+                // Mettre à jour la barre de statut
+                const statusBar = document.getElementById('adminStatusBar');
+                const statusText = document.getElementById('statusText');
+                
+                if (statusBar && statusText) {
+                    statusBar.className = 'admin-status-bar admin-mode';
+                    statusText.textContent = '✅ Mode Admin';
+                    
+                    // Changer le bouton
+                    const button = statusBar.querySelector('button');
+                    if (button) {
+                        button.textContent = '🔒 Verrouiller';
+                        button.onclick = toggleMode;
+                    }
+                }
+                
                 closeModal();
-                showToast('Mode administrateur activé', 'success');
-                console.log('Mode admin activé avec succès');
+                updateModeDisplay();
+                showToast('Mode admin activé', 'success');
+                
+                passwordInput.value = '';
             } else {
-                showToast('Mot de passe incorrect (utilisez: 123123)', 'error');
+                // ❌ MAUVAIS MOT DE PASSE
+                showToast('Mot de passe incorrect', 'error');
                 passwordInput.value = '';
                 passwordInput.focus();
-                console.log('Mot de passe incorrect');
             }
+            
         } catch (error) {
-            console.error('Erreur password submit:', error);
+            console.error('Erreur handlePasswordSubmit:', error);
             showToast('Erreur de connexion', 'error');
         }
     }
@@ -4468,3 +4593,4 @@ let totalHours = 0;
 </script>
 </body>
 </html>
+
