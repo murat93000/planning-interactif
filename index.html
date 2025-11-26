@@ -336,6 +336,10 @@
         background: linear-gradient(135deg, #f97316, #ea580c);
     }
 
+    .template.ferie {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    }
+
     .template.custom {
         background: linear-gradient(135deg, #8b5cf6, #7c3aed);
     }
@@ -615,6 +619,10 @@
 
     .shift-card.retard {
         background: linear-gradient(135deg, #f97316, #ea580c);
+    }
+
+    .shift-card.ferie {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
     }
 
     .shift-card.custom {
@@ -1084,6 +1092,7 @@
             <div class="template absent" draggable="true" data-type="absent">❌ Absent</div>
             <div class="template cours" draggable="true" data-type="cours">📚 Cours</div>
             <div class="template conges" draggable="true" data-type="conges">🏖️ Congés</div>
+            <div class="template ferie" draggable="true" data-type="ferie" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">🎌 Férié</div>
             <div class="template retard" draggable="true" data-type="retard" style="background: linear-gradient(135deg, #f97316, #ea580c);">⏰ Retard</div>
         </div>
         
@@ -1363,6 +1372,39 @@
             <div class="form-actions" style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
                 <button type="button" class="btn" onclick="closeModal()">Annuler</button>
                 <button type="submit" class="btn warning">⏰ Ajouter Retard</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODALE SAISIE HEURES (Cours/Congés/Férié) -->
+<div id="heuresAbsenceModal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <h2 id="heuresAbsenceTitle">📚 Saisir les heures</h2>
+        <form id="heuresAbsenceForm" onsubmit="saveHeuresAbsence(event)">
+            <input type="hidden" id="heuresAbsenceEmployeeId">
+            <input type="hidden" id="heuresAbsenceDay">
+            <input type="hidden" id="heuresAbsenceType">
+            <div class="form-group">
+                <label>Heures à comptabiliser :</label>
+                <p style="color: #6b7280; font-size: 12px; margin-bottom: 10px;">Ces heures seront ajoutées au total travaillé</p>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="number" id="heuresAbsenceHeures" min="0" max="12" value="7" style="width: 80px; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 16px; text-align: center; font-weight: 700;">
+                    <span style="font-weight: 600;">h</span>
+                    <input type="number" id="heuresAbsenceMinutes" min="0" max="59" value="0" step="5" style="width: 80px; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 16px; text-align: center; font-weight: 700;">
+                    <span style="font-weight: 600;">min</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Note (optionnel) :</label>
+                <input type="text" id="heuresAbsenceNote" placeholder="Ex: Formation CFA, Toussaint..." style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+            </div>
+            <div style="background: #dbeafe; border: 1px solid #3b82f6; border-radius: 8px; padding: 12px; margin-top: 15px;">
+                <p style="color: #1e40af; font-size: 13px;">💡 <strong>Astuce :</strong> Pour un contrat 35h → 7h/jour, pour 39h → 7h48/jour</p>
+            </div>
+            <div class="form-actions" style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" class="btn" onclick="closeModal()">Annuler</button>
+                <button type="submit" class="btn admin" id="heuresAbsenceSubmitBtn">✅ Valider</button>
             </div>
         </form>
     </div>
@@ -2942,11 +2984,19 @@ weekStart.setDate(date.getDate() + diff2);
                 Object.values(employee.planning[weekKey]).forEach(dayShifts => {
                     let hasWork = false;
                     dayShifts.forEach(shift => {
+                        // Compter les heures de travail
                         if (shift.type === 'work' && shift.hours) {
                             const hours = parseHours(shift.hours);
                             weekHours += hours;
                             hasWork = true;
                         }
+                        // Compter les heures de Cours, Congés et Férié
+                        if (['cours', 'conges', 'ferie'].includes(shift.type) && shift.hours) {
+                            const hours = parseHours(shift.hours);
+                            weekHours += hours;
+                            hasWork = true;
+                        }
+                        // Soustraire les retards
                         if (shift.type === 'retard' && shift.retardMinutes) {
                             retardMins += shift.retardMinutes;
                         }
@@ -2983,8 +3033,8 @@ weekStart.setDate(date.getDate() + diff2);
                 </div>
                 <div class="employee-role">${employee.role}</div>
                 <div class="employee-hours">${formatHours(weekHours)} | ${workDays} jours</div>
-                <div style="font-size: 14px; color: ${weekSoldeColor}; font-weight: 700; margin-top: 2px;">📅 Sem: ${weekSoldeText}</div>
-                <div style="font-size: 14px; color: ${monthSoldeColor}; font-weight: 700; margin-top: 1px;">📊 Mois: ${monthSoldeText}</div>
+                <div style="font-size: 10px; color: ${weekSoldeColor}; font-weight: 700; margin-top: 2px;">📅 Sem: ${weekSoldeText}</div>
+                <div style="font-size: 10px; color: ${monthSoldeColor}; font-weight: 700; margin-top: 1px;">📊 Mois: ${monthSoldeText}</div>
                 ${globalState.isAdminMode ? `
                     <button class="remove-emp" onclick="removeEmployee('${employee.id}')" title="Supprimer">×</button>
                     <button class="edit-emp" onclick="openEditEmployeeModal('${employee.id}')" title="Modifier contrat" style="position: absolute; top: 5px; left: 5px; background: #8b5cf6; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✏️</button>
@@ -3145,7 +3195,14 @@ weekStart.setDate(date.getDate() + diff2);
                 if (globalState.draggedItem.type === 'retard') {
                     openRetardModal(employeeId, day);
                     globalState.draggedItem = null;
-                    return; // On arrête ici, la suite sera gérée par saveRetard()
+                    return;
+                }
+                
+                // Si c'est Cours, Congés ou Férié, ouvrir la modale de saisie des heures
+                if (['cours', 'conges', 'ferie'].includes(globalState.draggedItem.type)) {
+                    openHeuresAbsenceModal(employeeId, day, globalState.draggedItem.type);
+                    globalState.draggedItem = null;
+                    return;
                 }
                 
                 if (globalState.draggedItem.type === 'timeSlot') {
@@ -3598,12 +3655,30 @@ let totalHours = 0;
                                 break;
                             case 'conges':
                                 conges++;
+                                // Compter les heures si définies
+                                if (shift.hours) {
+                                    workHours += parseHours(shift.hours);
+                                    hasWork = true;
+                                }
                                 break;
                             case 'repos':
                                 repos++;
                                 break;
                             case 'cours':
                                 cours++;
+                                // Compter les heures si définies
+                                if (shift.hours) {
+                                    workHours += parseHours(shift.hours);
+                                    hasWork = true;
+                                }
+                                break;
+                            case 'ferie':
+                                feriesCount++;
+                                // Compter les heures si définies
+                                if (shift.hours) {
+                                    workHours += parseHours(shift.hours);
+                                    hasWork = true;
+                                }
                                 break;
                         }
                     });
@@ -5076,6 +5151,100 @@ while (currentWeekStart <= lastDayOfMonth) {
     }
 
     // ============================================
+    // GESTION HEURES COURS / CONGÉS / FÉRIÉ
+    // ============================================
+    function openHeuresAbsenceModal(employeeId, day, type) {
+        const employee = globalState.employees.find(emp => emp.id === employeeId);
+        const contractHours = employee ? (employee.contractHours || 35) : 35;
+        
+        // Calculer les heures par défaut selon le contrat (heures/jour = contrat/5)
+        const defaultHours = Math.floor(contractHours / 5);
+        const defaultMinutes = Math.round((contractHours / 5 - defaultHours) * 60);
+        
+        // Mettre à jour le titre et le bouton selon le type
+        const titles = {
+            'cours': '📚 Cours / Formation',
+            'conges': '🏖️ Congés',
+            'ferie': '🎌 Jour Férié'
+        };
+        const btnColors = {
+            'cours': 'background: linear-gradient(135deg, #f59e0b, #d97706);',
+            'conges': 'background: linear-gradient(135deg, #10b981, #059669);',
+            'ferie': 'background: linear-gradient(135deg, #8b5cf6, #7c3aed);'
+        };
+        
+        document.getElementById('heuresAbsenceTitle').textContent = titles[type] || '📋 Saisir les heures';
+        document.getElementById('heuresAbsenceSubmitBtn').style.cssText = btnColors[type] || '';
+        
+        document.getElementById('heuresAbsenceEmployeeId').value = employeeId;
+        document.getElementById('heuresAbsenceDay').value = day;
+        document.getElementById('heuresAbsenceType').value = type;
+        document.getElementById('heuresAbsenceHeures').value = defaultHours;
+        document.getElementById('heuresAbsenceMinutes').value = defaultMinutes;
+        document.getElementById('heuresAbsenceNote').value = '';
+        
+        document.getElementById('heuresAbsenceModal').style.display = 'block';
+    }
+    
+    function saveHeuresAbsence(event) {
+        event.preventDefault();
+        
+        try {
+            const employeeId = document.getElementById('heuresAbsenceEmployeeId').value;
+            const day = parseInt(document.getElementById('heuresAbsenceDay').value);
+            const type = document.getElementById('heuresAbsenceType').value;
+            const heures = parseInt(document.getElementById('heuresAbsenceHeures').value) || 0;
+            const minutes = parseInt(document.getElementById('heuresAbsenceMinutes').value) || 0;
+            const note = document.getElementById('heuresAbsenceNote').value.trim();
+            
+            const employee = globalState.employees.find(emp => emp.id === employeeId);
+            if (!employee) {
+                showToast('Employé non trouvé', 'error');
+                return;
+            }
+            
+            if (!employee.planning) employee.planning = {};
+            const weekKey = getWeekKey();
+            if (!employee.planning[weekKey]) employee.planning[weekKey] = {};
+            if (!employee.planning[weekKey][day]) employee.planning[weekKey][day] = [];
+            
+            // Formater le texte à afficher
+            const totalHours = heures + minutes / 60;
+            const hoursText = formatHours(totalHours);
+            
+            const labels = {
+                'cours': '📚 Cours',
+                'conges': '🏖️ Congés',
+                'ferie': '🎌 Férié'
+            };
+            
+            let displayText = `${labels[type]} (${hoursText})`;
+            if (note) displayText += ` - ${note}`;
+            
+            const newShift = {
+                id: generateId(),
+                type: type,
+                text: displayText,
+                hours: hoursText,  // Important : on stocke les heures pour le calcul
+                note: note
+            };
+            
+            employee.planning[weekKey][day].push(newShift);
+            
+            closeModal();
+            renderPlanning();
+            updateSummary();
+            saveData();
+            
+            showToast(`${labels[type]} ajouté (${hoursText})`, 'success');
+            
+        } catch (error) {
+            console.error('Erreur sauvegarde heures absence:', error);
+            showToast('Erreur lors de l\'ajout', 'error');
+        }
+    }
+
+    // ============================================
     // CALCUL DU SOLDE MENSUEL CUMULÉ
     // Le solde repart à 0 automatiquement chaque 1er du mois
     // ============================================
@@ -5124,10 +5293,17 @@ while (currentWeekStart <= lastDayOfMonth) {
                         
                         let dayHasWork = false;
                         dayShifts.forEach(shift => {
+                            // Compter les heures de travail
                             if (shift.type === 'work' && shift.hours) {
                                 totalWorkedHours += parseHours(shift.hours);
                                 dayHasWork = true;
                             }
+                            // Compter les heures de Cours, Congés et Férié (si elles ont des heures)
+                            if (['cours', 'conges', 'ferie'].includes(shift.type) && shift.hours) {
+                                totalWorkedHours += parseHours(shift.hours);
+                                dayHasWork = true;
+                            }
+                            // Soustraire les retards
                             if (shift.type === 'retard' && shift.retardMinutes) {
                                 totalRetardMinutes += shift.retardMinutes;
                             }
@@ -5633,5 +5809,3 @@ while (currentWeekStart <= lastDayOfMonth) {
 </script>
 </body>
 </html>
-
-
