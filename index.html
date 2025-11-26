@@ -8,6 +8,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <!-- SheetJS pour export Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -330,6 +332,10 @@
         background: linear-gradient(135deg, #10b981, #059669);
     }
 
+    .template.retard {
+        background: linear-gradient(135deg, #f97316, #ea580c);
+    }
+
     .template.custom {
         background: linear-gradient(135deg, #8b5cf6, #7c3aed);
     }
@@ -605,6 +611,10 @@
 
     .shift-card.conges {
         background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    .shift-card.retard {
+        background: linear-gradient(135deg, #f97316, #ea580c);
     }
 
     .shift-card.custom {
@@ -1074,6 +1084,7 @@
             <div class="template absent" draggable="true" data-type="absent">❌ Absent</div>
             <div class="template cours" draggable="true" data-type="cours">📚 Cours</div>
             <div class="template conges" draggable="true" data-type="conges">🏖️ Congés</div>
+            <div class="template retard" draggable="true" data-type="retard" style="background: linear-gradient(135deg, #f97316, #ea580c);">⏰ Retard</div>
         </div>
         
         <div class="custom-template-creator">
@@ -1124,9 +1135,15 @@
     <div class="employee-recap">
         <div class="recap-header">
             <h3 class="recap-title">📊 Récapitulatif Détaillé</h3>
-            <div class="recap-period-selector">
-                <button class="recap-period-btn active" id="weekRecapBtn" onclick="switchRecapPeriod('week')">Semaine</button>
-                <button class="recap-period-btn" id="monthRecapBtn" onclick="switchRecapPeriod('month')">Mois</button>
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <div class="recap-period-selector">
+                    <button class="recap-period-btn active" id="weekRecapBtn" onclick="switchRecapPeriod('week')">Semaine</button>
+                    <button class="recap-period-btn" id="monthRecapBtn" onclick="switchRecapPeriod('month')">Mois</button>
+                </div>
+                <div class="admin-panel" style="display: flex; gap: 8px;">
+                    <button class="btn" onclick="openRazSoldesModal()" style="padding: 8px 12px; font-size: 12px;">🔄 RAZ Soldes</button>
+                    <button class="btn admin" onclick="openExportComptableModal()" style="padding: 8px 12px; font-size: 12px;">📤 Export Paie</button>
+                </div>
             </div>
         </div>
         <div id="employeeRecap" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;"></div>
@@ -1320,6 +1337,97 @@
                 <button type="submit" class="btn admin">💾 Enregistrer</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- MODALE SAISIE RETARD -->
+<div id="retardModal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <h2>⏰ Saisir un Retard</h2>
+        <form id="retardForm" onsubmit="saveRetard(event)">
+            <input type="hidden" id="retardEmployeeId">
+            <input type="hidden" id="retardDay">
+            <div class="form-group">
+                <label>Durée du retard :</label>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="number" id="retardHeures" min="0" max="8" value="0" style="width: 70px; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; text-align: center;">
+                    <span style="font-weight: 600;">h</span>
+                    <input type="number" id="retardMinutes" min="0" max="59" value="30" step="5" style="width: 70px; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; text-align: center;">
+                    <span style="font-weight: 600;">min</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Motif (optionnel) :</label>
+                <input type="text" id="retardMotif" placeholder="Ex: Transport, RDV médical..." style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+            </div>
+            <div class="form-actions" style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" class="btn" onclick="closeModal()">Annuler</button>
+                <button type="submit" class="btn warning">⏰ Ajouter Retard</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODALE EXPORT COMPTABLE -->
+<div id="exportComptableModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <h2>📤 Export Comptable</h2>
+        <p style="color: #6b7280; margin-bottom: 20px; font-size: 14px;">
+            Générez un fichier Excel détaillé pour votre comptable avec toutes les informations de paie.
+        </p>
+        <div class="form-group">
+            <label>📅 Période :</label>
+            <select id="exportPeriode" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                <option value="mois">Mois en cours</option>
+                <option value="moisPrecedent">Mois précédent</option>
+                <option value="personnalise">Période personnalisée</option>
+            </select>
+        </div>
+        <div id="periodePersonnalisee" style="display: none; margin-top: 15px;">
+            <div style="display: flex; gap: 10px;">
+                <div class="form-group" style="flex: 1;">
+                    <label>Du :</label>
+                    <input type="date" id="exportDateDebut" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Au :</label>
+                    <input type="date" id="exportDateFin" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                </div>
+            </div>
+        </div>
+        <div class="form-group" style="margin-top: 15px;">
+            <label>👥 Employés :</label>
+            <select id="exportEmployes" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                <option value="tous">Tous les employés</option>
+            </select>
+        </div>
+        <div class="form-actions" style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+            <button type="button" class="btn" onclick="closeModal()">Annuler</button>
+            <button type="button" class="btn admin" onclick="generateExportComptable()">📥 Générer Excel</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODALE RAZ SOLDES -->
+<div id="razSoldesModal" class="modal">
+    <div class="modal-content" style="max-width: 450px;">
+        <h2>🔄 Remise à Zéro des Soldes</h2>
+        <p style="color: #6b7280; margin-bottom: 20px; font-size: 14px;">
+            Remettez les soldes d'heures à zéro après régularisation ou en début de période.
+        </p>
+        <div class="form-group">
+            <label>👥 Sélection :</label>
+            <select id="razSelection" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                <option value="tous">🌟 TOUS les employés</option>
+            </select>
+        </div>
+        <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 12px; margin-top: 15px;">
+            <p style="color: #92400e; font-size: 13px;">⚠️ <strong>Attention :</strong> Cette action remet le solde d'heures cumulé à 0. L'historique des plannings est conservé.</p>
+        </div>
+        <div class="form-actions" style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+            <button type="button" class="btn" onclick="closeModal()">Annuler</button>
+            <button type="button" class="btn danger" onclick="executeRazSoldes()">🔄 Remettre à Zéro</button>
+        </div>
     </div>
 </div>
 
@@ -2827,6 +2935,7 @@ weekStart.setDate(date.getDate() + diff2);
             
             let weekHours = 0;
             let workDays = 0;
+            let retardMins = 0;
             const weekKey = getWeekKey();
             
             if (employee.planning && employee.planning[weekKey]) {
@@ -2838,12 +2947,24 @@ weekStart.setDate(date.getDate() + diff2);
                             weekHours += hours;
                             hasWork = true;
                         }
+                        if (shift.type === 'retard' && shift.retardMinutes) {
+                            retardMins += shift.retardMinutes;
+                        }
                     });
                     if (hasWork) workDays++;
                 });
             }
             
             const contractHours = employee.contractHours || 35;
+            const currentDate = new Date(globalState.currentWeek);
+            const monthSolde = calculateMonthlySolde(employee, currentDate.getMonth(), currentDate.getFullYear());
+            
+            // Couleur du solde
+            let soldeColor = '#10b981'; // vert
+            if (monthSolde.solde > 0) soldeColor = '#ef4444'; // rouge heures sup
+            else if (monthSolde.solde < 0) soldeColor = '#f59e0b'; // orange déficit
+            
+            const soldeText = monthSolde.solde >= 0 ? `+${formatHours(monthSolde.solde)}` : `${formatHours(monthSolde.solde)}`;
             
             empCell.innerHTML = `
                 <div class="employee-name">
@@ -2851,7 +2972,8 @@ weekStart.setDate(date.getDate() + diff2);
                 </div>
                 <div class="employee-role">${employee.role}</div>
                 <div class="employee-hours">${formatHours(weekHours)} | ${workDays} jours</div>
-                <div class="employee-contract" style="font-size: 10px; color: #8b5cf6; font-weight: 600; margin-top: 2px;">📋 Contrat: ${contractHours}h</div>
+                <div class="employee-contract" style="font-size: 10px; color: #8b5cf6; font-weight: 600; margin-top: 2px;">📋 ${contractHours}h/sem</div>
+                <div style="font-size: 10px; color: ${soldeColor}; font-weight: 700; margin-top: 2px;">📊 Solde: ${soldeText}</div>
                 ${globalState.isAdminMode ? `
                     <button class="remove-emp" onclick="removeEmployee('${employee.id}')" title="Supprimer">×</button>
                     <button class="edit-emp" onclick="openEditEmployeeModal('${employee.id}')" title="Modifier contrat" style="position: absolute; top: 5px; left: 5px; background: #8b5cf6; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✏️</button>
@@ -2989,7 +3111,9 @@ weekStart.setDate(date.getDate() + diff2);
                     text: draggedShiftData.shift.text,
                     hours: draggedShiftData.shift.hours,
                     slot: draggedShiftData.shift.slot,
-                    backgroundColor: draggedShiftData.shift.backgroundColor
+                    backgroundColor: draggedShiftData.shift.backgroundColor,
+                    retardMinutes: draggedShiftData.shift.retardMinutes,
+                    motif: draggedShiftData.shift.motif
                 };
                 
                 const originalEmployee = globalState.employees.find(emp => emp.id === draggedShiftData.originalEmployeeId);
@@ -3006,6 +3130,13 @@ weekStart.setDate(date.getDate() + diff2);
                 showToast('Case déplacée', 'success');
                 
             } else if (globalState.draggedItem) {
+                // Si c'est un retard, ouvrir la modale de saisie
+                if (globalState.draggedItem.type === 'retard') {
+                    openRetardModal(employeeId, day);
+                    globalState.draggedItem = null;
+                    return; // On arrête ici, la suite sera gérée par saveRetard()
+                }
+                
                 if (globalState.draggedItem.type === 'timeSlot') {
                     const slot = globalState.draggedItem.slot;
                     const hours = calculateHours(slot.start, slot.end);
@@ -3411,6 +3542,7 @@ let totalHours = 0;
     // ============================================
     function generateWeekRecap(container, employees) {
         const weekKey = getWeekKey();
+        const currentDate = new Date(globalState.currentWeek);
         
         employees.forEach(employee => {
             let workHours = 0;
@@ -3419,10 +3551,19 @@ let totalHours = 0;
             let conges = 0;
             let repos = 0;
             let cours = 0;
+            let retardMinutes = 0;
+            let dimanchesCount = 0;
+            let feriesCount = 0;
             
             if (employee.planning && employee.planning[weekKey]) {
-                Object.values(employee.planning[weekKey]).forEach(dayShifts => {
+                Object.keys(employee.planning[weekKey]).forEach(dayIndex => {
+                    const dayShifts = employee.planning[weekKey][dayIndex];
                     let hasWork = false;
+                    
+                    // Calculer la date du jour
+                    const shiftDate = new Date(currentDate);
+                    shiftDate.setDate(shiftDate.getDate() + parseInt(dayIndex));
+                    
                     dayShifts.forEach(shift => {
                         switch(shift.type) {
                             case 'work':
@@ -3430,6 +3571,15 @@ let totalHours = 0;
                                     const hours = parseHours(shift.hours);
                                     workHours += hours;
                                     hasWork = true;
+                                    
+                                    // Vérifier dimanche et férié
+                                    if (isDimanche(shiftDate)) dimanchesCount++;
+                                    if (isJourFerie(shiftDate)) feriesCount++;
+                                }
+                                break;
+                            case 'retard':
+                                if (shift.retardMinutes) {
+                                    retardMinutes += shift.retardMinutes;
                                 }
                                 break;
                             case 'absent':
@@ -3451,8 +3601,14 @@ let totalHours = 0;
             }
             
             const contractHours = employee.contractHours || 35;
-            const overtime = Math.max(0, workHours - contractHours);
-            const deficit = Math.max(0, contractHours - workHours);
+            const retardHours = retardMinutes / 60;
+            const effectiveHours = workHours - retardHours;
+            const diff = effectiveHours - contractHours;
+            const overtime = Math.max(0, diff);
+            const deficit = Math.max(0, -diff);
+            
+            // Calcul du solde mensuel
+            const monthSolde = calculateMonthlySolde(employee, currentDate.getMonth(), currentDate.getFullYear());
             
             const recapCard = document.createElement('div');
             recapCard.style.cssText = `
@@ -3465,45 +3621,64 @@ let totalHours = 0;
             
             // Déterminer la couleur selon le statut
             let statusColor = '#10b981'; // Vert par défaut
-            let statusIcon = '✅';
             if (overtime > 0) {
                 statusColor = '#ef4444'; // Rouge pour heures sup
-                statusIcon = '⚡';
             } else if (deficit > 0) {
                 statusColor = '#f59e0b'; // Orange pour déficit
-                statusIcon = '⚠️';
             }
             
+            // Couleur du solde mensuel
+            let soldeColor = '#10b981';
+            if (monthSolde.solde > 0) soldeColor = '#ef4444';
+            else if (monthSolde.solde < 0) soldeColor = '#f59e0b';
+            
+            const diffText = diff >= 0 ? `+${formatHours(diff)}` : `-${formatHours(Math.abs(diff))}`;
+            const soldeText = monthSolde.solde >= 0 ? `+${formatHours(monthSolde.solde)}` : `-${formatHours(Math.abs(monthSolde.solde))}`;
+            
             recapCard.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <h4 style="color: #374151; font-size: 1.2em; font-weight: 700;">${employee.name}</h4>
-                    <span style="background: ${statusColor}20; color: ${statusColor}; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600;">📋 Contrat ${contractHours}h</span>
+                    <span style="background: ${statusColor}20; color: ${statusColor}; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600;">📋 ${contractHours}h</span>
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
-                    <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(102, 126, 234, 0.1); border-radius: 8px;">
+                <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                    <span style="background: ${statusColor}15; color: ${statusColor}; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">Sem: ${diffText}</span>
+                    <span style="background: ${soldeColor}15; color: ${soldeColor}; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">📊 Solde mois: ${soldeText}</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+                    <div style="display: flex; justify-content: space-between; padding: 6px 8px; background: rgba(102, 126, 234, 0.1); border-radius: 8px;">
                         <span style="font-weight: 600;">⏰ Heures travail:</span>
-                        <span style="font-weight: 700; color: ${statusColor};">${formatHours(workHours)}</span>
+                        <span style="font-weight: 700; color: #667eea;">${formatHours(workHours)}</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between; padding: 8px; background: ${overtime > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(107, 114, 128, 0.1)'}; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; padding: 6px 8px; background: ${retardHours > 0 ? 'rgba(249, 115, 22, 0.1)' : 'rgba(107, 114, 128, 0.1)'}; border-radius: 8px;">
+                        <span style="font-weight: 600;">⏰ Retards:</span>
+                        <span style="font-weight: 700; color: ${retardHours > 0 ? '#f97316' : '#6b7280'};">${retardHours > 0 ? '-' : ''}${formatHours(retardHours)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 6px 8px; background: ${overtime > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(107, 114, 128, 0.1)'}; border-radius: 8px;">
                         <span style="font-weight: 600;">⚡ Heures sup:</span>
                         <span style="font-weight: 700; color: ${overtime > 0 ? '#ef4444' : '#6b7280'};">${formatHours(overtime)}</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(107, 114, 128, 0.1); border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; padding: 6px 8px; background: rgba(107, 114, 128, 0.1); border-radius: 8px;">
                         <span style="font-weight: 600;">📅 Jours travail:</span>
                         <span style="font-weight: 700; color: #6b7280;">${workDays}</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(16, 185, 129, 0.1); border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; padding: 6px 8px; background: rgba(16, 185, 129, 0.1); border-radius: 8px;">
                         <span style="font-weight: 600;">🏖️ Congés:</span>
                         <span style="font-weight: 700; color: #10b981;">${conges}</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; padding: 6px 8px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
                         <span style="font-weight: 600;">❌ Absences:</span>
                         <span style="font-weight: 700; color: #ef4444;">${absences}</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(245, 158, 11, 0.1); border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; padding: 6px 8px; background: rgba(245, 158, 11, 0.1); border-radius: 8px;">
                         <span style="font-weight: 600;">😴 Repos:</span>
                         <span style="font-weight: 700; color: #6b7280;">${repos}</span>
                     </div>
+                    ${dimanchesCount > 0 || feriesCount > 0 ? `
+                    <div style="display: flex; justify-content: space-between; padding: 6px 8px; background: rgba(139, 92, 246, 0.1); border-radius: 8px;">
+                        <span style="font-weight: 600;">🎌 Dim/Fériés:</span>
+                        <span style="font-weight: 700; color: #8b5cf6;">${dimanchesCount}/${feriesCount}</span>
+                    </div>
+                    ` : ''}
                 </div>
             `;
             
@@ -4750,6 +4925,676 @@ while (currentWeekStart <= lastDayOfMonth) {
             console.error('Erreur sauvegarde employé:', error);
             showToast('Erreur lors de la sauvegarde', 'error');
         }
+    }
+
+    // ============================================
+    // JOURS FÉRIÉS FRANÇAIS
+    // ============================================
+    function getJoursFeries(year) {
+        const feries = [];
+        
+        // Fêtes fixes
+        feries.push({ date: new Date(year, 0, 1), nom: "Jour de l'An" });
+        feries.push({ date: new Date(year, 4, 1), nom: "Fête du Travail" });
+        feries.push({ date: new Date(year, 4, 8), nom: "Victoire 1945" });
+        feries.push({ date: new Date(year, 6, 14), nom: "Fête Nationale" });
+        feries.push({ date: new Date(year, 7, 15), nom: "Assomption" });
+        feries.push({ date: new Date(year, 10, 1), nom: "Toussaint" });
+        feries.push({ date: new Date(year, 10, 11), nom: "Armistice" });
+        feries.push({ date: new Date(year, 11, 25), nom: "Noël" });
+        
+        // Calcul de Pâques (algorithme de Meeus/Jones/Butcher)
+        const a = year % 19;
+        const b = Math.floor(year / 100);
+        const c = year % 100;
+        const d = Math.floor(b / 4);
+        const e = b % 4;
+        const f = Math.floor((b + 8) / 25);
+        const g = Math.floor((b - f + 1) / 3);
+        const h = (19 * a + b - d - g + 15) % 30;
+        const i = Math.floor(c / 4);
+        const k = c % 4;
+        const l = (32 + 2 * e + 2 * i - h - k) % 7;
+        const m = Math.floor((a + 11 * h + 22 * l) / 451);
+        const month = Math.floor((h + l - 7 * m + 114) / 31) - 1;
+        const day = ((h + l - 7 * m + 114) % 31) + 1;
+        
+        const paques = new Date(year, month, day);
+        
+        // Lundi de Pâques (Pâques + 1)
+        const lundiPaques = new Date(paques);
+        lundiPaques.setDate(lundiPaques.getDate() + 1);
+        feries.push({ date: lundiPaques, nom: "Lundi de Pâques" });
+        
+        // Ascension (Pâques + 39)
+        const ascension = new Date(paques);
+        ascension.setDate(ascension.getDate() + 39);
+        feries.push({ date: ascension, nom: "Ascension" });
+        
+        // Lundi de Pentecôte (Pâques + 50)
+        const pentecote = new Date(paques);
+        pentecote.setDate(pentecote.getDate() + 50);
+        feries.push({ date: pentecote, nom: "Lundi de Pentecôte" });
+        
+        return feries;
+    }
+    
+    function isJourFerie(date) {
+        const feries = getJoursFeries(date.getFullYear());
+        return feries.find(f => 
+            f.date.getDate() === date.getDate() && 
+            f.date.getMonth() === date.getMonth()
+        );
+    }
+    
+    function isDimanche(date) {
+        return date.getDay() === 0;
+    }
+
+    // ============================================
+    // GESTION DES RETARDS
+    // ============================================
+    function openRetardModal(employeeId, day) {
+        document.getElementById('retardEmployeeId').value = employeeId;
+        document.getElementById('retardDay').value = day;
+        document.getElementById('retardHeures').value = 0;
+        document.getElementById('retardMinutes').value = 30;
+        document.getElementById('retardMotif').value = '';
+        document.getElementById('retardModal').style.display = 'block';
+    }
+    
+    function saveRetard(event) {
+        event.preventDefault();
+        
+        try {
+            const employeeId = document.getElementById('retardEmployeeId').value;
+            const day = parseInt(document.getElementById('retardDay').value);
+            const heures = parseInt(document.getElementById('retardHeures').value) || 0;
+            const minutes = parseInt(document.getElementById('retardMinutes').value) || 0;
+            const motif = document.getElementById('retardMotif').value.trim();
+            
+            const totalMinutes = heures * 60 + minutes;
+            if (totalMinutes === 0) {
+                showToast('Veuillez saisir une durée de retard', 'error');
+                return;
+            }
+            
+            const employee = globalState.employees.find(emp => emp.id === employeeId);
+            if (!employee) {
+                showToast('Employé non trouvé', 'error');
+                return;
+            }
+            
+            if (!employee.planning) employee.planning = {};
+            const weekKey = getWeekKey();
+            if (!employee.planning[weekKey]) employee.planning[weekKey] = {};
+            if (!employee.planning[weekKey][day]) employee.planning[weekKey][day] = [];
+            
+            // Formater la durée du retard
+            let retardText = '';
+            if (heures > 0 && minutes > 0) {
+                retardText = `⏰ -${heures}h${minutes.toString().padStart(2, '0')}`;
+            } else if (heures > 0) {
+                retardText = `⏰ -${heures}h`;
+            } else {
+                retardText = `⏰ -${minutes}min`;
+            }
+            if (motif) retardText += ` (${motif})`;
+            
+            const newShift = {
+                id: generateId(),
+                type: 'retard',
+                text: retardText,
+                retardMinutes: totalMinutes,
+                motif: motif
+            };
+            
+            employee.planning[weekKey][day].push(newShift);
+            
+            closeModal();
+            renderPlanning();
+            updateSummary();
+            saveData();
+            
+            showToast(`Retard de ${heures}h${minutes.toString().padStart(2, '0')} ajouté`, 'success');
+            
+        } catch (error) {
+            console.error('Erreur sauvegarde retard:', error);
+            showToast('Erreur lors de l\'ajout du retard', 'error');
+        }
+    }
+
+    // ============================================
+    // CALCUL DU SOLDE MENSUEL CUMULÉ
+    // ============================================
+    function calculateMonthlySolde(employee, targetMonth, targetYear) {
+        const contractHours = employee.contractHours || 35;
+        let totalWorkedHours = 0;
+        let totalRetardMinutes = 0;
+        let weeksInMonth = 0;
+        
+        // Parcourir toutes les semaines du mois
+        const firstDayOfMonth = new Date(targetYear, targetMonth, 1);
+        const lastDayOfMonth = new Date(targetYear, targetMonth + 1, 0);
+        
+        let currentWeekStart = new Date(firstDayOfMonth);
+        const dayOfWeek = currentWeekStart.getDay();
+        const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        currentWeekStart.setDate(currentWeekStart.getDate() + diff);
+        
+        while (currentWeekStart <= lastDayOfMonth) {
+            const year = currentWeekStart.getFullYear();
+            const firstDay = new Date(year, 0, 1);
+            const pastDays = (currentWeekStart - firstDay) / 86400000;
+            const weekNumber = Math.ceil((pastDays + firstDay.getDay() + 1) / 7);
+            const weekKey = `${year}-W${weekNumber}`;
+            
+            let weekHasWork = false;
+            
+            if (employee.planning && employee.planning[weekKey]) {
+                Object.keys(employee.planning[weekKey]).forEach(dayIndex => {
+                    const dayShifts = employee.planning[weekKey][dayIndex];
+                    const shiftDate = new Date(currentWeekStart);
+                    shiftDate.setDate(shiftDate.getDate() + parseInt(dayIndex));
+                    
+                    if (shiftDate.getMonth() === targetMonth) {
+                        dayShifts.forEach(shift => {
+                            if (shift.type === 'work' && shift.hours) {
+                                totalWorkedHours += parseHours(shift.hours);
+                                weekHasWork = true;
+                            }
+                            if (shift.type === 'retard' && shift.retardMinutes) {
+                                totalRetardMinutes += shift.retardMinutes;
+                            }
+                        });
+                    }
+                });
+            }
+            
+            if (weekHasWork) weeksInMonth++;
+            currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+        }
+        
+        // Calculer les heures attendues
+        const expectedHours = weeksInMonth * contractHours;
+        // Soustraire les retards des heures travaillées
+        const effectiveWorkedHours = totalWorkedHours - (totalRetardMinutes / 60);
+        // Calculer le solde
+        const solde = effectiveWorkedHours - expectedHours;
+        
+        return {
+            worked: totalWorkedHours,
+            retard: totalRetardMinutes / 60,
+            effective: effectiveWorkedHours,
+            expected: expectedHours,
+            solde: solde,
+            weeks: weeksInMonth
+        };
+    }
+
+    // ============================================
+    // RAZ SOLDES
+    // ============================================
+    function openRazSoldesModal() {
+        const select = document.getElementById('razSelection');
+        select.innerHTML = '<option value="tous">🌟 TOUS les employés</option>';
+        
+        globalState.employees.filter(emp => !emp.archived).forEach(emp => {
+            select.innerHTML += `<option value="${emp.id}">${emp.name}</option>`;
+        });
+        
+        document.getElementById('razSoldesModal').style.display = 'block';
+    }
+    
+    function executeRazSoldes() {
+        try {
+            const selection = document.getElementById('razSelection').value;
+            
+            if (selection === 'tous') {
+                if (!confirm('⚠️ Remettre à zéro le solde de TOUS les employés ?')) return;
+                
+                globalState.employees.forEach(emp => {
+                    emp.soldeRaz = new Date().toISOString();
+                });
+                showToast('Soldes de tous les employés remis à zéro', 'success');
+            } else {
+                const employee = globalState.employees.find(emp => emp.id === selection);
+                if (!employee) return;
+                
+                if (!confirm(`⚠️ Remettre à zéro le solde de ${employee.name} ?`)) return;
+                
+                employee.soldeRaz = new Date().toISOString();
+                showToast(`Solde de ${employee.name} remis à zéro`, 'success');
+            }
+            
+            closeModal();
+            updateSummary();
+            saveData();
+            
+        } catch (error) {
+            console.error('Erreur RAZ soldes:', error);
+            showToast('Erreur lors de la remise à zéro', 'error');
+        }
+    }
+
+    // ============================================
+    // EXPORT COMPTABLE
+    // ============================================
+    function openExportComptableModal() {
+        // Remplir la liste des employés
+        const select = document.getElementById('exportEmployes');
+        select.innerHTML = '<option value="tous">Tous les employés</option>';
+        
+        globalState.employees.filter(emp => !emp.archived).forEach(emp => {
+            select.innerHTML += `<option value="${emp.id}">${emp.name}</option>`;
+        });
+        
+        // Gérer l'affichage des dates personnalisées
+        document.getElementById('exportPeriode').addEventListener('change', function() {
+            document.getElementById('periodePersonnalisee').style.display = 
+                this.value === 'personnalise' ? 'block' : 'none';
+        });
+        
+        // Définir les dates par défaut
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        
+        document.getElementById('exportDateDebut').value = firstDay.toISOString().split('T')[0];
+        document.getElementById('exportDateFin').value = lastDay.toISOString().split('T')[0];
+        
+        document.getElementById('exportComptableModal').style.display = 'block';
+    }
+    
+    function generateExportComptable() {
+        try {
+            const periode = document.getElementById('exportPeriode').value;
+            const employeSelection = document.getElementById('exportEmployes').value;
+            
+            let dateDebut, dateFin, periodeLabel;
+            const now = new Date();
+            
+            if (periode === 'mois') {
+                dateDebut = new Date(now.getFullYear(), now.getMonth(), 1);
+                dateFin = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                periodeLabel = dateDebut.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+            } else if (periode === 'moisPrecedent') {
+                dateDebut = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                dateFin = new Date(now.getFullYear(), now.getMonth(), 0);
+                periodeLabel = dateDebut.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+            } else {
+                dateDebut = new Date(document.getElementById('exportDateDebut').value);
+                dateFin = new Date(document.getElementById('exportDateFin').value);
+                periodeLabel = `${dateDebut.toLocaleDateString('fr-FR')} au ${dateFin.toLocaleDateString('fr-FR')}`;
+            }
+            
+            // Filtrer les employés
+            let employees = globalState.employees.filter(emp => !emp.archived);
+            if (employeSelection !== 'tous') {
+                employees = employees.filter(emp => emp.id === employeSelection);
+            }
+            
+            // Créer le workbook Excel
+            const wb = XLSX.utils.book_new();
+            
+            // ===== FEUILLE 1 : RÉCAP GLOBAL =====
+            const recapData = [
+                ['RÉCAPITULATIF PAIE - ' + periodeLabel.toUpperCase()],
+                ['Généré le ' + new Date().toLocaleDateString('fr-FR') + ' à ' + new Date().toLocaleTimeString('fr-FR')],
+                [],
+                ['Employé', 'Contrat (h/sem)', 'H. Travaillées', 'H. Retard', 'H. Effectives', 'H. Sup', 'Absences', 'Congés', 'Dimanches', 'Fériés', 'Solde']
+            ];
+            
+            employees.forEach(emp => {
+                const stats = getEmployeeStats(emp, dateDebut, dateFin);
+                recapData.push([
+                    emp.name,
+                    emp.contractHours || 35,
+                    stats.totalHours.toFixed(2),
+                    stats.retardHours.toFixed(2),
+                    stats.effectiveHours.toFixed(2),
+                    stats.overtime.toFixed(2),
+                    stats.absences,
+                    stats.conges,
+                    stats.dimanches,
+                    stats.feries,
+                    (stats.solde >= 0 ? '+' : '') + stats.solde.toFixed(2)
+                ]);
+            });
+            
+            const wsRecap = XLSX.utils.aoa_to_sheet(recapData);
+            wsRecap['!cols'] = [
+                {wch: 20}, {wch: 15}, {wch: 15}, {wch: 12}, {wch: 15}, 
+                {wch: 10}, {wch: 10}, {wch: 10}, {wch: 12}, {wch: 10}, {wch: 10}
+            ];
+            XLSX.utils.book_append_sheet(wb, wsRecap, 'Récap Global');
+            
+            // ===== FEUILLE 2 : DÉTAIL PAR EMPLOYÉ =====
+            employees.forEach(emp => {
+                const detailData = [
+                    [`DÉTAIL - ${emp.name.toUpperCase()}`],
+                    [`Période: ${periodeLabel}`],
+                    [`Contrat: ${emp.contractHours || 35}h/semaine`],
+                    [],
+                    ['Date', 'Jour', 'Créneau', 'H. Travaillées', 'Retard', 'Type', 'Dimanche', 'Férié', 'Observation']
+                ];
+                
+                const details = getEmployeeDetailedStats(emp, dateDebut, dateFin);
+                details.forEach(d => {
+                    detailData.push([
+                        d.date,
+                        d.jour,
+                        d.creneau,
+                        d.heures,
+                        d.retard,
+                        d.type,
+                        d.dimanche ? '✓' : '',
+                        d.ferie ? '✓' : '',
+                        d.observation
+                    ]);
+                });
+                
+                // Ligne de total
+                const stats = getEmployeeStats(emp, dateDebut, dateFin);
+                detailData.push([]);
+                detailData.push(['TOTAL', '', '', stats.totalHours.toFixed(2), stats.retardHours.toFixed(2), '', stats.dimanches, stats.feries, '']);
+                
+                const wsDetail = XLSX.utils.aoa_to_sheet(detailData);
+                wsDetail['!cols'] = [
+                    {wch: 12}, {wch: 10}, {wch: 15}, {wch: 15}, {wch: 10},
+                    {wch: 12}, {wch: 10}, {wch: 10}, {wch: 25}
+                ];
+                XLSX.utils.book_append_sheet(wb, wsDetail, emp.name.substring(0, 30));
+            });
+            
+            // ===== FEUILLE 3 : CALENDRIER ÉVÉNEMENTS =====
+            const eventsData = [
+                ['CALENDRIER DES ÉVÉNEMENTS - ' + periodeLabel.toUpperCase()],
+                [],
+                ['Date', 'Employé', 'Type', 'Détail']
+            ];
+            
+            const allEvents = getAllEvents(employees, dateDebut, dateFin);
+            allEvents.forEach(evt => {
+                eventsData.push([evt.date, evt.employe, evt.type, evt.detail]);
+            });
+            
+            const wsEvents = XLSX.utils.aoa_to_sheet(eventsData);
+            wsEvents['!cols'] = [{wch: 12}, {wch: 20}, {wch: 15}, {wch: 40}];
+            XLSX.utils.book_append_sheet(wb, wsEvents, 'Événements');
+            
+            // Télécharger le fichier
+            const fileName = `Export_Paie_${periodeLabel.replace(/\s/g, '_')}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+            
+            closeModal();
+            showToast(`Export "${fileName}" généré avec succès !`, 'success');
+            
+        } catch (error) {
+            console.error('Erreur export comptable:', error);
+            showToast('Erreur lors de la génération de l\'export', 'error');
+        }
+    }
+    
+    function getEmployeeStats(employee, dateDebut, dateFin) {
+        let totalHours = 0;
+        let retardHours = 0;
+        let absences = 0;
+        let conges = 0;
+        let repos = 0;
+        let dimanches = 0;
+        let feries = 0;
+        let workDays = 0;
+        
+        const contractHours = employee.contractHours || 35;
+        
+        // Parcourir chaque jour de la période
+        let currentDate = new Date(dateDebut);
+        while (currentDate <= dateFin) {
+            const weekStart = getWeekStart(currentDate);
+            const year = weekStart.getFullYear();
+            const firstDay = new Date(year, 0, 1);
+            const pastDays = (weekStart - firstDay) / 86400000;
+            const weekNumber = Math.ceil((pastDays + firstDay.getDay() + 1) / 7);
+            const weekKey = `${year}-W${weekNumber}`;
+            const dayIndex = (currentDate.getDay() + 6) % 7; // Lundi = 0
+            
+            if (employee.planning && employee.planning[weekKey] && employee.planning[weekKey][dayIndex]) {
+                const dayShifts = employee.planning[weekKey][dayIndex];
+                let dayHasWork = false;
+                
+                dayShifts.forEach(shift => {
+                    switch(shift.type) {
+                        case 'work':
+                            if (shift.hours) {
+                                const hours = parseHours(shift.hours);
+                                totalHours += hours;
+                                dayHasWork = true;
+                                
+                                // Vérifier dimanche et férié
+                                if (isDimanche(currentDate)) dimanches++;
+                                const ferie = isJourFerie(currentDate);
+                                if (ferie) feries++;
+                            }
+                            break;
+                        case 'retard':
+                            if (shift.retardMinutes) {
+                                retardHours += shift.retardMinutes / 60;
+                            }
+                            break;
+                        case 'absent':
+                            absences++;
+                            break;
+                        case 'conges':
+                            conges++;
+                            break;
+                        case 'repos':
+                            repos++;
+                            break;
+                    }
+                });
+                
+                if (dayHasWork) workDays++;
+            }
+            
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        
+        // Calculer les heures effectives et overtime
+        const effectiveHours = totalHours - retardHours;
+        const weeksInPeriod = Math.ceil(workDays / 5) || 1;
+        const expectedHours = weeksInPeriod * contractHours;
+        const overtime = Math.max(0, effectiveHours - expectedHours);
+        const solde = effectiveHours - expectedHours;
+        
+        return {
+            totalHours,
+            retardHours,
+            effectiveHours,
+            expectedHours,
+            overtime,
+            absences,
+            conges,
+            repos,
+            dimanches,
+            feries,
+            workDays,
+            solde
+        };
+    }
+    
+    function getEmployeeDetailedStats(employee, dateDebut, dateFin) {
+        const details = [];
+        const jours = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+        
+        let currentDate = new Date(dateDebut);
+        while (currentDate <= dateFin) {
+            const weekStart = getWeekStart(currentDate);
+            const year = weekStart.getFullYear();
+            const firstDay = new Date(year, 0, 1);
+            const pastDays = (weekStart - firstDay) / 86400000;
+            const weekNumber = Math.ceil((pastDays + firstDay.getDay() + 1) / 7);
+            const weekKey = `${year}-W${weekNumber}`;
+            const dayIndex = (currentDate.getDay() + 6) % 7;
+            
+            const dateStr = currentDate.toLocaleDateString('fr-FR');
+            const jourStr = jours[currentDate.getDay()];
+            const isDim = isDimanche(currentDate);
+            const ferie = isJourFerie(currentDate);
+            
+            if (employee.planning && employee.planning[weekKey] && employee.planning[weekKey][dayIndex]) {
+                const dayShifts = employee.planning[weekKey][dayIndex];
+                
+                dayShifts.forEach(shift => {
+                    let creneau = '';
+                    let heures = '';
+                    let retard = '';
+                    let type = '';
+                    let observation = '';
+                    
+                    switch(shift.type) {
+                        case 'work':
+                            creneau = shift.text || '';
+                            heures = shift.hours || '';
+                            type = 'Travail';
+                            if (isDim) observation = 'Majoration dimanche';
+                            if (ferie) observation = `Férié (${ferie.nom})`;
+                            break;
+                        case 'retard':
+                            type = 'Retard';
+                            const mins = shift.retardMinutes || 0;
+                            retard = `-${Math.floor(mins/60)}h${(mins%60).toString().padStart(2,'0')}`;
+                            observation = shift.motif || '';
+                            break;
+                        case 'absent':
+                            type = 'Absence';
+                            observation = shift.text || 'Non justifiée';
+                            break;
+                        case 'conges':
+                            type = 'Congé';
+                            break;
+                        case 'repos':
+                            type = 'Repos';
+                            break;
+                        case 'cours':
+                            type = 'Formation';
+                            break;
+                        default:
+                            type = shift.type;
+                            observation = shift.text || '';
+                    }
+                    
+                    details.push({
+                        date: dateStr,
+                        jour: jourStr,
+                        creneau,
+                        heures,
+                        retard,
+                        type,
+                        dimanche: isDim && shift.type === 'work',
+                        ferie: ferie && shift.type === 'work' ? ferie.nom : null,
+                        observation
+                    });
+                });
+            }
+            
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        
+        return details;
+    }
+    
+    function getAllEvents(employees, dateDebut, dateFin) {
+        const events = [];
+        
+        // Ajouter les jours fériés
+        const feries = getJoursFeries(dateDebut.getFullYear());
+        feries.forEach(f => {
+            if (f.date >= dateDebut && f.date <= dateFin) {
+                events.push({
+                    date: f.date.toLocaleDateString('fr-FR'),
+                    employe: 'TOUS',
+                    type: '🎌 Férié',
+                    detail: f.nom
+                });
+            }
+        });
+        
+        // Parcourir les employés
+        employees.forEach(emp => {
+            let currentDate = new Date(dateDebut);
+            while (currentDate <= dateFin) {
+                const weekStart = getWeekStart(currentDate);
+                const year = weekStart.getFullYear();
+                const firstDay = new Date(year, 0, 1);
+                const pastDays = (weekStart - firstDay) / 86400000;
+                const weekNumber = Math.ceil((pastDays + firstDay.getDay() + 1) / 7);
+                const weekKey = `${year}-W${weekNumber}`;
+                const dayIndex = (currentDate.getDay() + 6) % 7;
+                
+                if (emp.planning && emp.planning[weekKey] && emp.planning[weekKey][dayIndex]) {
+                    emp.planning[weekKey][dayIndex].forEach(shift => {
+                        const dateStr = currentDate.toLocaleDateString('fr-FR');
+                        
+                        if (shift.type === 'work' && isDimanche(currentDate)) {
+                            events.push({
+                                date: dateStr,
+                                employe: emp.name,
+                                type: '📅 Dimanche',
+                                detail: `${shift.text} (${shift.hours})`
+                            });
+                        }
+                        
+                        if (shift.type === 'retard') {
+                            const mins = shift.retardMinutes || 0;
+                            events.push({
+                                date: dateStr,
+                                employe: emp.name,
+                                type: '⏰ Retard',
+                                detail: `${Math.floor(mins/60)}h${(mins%60).toString().padStart(2,'0')}${shift.motif ? ' - ' + shift.motif : ''}`
+                            });
+                        }
+                        
+                        if (shift.type === 'absent') {
+                            events.push({
+                                date: dateStr,
+                                employe: emp.name,
+                                type: '❌ Absence',
+                                detail: shift.text || 'Non justifiée'
+                            });
+                        }
+                        
+                        if (shift.type === 'conges') {
+                            events.push({
+                                date: dateStr,
+                                employe: emp.name,
+                                type: '🏖️ Congé',
+                                detail: 'Journée complète'
+                            });
+                        }
+                    });
+                }
+                
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+        });
+        
+        // Trier par date
+        events.sort((a, b) => {
+            const dateA = a.date.split('/').reverse().join('');
+            const dateB = b.date.split('/').reverse().join('');
+            return dateA.localeCompare(dateB);
+        });
+        
+        return events;
+    }
+    
+    function getWeekStart(date) {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = day === 0 ? -6 : 1 - day;
+        d.setDate(d.getDate() + diff);
+        return d;
     }
 
     
