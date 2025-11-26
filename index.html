@@ -1386,6 +1386,15 @@
             <input type="hidden" id="heuresAbsenceDay">
             <input type="hidden" id="heuresAbsenceType">
             <div class="form-group">
+                <label>🕐 Horaires (optionnel) :</label>
+                <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+                    <input type="time" id="heuresAbsenceStart" value="09:00" style="padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                    <span style="font-weight: 600;">-</span>
+                    <input type="time" id="heuresAbsenceEnd" value="17:00" style="padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                    <button type="button" onclick="calculateHeuresFromTime()" class="btn" style="padding: 8px 12px; font-size: 12px;">📊 Calculer</button>
+                </div>
+            </div>
+            <div class="form-group">
                 <label>Heures à comptabiliser :</label>
                 <p style="color: #6b7280; font-size: 12px; margin-bottom: 10px;">Ces heures seront ajoutées au total travaillé</p>
                 <div style="display: flex; gap: 10px; align-items: center;">
@@ -1400,7 +1409,7 @@
                 <input type="text" id="heuresAbsenceNote" placeholder="Ex: Formation CFA, Toussaint..." style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
             </div>
             <div style="background: #dbeafe; border: 1px solid #3b82f6; border-radius: 8px; padding: 12px; margin-top: 15px;">
-                <p style="color: #1e40af; font-size: 13px;">💡 <strong>Astuce :</strong> Pour un contrat 35h → 7h/jour, pour 39h → 7h48/jour</p>
+                <p style="color: #1e40af; font-size: 13px;">💡 <strong>Astuce :</strong> Renseigne les horaires et clique sur "Calculer" pour remplir automatiquement les heures</p>
             </div>
             <div class="form-actions" style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
                 <button type="button" class="btn" onclick="closeModal()">Annuler</button>
@@ -2939,7 +2948,22 @@ weekStart.setDate(date.getDate() + diff2);
             dayHeader.className = 'grid-header';
             const date = new Date(globalState.currentWeek);
             date.setDate(date.getDate() + index);
-            dayHeader.innerHTML = `${day}<br><small>${date.getDate()}</small>`;
+            
+            // Vérifier si c'est un jour férié
+            const jourFerie = isJourFerie(date);
+            let ferieLabel = '';
+            
+            if (jourFerie) {
+                dayHeader.style.backgroundColor = 'rgba(156, 163, 175, 0.3)';
+                ferieLabel = `<br><small style="color: #8b5cf6; font-size: 9px;">🎌 ${jourFerie.nom}</small>`;
+            }
+            
+            // Fond gris pour le dimanche
+            if (date.getDay() === 0) {
+                dayHeader.style.backgroundColor = 'rgba(156, 163, 175, 0.4)';
+            }
+            
+            dayHeader.innerHTML = `${day}<br><small>${date.getDate()}</small>${ferieLabel}`;
             grid.appendChild(dayHeader);
         });
         
@@ -3059,6 +3083,20 @@ weekStart.setDate(date.getDate() + diff2);
                 dayCell.className = 'day-cell';
                 dayCell.dataset.employeeId = employee.id;
                 dayCell.dataset.day = day;
+                
+                // Vérifier si c'est un jour férié pour appliquer le fond gris
+                const dayDate = new Date(globalState.currentWeek);
+                dayDate.setDate(dayDate.getDate() + day);
+                const jourFerie = isJourFerie(dayDate);
+                
+                if (jourFerie) {
+                    dayCell.style.backgroundColor = 'rgba(156, 163, 175, 0.15)';
+                }
+                
+                // Fond gris plus foncé pour le dimanche
+                if (dayDate.getDay() === 0) {
+                    dayCell.style.backgroundColor = 'rgba(156, 163, 175, 0.25)';
+                }
                 
                 if (globalState.isAdminMode) {
                     dayCell.addEventListener('dragover', handleDragOver);
@@ -3773,13 +3811,13 @@ let totalHours = 0;
     }
 
     // ============================================
-    // RÉCAPITULATIF MENSUEL
+    // RÉCAPITULATIF MENSUEL (même format que semaine)
     // ============================================
     function generateMonthRecap(container, employees) {
-        // Obtenir le début et la fin du mois de la semaine courante
         const currentDate = new Date(globalState.currentWeek);
         const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
         const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        const monthName = currentDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
         
         employees.forEach(employee => {
             let workHours = 0;
@@ -3788,14 +3826,17 @@ let totalHours = 0;
             let conges = 0;
             let repos = 0;
             let cours = 0;
+            let retardMinutes = 0;
+            let dimanchesCount = 0;
+            let feriesCount = 0;
 
-// Parcourir toutes les semaines du mois
-let currentWeekStart = new Date(firstDayOfMonth);
-const dayOfWeek3 = currentWeekStart.getDay();
-const diff3 = dayOfWeek3 === 0 ? -6 : 1 - dayOfWeek3;
-currentWeekStart.setDate(currentWeekStart.getDate() + diff3);
+            // Parcourir toutes les semaines du mois
+            let currentWeekStart = new Date(firstDayOfMonth);
+            const dayOfWeek3 = currentWeekStart.getDay();
+            const diff3 = dayOfWeek3 === 0 ? -6 : 1 - dayOfWeek3;
+            currentWeekStart.setDate(currentWeekStart.getDate() + diff3);
 
-while (currentWeekStart <= lastDayOfMonth) {
+            while (currentWeekStart <= lastDayOfMonth) {
                 const year = currentWeekStart.getFullYear();
                 const firstDay = new Date(year, 0, 1);
                 const pastDays = (currentWeekStart - firstDay) / 86400000;
@@ -3806,20 +3847,24 @@ while (currentWeekStart <= lastDayOfMonth) {
                     Object.keys(employee.planning[weekKey]).forEach(dayIndex => {
                         const dayShifts = employee.planning[weekKey][dayIndex];
                         
-                        // Calculer la date du jour
                         const shiftDate = new Date(currentWeekStart);
                         shiftDate.setDate(shiftDate.getDate() + parseInt(dayIndex));
                         
-                        // Vérifier si le jour est dans le mois
                         if (shiftDate.getMonth() === currentDate.getMonth()) {
                             let hasWork = false;
                             dayShifts.forEach(shift => {
                                 switch(shift.type) {
                                     case 'work':
                                         if (shift.hours) {
-                                            const hours = parseHours(shift.hours);
-                                            workHours += hours;
+                                            workHours += parseHours(shift.hours);
                                             hasWork = true;
+                                            if (isDimanche(shiftDate)) dimanchesCount++;
+                                            if (isJourFerie(shiftDate)) feriesCount++;
+                                        }
+                                        break;
+                                    case 'retard':
+                                        if (shift.retardMinutes) {
+                                            retardMinutes += shift.retardMinutes;
                                         }
                                         break;
                                     case 'absent':
@@ -3827,12 +3872,27 @@ while (currentWeekStart <= lastDayOfMonth) {
                                         break;
                                     case 'conges':
                                         conges++;
+                                        if (shift.hours) {
+                                            workHours += parseHours(shift.hours);
+                                            hasWork = true;
+                                        }
                                         break;
                                     case 'repos':
                                         repos++;
                                         break;
                                     case 'cours':
                                         cours++;
+                                        if (shift.hours) {
+                                            workHours += parseHours(shift.hours);
+                                            hasWork = true;
+                                        }
+                                        break;
+                                    case 'ferie':
+                                        feriesCount++;
+                                        if (shift.hours) {
+                                            workHours += parseHours(shift.hours);
+                                            hasWork = true;
+                                        }
                                         break;
                                 }
                             });
@@ -3844,21 +3904,27 @@ while (currentWeekStart <= lastDayOfMonth) {
                 currentWeekStart.setDate(currentWeekStart.getDate() + 7);
             }
             
-            const monthName = currentDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
             const contractHours = employee.contractHours || 35;
-            // Calcul des heures attendues selon le contrat (contrat hebdo * nb semaines travaillées)
-            const weeksWorked = Math.ceil(workDays / 5) || 1;
-            const expectedHours = weeksWorked * contractHours;
-            const overtime = Math.max(0, workHours - expectedHours);
-            const deficit = Math.max(0, expectedHours - workHours);
+            const retardHours = retardMinutes / 60;
+            
+            // Calculer les heures attendues pour le mois (4 ou 5 semaines selon le mois)
+            const weeksInMonth = Math.ceil((lastDayOfMonth.getDate()) / 7);
+            const expectedHours = weeksInMonth * contractHours;
+            
+            const effectiveHours = workHours - retardHours;
+            const diff = effectiveHours - expectedHours;
+            const overtime = Math.max(0, diff);
+            const deficit = Math.max(0, -diff);
             
             // Déterminer la couleur selon le statut
-            let statusColor = '#10b981'; // Vert par défaut
+            let statusColor = '#10b981';
             if (overtime > 0) {
-                statusColor = '#ef4444'; // Rouge pour heures sup
+                statusColor = '#ef4444';
             } else if (deficit > 0) {
-                statusColor = '#f59e0b'; // Orange pour déficit
+                statusColor = '#f59e0b';
             }
+            
+            const diffText = diff >= 0 ? `+${formatHours(diff)}` : `-${formatHours(Math.abs(diff))}`;
             
             const recapCard = document.createElement('div');
             recapCard.style.cssText = `
@@ -3874,32 +3940,46 @@ while (currentWeekStart <= lastDayOfMonth) {
                     <h4 style="color: #374151; font-size: 1.2em; font-weight: 700;">${employee.name}</h4>
                     <span style="background: ${statusColor}20; color: ${statusColor}; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600;">📋 Contrat ${contractHours}h/sem</span>
                 </div>
-                <p style="color: #6b7280; font-size: 12px; margin-bottom: 15px; text-transform: capitalize;">${monthName}</p>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
-                    <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(102, 126, 234, 0.1); border-radius: 8px;">
+                <p style="color: #6b7280; font-size: 12px; margin-bottom: 10px; text-transform: capitalize;">${monthName}</p>
+                <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                    <span style="background: ${statusColor}15; color: ${statusColor}; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">Mois: ${diffText}</span>
+                    <span style="background: rgba(107, 114, 128, 0.15); color: #6b7280; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">Attendu: ${formatHours(expectedHours)}</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+                    <div style="display: flex; justify-content: space-between; padding: 6px 8px; background: rgba(102, 126, 234, 0.1); border-radius: 8px;">
                         <span style="font-weight: 600;">⏰ Total heures:</span>
-                        <span style="font-weight: 700; color: ${statusColor};">${formatHours(workHours)}</span>
+                        <span style="font-weight: 700; color: #667eea;">${formatHours(workHours)}</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between; padding: 8px; background: ${overtime > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(107, 114, 128, 0.1)'}; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; padding: 6px 8px; background: ${retardHours > 0 ? 'rgba(249, 115, 22, 0.1)' : 'rgba(107, 114, 128, 0.1)'}; border-radius: 8px;">
+                        <span style="font-weight: 600;">⏰ Retards:</span>
+                        <span style="font-weight: 700; color: ${retardHours > 0 ? '#f97316' : '#6b7280'};">${retardHours > 0 ? '-' : ''}${formatHours(retardHours)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 6px 8px; background: ${overtime > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(107, 114, 128, 0.1)'}; border-radius: 8px;">
                         <span style="font-weight: 600;">⚡ Heures sup:</span>
                         <span style="font-weight: 700; color: ${overtime > 0 ? '#ef4444' : '#6b7280'};">${formatHours(overtime)}</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(107, 114, 128, 0.1); border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; padding: 6px 8px; background: rgba(107, 114, 128, 0.1); border-radius: 8px;">
                         <span style="font-weight: 600;">📅 Jours travail:</span>
                         <span style="font-weight: 700; color: #6b7280;">${workDays}</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(16, 185, 129, 0.1); border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; padding: 6px 8px; background: rgba(16, 185, 129, 0.1); border-radius: 8px;">
                         <span style="font-weight: 600;">🏖️ Congés:</span>
                         <span style="font-weight: 700; color: #10b981;">${conges}</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; padding: 6px 8px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
                         <span style="font-weight: 600;">❌ Absences:</span>
                         <span style="font-weight: 700; color: #ef4444;">${absences}</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(245, 158, 11, 0.1); border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; padding: 6px 8px; background: rgba(245, 158, 11, 0.1); border-radius: 8px;">
                         <span style="font-weight: 600;">😴 Repos:</span>
                         <span style="font-weight: 700; color: #6b7280;">${repos}</span>
                     </div>
+                    ${dimanchesCount > 0 || feriesCount > 0 ? `
+                    <div style="display: flex; justify-content: space-between; padding: 6px 8px; background: rgba(139, 92, 246, 0.1); border-radius: 8px;">
+                        <span style="font-weight: 600;">🎌 Dim/Fériés:</span>
+                        <span style="font-weight: 700; color: #8b5cf6;">${dimanchesCount}/${feriesCount}</span>
+                    </div>
+                    ` : ''}
                 </div>
             `;
             
@@ -5181,9 +5261,27 @@ while (currentWeekStart <= lastDayOfMonth) {
         document.getElementById('heuresAbsenceType').value = type;
         document.getElementById('heuresAbsenceHeures').value = defaultHours;
         document.getElementById('heuresAbsenceMinutes').value = defaultMinutes;
+        document.getElementById('heuresAbsenceStart').value = '09:00';
+        document.getElementById('heuresAbsenceEnd').value = '17:00';
         document.getElementById('heuresAbsenceNote').value = '';
         
         document.getElementById('heuresAbsenceModal').style.display = 'block';
+    }
+    
+    function calculateHeuresFromTime() {
+        const start = document.getElementById('heuresAbsenceStart').value;
+        const end = document.getElementById('heuresAbsenceEnd').value;
+        
+        if (start && end) {
+            const hours = calculateHours(start, end);
+            const h = Math.floor(hours);
+            const m = Math.round((hours - h) * 60);
+            
+            document.getElementById('heuresAbsenceHeures').value = h;
+            document.getElementById('heuresAbsenceMinutes').value = m;
+            
+            showToast(`Heures calculées : ${formatHours(hours)}`, 'success');
+        }
     }
     
     function saveHeuresAbsence(event) {
@@ -5196,6 +5294,8 @@ while (currentWeekStart <= lastDayOfMonth) {
             const heures = parseInt(document.getElementById('heuresAbsenceHeures').value) || 0;
             const minutes = parseInt(document.getElementById('heuresAbsenceMinutes').value) || 0;
             const note = document.getElementById('heuresAbsenceNote').value.trim();
+            const startTime = document.getElementById('heuresAbsenceStart').value;
+            const endTime = document.getElementById('heuresAbsenceEnd').value;
             
             const employee = globalState.employees.find(emp => emp.id === employeeId);
             if (!employee) {
@@ -5218,14 +5318,21 @@ while (currentWeekStart <= lastDayOfMonth) {
                 'ferie': '🎌 Férié'
             };
             
-            let displayText = `${labels[type]} (${hoursText})`;
+            // Afficher les horaires dans la case si renseignés
+            let displayText = `${labels[type]}`;
+            if (startTime && endTime) {
+                displayText += ` ${startTime}-${endTime}`;
+            }
+            displayText += ` (${hoursText})`;
             if (note) displayText += ` - ${note}`;
             
             const newShift = {
                 id: generateId(),
                 type: type,
                 text: displayText,
-                hours: hoursText,  // Important : on stocke les heures pour le calcul
+                hours: hoursText,
+                startTime: startTime,
+                endTime: endTime,
                 note: note
             };
             
