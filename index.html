@@ -1727,14 +1727,14 @@
                     console.log('📋 Semaines types chargées:', globalState.weekTemplates.length);
                 }
 
-                if (cloudData.currentWeek) {
-    const loadedDate = new Date(cloudData.currentWeek);
-    const dayOfWeek = loadedDate.getDay();
-    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    loadedDate.setDate(loadedDate.getDate() + diff);
-    globalState.currentWeek = loadedDate;
-    updateWeekDisplay();
-}
+                // 🔥 MODIFIÉ : Toujours afficher la semaine courante à l'ouverture
+                // On ne charge plus la semaine sauvegardée, on garde la date du jour
+                const today = new Date();
+                const dayOfWeek = today.getDay();
+                const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                today.setDate(today.getDate() + diff);
+                globalState.currentWeek = today;
+                updateWeekDisplay();
 
                 renderPlanning();
                 updateSummary();
@@ -2956,15 +2956,26 @@ weekStart.setDate(date.getDate() + diff2);
             }
             
             const contractHours = employee.contractHours || 35;
+            const retardHours = retardMins / 60;
+            const effectiveWeekHours = weekHours - retardHours;
+            const weekDiff = effectiveWeekHours - contractHours;
+            
+            // Calcul du solde mensuel (mois courant uniquement)
             const currentDate = new Date(globalState.currentWeek);
             const monthSolde = calculateMonthlySolde(employee, currentDate.getMonth(), currentDate.getFullYear());
             
-            // Couleur du solde
-            let soldeColor = '#10b981'; // vert
-            if (monthSolde.solde > 0) soldeColor = '#ef4444'; // rouge heures sup
-            else if (monthSolde.solde < 0) soldeColor = '#f59e0b'; // orange déficit
+            // Couleur du solde semaine
+            let weekSoldeColor = '#10b981'; // vert
+            if (weekDiff > 0) weekSoldeColor = '#ef4444'; // rouge heures sup
+            else if (weekDiff < 0) weekSoldeColor = '#f59e0b'; // orange déficit
             
-            const soldeText = monthSolde.solde >= 0 ? `+${formatHours(monthSolde.solde)}` : `${formatHours(monthSolde.solde)}`;
+            // Couleur du solde mois
+            let monthSoldeColor = '#10b981'; // vert
+            if (monthSolde.solde > 0) monthSoldeColor = '#ef4444'; // rouge heures sup
+            else if (monthSolde.solde < 0) monthSoldeColor = '#f59e0b'; // orange déficit
+            
+            const weekSoldeText = weekDiff >= 0 ? `+${formatHours(weekDiff)}` : `${formatHours(weekDiff)}`;
+            const monthSoldeText = monthSolde.solde >= 0 ? `+${formatHours(monthSolde.solde)}` : `${formatHours(monthSolde.solde)}`;
             
             empCell.innerHTML = `
                 <div class="employee-name">
@@ -2972,8 +2983,8 @@ weekStart.setDate(date.getDate() + diff2);
                 </div>
                 <div class="employee-role">${employee.role}</div>
                 <div class="employee-hours">${formatHours(weekHours)} | ${workDays} jours</div>
-                <div class="employee-contract" style="font-size: 10px; color: #8b5cf6; font-weight: 600; margin-top: 2px;">📋 ${contractHours}h/sem</div>
-                <div style="font-size: 10px; color: ${soldeColor}; font-weight: 700; margin-top: 2px;">📊 Solde: ${soldeText}</div>
+                <div style="font-size: 10px; color: ${weekSoldeColor}; font-weight: 700; margin-top: 2px;">📅 Sem: ${weekSoldeText}</div>
+                <div style="font-size: 10px; color: ${monthSoldeColor}; font-weight: 700; margin-top: 1px;">📊 Mois: ${monthSoldeText}</div>
                 ${globalState.isAdminMode ? `
                     <button class="remove-emp" onclick="removeEmployee('${employee.id}')" title="Supprimer">×</button>
                     <button class="edit-emp" onclick="openEditEmployeeModal('${employee.id}')" title="Modifier contrat" style="position: absolute; top: 5px; left: 5px; background: #8b5cf6; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✏️</button>
@@ -5066,16 +5077,27 @@ while (currentWeekStart <= lastDayOfMonth) {
 
     // ============================================
     // CALCUL DU SOLDE MENSUEL CUMULÉ
+    // Le solde repart à 0 automatiquement chaque 1er du mois
     // ============================================
     function calculateMonthlySolde(employee, targetMonth, targetYear) {
         const contractHours = employee.contractHours || 35;
         let totalWorkedHours = 0;
         let totalRetardMinutes = 0;
-        let weeksInMonth = 0;
+        let workDaysInMonth = 0;
+        
+        // Vérifier si une RAZ manuelle a été faite ce mois-ci
+        let razDate = null;
+        if (employee.soldeRaz) {
+            const razD = new Date(employee.soldeRaz);
+            if (razD.getMonth() === targetMonth && razD.getFullYear() === targetYear) {
+                razDate = razD;
+            }
+        }
         
         // Parcourir toutes les semaines du mois
         const firstDayOfMonth = new Date(targetYear, targetMonth, 1);
         const lastDayOfMonth = new Date(targetYear, targetMonth + 1, 0);
+        const today = new Date();
         
         let currentWeekStart = new Date(firstDayOfMonth);
         const dayOfWeek = currentWeekStart.getDay();
@@ -5089,34 +5111,43 @@ while (currentWeekStart <= lastDayOfMonth) {
             const weekNumber = Math.ceil((pastDays + firstDay.getDay() + 1) / 7);
             const weekKey = `${year}-W${weekNumber}`;
             
-            let weekHasWork = false;
-            
             if (employee.planning && employee.planning[weekKey]) {
                 Object.keys(employee.planning[weekKey]).forEach(dayIndex => {
                     const dayShifts = employee.planning[weekKey][dayIndex];
                     const shiftDate = new Date(currentWeekStart);
                     shiftDate.setDate(shiftDate.getDate() + parseInt(dayIndex));
                     
-                    if (shiftDate.getMonth() === targetMonth) {
+                    // Vérifier que le jour est dans le mois cible
+                    if (shiftDate.getMonth() === targetMonth && shiftDate.getFullYear() === targetYear) {
+                        // Si RAZ, ne compter que les jours après la RAZ
+                        if (razDate && shiftDate < razDate) return;
+                        
+                        let dayHasWork = false;
                         dayShifts.forEach(shift => {
                             if (shift.type === 'work' && shift.hours) {
                                 totalWorkedHours += parseHours(shift.hours);
-                                weekHasWork = true;
+                                dayHasWork = true;
                             }
                             if (shift.type === 'retard' && shift.retardMinutes) {
                                 totalRetardMinutes += shift.retardMinutes;
                             }
                         });
+                        if (dayHasWork) workDaysInMonth++;
                     }
                 });
             }
             
-            if (weekHasWork) weeksInMonth++;
             currentWeekStart.setDate(currentWeekStart.getDate() + 7);
         }
         
-        // Calculer les heures attendues
-        const expectedHours = weeksInMonth * contractHours;
+        // Calculer les heures attendues basées sur les semaines écoulées du mois
+        // On calcule le nombre de semaines depuis le début du mois (ou depuis RAZ)
+        const startDate = razDate || firstDayOfMonth;
+        const endDate = today < lastDayOfMonth ? today : lastDayOfMonth;
+        const daysElapsed = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+        const weeksElapsed = Math.max(1, Math.ceil(daysElapsed / 7));
+        
+        const expectedHours = weeksElapsed * contractHours;
         // Soustraire les retards des heures travaillées
         const effectiveWorkedHours = totalWorkedHours - (totalRetardMinutes / 60);
         // Calculer le solde
@@ -5128,7 +5159,8 @@ while (currentWeekStart <= lastDayOfMonth) {
             effective: effectiveWorkedHours,
             expected: expectedHours,
             solde: solde,
-            weeks: weeksInMonth
+            workDays: workDaysInMonth,
+            weeksElapsed: weeksElapsed
         };
     }
 
