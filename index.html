@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -1049,6 +1048,10 @@
             <label>💼 Poste</label>
             <input type="text" id="empRole" placeholder="Fonction">
         </div>
+        <div class="control-group">
+            <label>📋 Contrat (h/sem)</label>
+            <input type="number" id="empContractHours" placeholder="35" value="35" min="1" max="48" style="width: 80px;">
+        </div>
         <button class="btn" onclick="addEmployee()">➕ Ajouter</button>
     </div>
 
@@ -1293,6 +1296,33 @@
     </div>
 </div>
 
+<!-- MODALE ÉDITION EMPLOYÉ -->
+<div id="editEmployeeModal" class="modal">
+    <div class="modal-content" style="max-width: 450px;">
+        <h2>✏️ Modifier l'Employé</h2>
+        <form id="editEmployeeForm" onsubmit="saveEditedEmployee(event)">
+            <input type="hidden" id="editEmpId">
+            <div class="form-group">
+                <label>👤 Nom complet:</label>
+                <input type="text" id="editEmpName" required style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+            </div>
+            <div class="form-group">
+                <label>💼 Poste/Fonction:</label>
+                <input type="text" id="editEmpRole" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+            </div>
+            <div class="form-group">
+                <label>📋 Heures contrat par semaine:</label>
+                <input type="number" id="editEmpContractHours" min="1" max="48" required style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                <p style="color: #6b7280; font-size: 12px; margin-top: 5px;">Exemples: 35h (temps plein), 24h (temps partiel), 39h...</p>
+            </div>
+            <div class="form-actions" style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" class="btn" onclick="closeModal()">Annuler</button>
+                <button type="submit" class="btn admin">💾 Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     const firebaseConfig = {
         apiKey: "AIzaSyAfR_JWPDlpvSLA3NzmQbaznZ4F96eUJ9A",
@@ -1471,6 +1501,7 @@
                 id: emp.id,
                 name: emp.name || '',
                 role: emp.role || '',
+                contractHours: emp.contractHours || 35,
                 planning: {},
                 // 🔥 AJOUT : Sauvegarder les propriétés d'archivage
                 archived: emp.archived || false,
@@ -2423,6 +2454,7 @@ weekStart.setDate(date.getDate() + diff2);
         
         const name = document.getElementById('empName').value.trim();
         const role = document.getElementById('empRole').value.trim();
+        const contractHours = parseInt(document.getElementById('empContractHours').value) || 35;
         
         if (!name) {
             showToast('Le nom est requis', 'error');
@@ -2442,6 +2474,7 @@ weekStart.setDate(date.getDate() + diff2);
             id: generateId(),
             name: name,
             role: role || 'Employé',
+            contractHours: contractHours,
             planning: {}
         };
         
@@ -2449,6 +2482,7 @@ weekStart.setDate(date.getDate() + diff2);
         
         document.getElementById('empName').value = '';
         document.getElementById('empRole').value = '';
+        document.getElementById('empContractHours').value = '35';
         
         renderPlanning();
         updateSummary();
@@ -2809,14 +2843,18 @@ weekStart.setDate(date.getDate() + diff2);
                 });
             }
             
+            const contractHours = employee.contractHours || 35;
+            
             empCell.innerHTML = `
                 <div class="employee-name">
                     ${globalState.isAdminMode ? '⬍⬍ ' : ''}${employee.name}
                 </div>
                 <div class="employee-role">${employee.role}</div>
                 <div class="employee-hours">${formatHours(weekHours)} | ${workDays} jours</div>
+                <div class="employee-contract" style="font-size: 10px; color: #8b5cf6; font-weight: 600; margin-top: 2px;">📋 Contrat: ${contractHours}h</div>
                 ${globalState.isAdminMode ? `
                     <button class="remove-emp" onclick="removeEmployee('${employee.id}')" title="Supprimer">×</button>
+                    <button class="edit-emp" onclick="openEditEmployeeModal('${employee.id}')" title="Modifier contrat" style="position: absolute; top: 5px; left: 5px; background: #8b5cf6; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✏️</button>
                     <button class="copy-week-btn" onclick="copyEmployeeWeek('${employee.id}')" title="Copier semaine">📋</button>
                     <button class="paste-week-btn" onclick="pasteEmployeeWeek('${employee.id}')" title="Coller semaine" style="opacity: ${globalState.copiedWeek ? '1' : '0.3'};">📥</button>
                 ` : ''}
@@ -3412,7 +3450,9 @@ let totalHours = 0;
                 });
             }
             
-            const overtime = Math.max(0, workHours - 35);
+            const contractHours = employee.contractHours || 35;
+            const overtime = Math.max(0, workHours - contractHours);
+            const deficit = Math.max(0, contractHours - workHours);
             
             const recapCard = document.createElement('div');
             recapCard.style.cssText = `
@@ -3423,16 +3463,30 @@ let totalHours = 0;
                 border: 1px solid rgba(255, 255, 255, 0.3);
             `;
             
+            // Déterminer la couleur selon le statut
+            let statusColor = '#10b981'; // Vert par défaut
+            let statusIcon = '✅';
+            if (overtime > 0) {
+                statusColor = '#ef4444'; // Rouge pour heures sup
+                statusIcon = '⚡';
+            } else if (deficit > 0) {
+                statusColor = '#f59e0b'; // Orange pour déficit
+                statusIcon = '⚠️';
+            }
+            
             recapCard.innerHTML = `
-                <h4 style="color: #374151; margin-bottom: 15px; font-size: 1.2em; font-weight: 700;">${employee.name}</h4>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h4 style="color: #374151; font-size: 1.2em; font-weight: 700;">${employee.name}</h4>
+                    <span style="background: ${statusColor}20; color: ${statusColor}; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600;">📋 Contrat ${contractHours}h</span>
+                </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
                     <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(102, 126, 234, 0.1); border-radius: 8px;">
                         <span style="font-weight: 600;">⏰ Heures travail:</span>
-                        <span style="font-weight: 700; color: ${workHours > 35 ? '#ef4444' : '#10b981'};">${formatHours(workHours)}</span>
+                        <span style="font-weight: 700; color: ${statusColor};">${formatHours(workHours)}</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; padding: 8px; background: ${overtime > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(107, 114, 128, 0.1)'}; border-radius: 8px;">
                         <span style="font-weight: 600;">⚡ Heures sup:</span>
-                        <span style="font-weight: 700; color: #ef4444;">${formatHours(overtime)}</span>
+                        <span style="font-weight: 700; color: ${overtime > 0 ? '#ef4444' : '#6b7280'};">${formatHours(overtime)}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(107, 114, 128, 0.1); border-radius: 8px;">
                         <span style="font-weight: 600;">📅 Jours travail:</span>
@@ -3530,8 +3584,20 @@ while (currentWeekStart <= lastDayOfMonth) {
             }
             
             const monthName = currentDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-            const expectedHours = Math.floor((workDays / 5) * 35); // Estimation basée sur 35h/semaine
+            const contractHours = employee.contractHours || 35;
+            // Calcul des heures attendues selon le contrat (contrat hebdo * nb semaines travaillées)
+            const weeksWorked = Math.ceil(workDays / 5) || 1;
+            const expectedHours = weeksWorked * contractHours;
             const overtime = Math.max(0, workHours - expectedHours);
+            const deficit = Math.max(0, expectedHours - workHours);
+            
+            // Déterminer la couleur selon le statut
+            let statusColor = '#10b981'; // Vert par défaut
+            if (overtime > 0) {
+                statusColor = '#ef4444'; // Rouge pour heures sup
+            } else if (deficit > 0) {
+                statusColor = '#f59e0b'; // Orange pour déficit
+            }
             
             const recapCard = document.createElement('div');
             recapCard.style.cssText = `
@@ -3543,16 +3609,19 @@ while (currentWeekStart <= lastDayOfMonth) {
             `;
             
             recapCard.innerHTML = `
-                <h4 style="color: #374151; margin-bottom: 5px; font-size: 1.2em; font-weight: 700;">${employee.name}</h4>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <h4 style="color: #374151; font-size: 1.2em; font-weight: 700;">${employee.name}</h4>
+                    <span style="background: ${statusColor}20; color: ${statusColor}; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600;">📋 Contrat ${contractHours}h/sem</span>
+                </div>
                 <p style="color: #6b7280; font-size: 12px; margin-bottom: 15px; text-transform: capitalize;">${monthName}</p>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
                     <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(102, 126, 234, 0.1); border-radius: 8px;">
                         <span style="font-weight: 600;">⏰ Total heures:</span>
-                        <span style="font-weight: 700; color: ${workHours > expectedHours ? '#ef4444' : '#10b981'};">${formatHours(workHours)}</span>
+                        <span style="font-weight: 700; color: ${statusColor};">${formatHours(workHours)}</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; padding: 8px; background: ${overtime > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(107, 114, 128, 0.1)'}; border-radius: 8px;">
                         <span style="font-weight: 600;">⚡ Heures sup:</span>
-                        <span style="font-weight: 700; color: #ef4444;">${formatHours(overtime)}</span>
+                        <span style="font-weight: 700; color: ${overtime > 0 ? '#ef4444' : '#6b7280'};">${formatHours(overtime)}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(107, 114, 128, 0.1); border-radius: 8px;">
                         <span style="font-weight: 600;">📅 Jours travail:</span>
@@ -4610,19 +4679,80 @@ while (currentWeekStart <= lastDayOfMonth) {
         }
     }  // <- Cette accolade ferme le try-catch
 
+    // ============================================
+    // FONCTIONS D'ÉDITION EMPLOYÉ
+    // ============================================
+    function openEditEmployeeModal(employeeId) {
+        try {
+            const employee = globalState.employees.find(emp => emp.id === employeeId);
+            if (!employee) {
+                showToast('Employé non trouvé', 'error');
+                return;
+            }
+            
+            document.getElementById('editEmpId').value = employee.id;
+            document.getElementById('editEmpName').value = employee.name;
+            document.getElementById('editEmpRole').value = employee.role || '';
+            document.getElementById('editEmpContractHours').value = employee.contractHours || 35;
+            
+            document.getElementById('editEmployeeModal').style.display = 'block';
+            
+        } catch (error) {
+            console.error('Erreur ouverture modale édition:', error);
+            showToast('Erreur lors de l\'ouverture', 'error');
+        }
+    }
+    
+    function saveEditedEmployee(event) {
+        event.preventDefault();
+        
+        try {
+            saveStateForUndo();
+            
+            const employeeId = document.getElementById('editEmpId').value;
+            const newName = document.getElementById('editEmpName').value.trim();
+            const newRole = document.getElementById('editEmpRole').value.trim();
+            const newContractHours = parseInt(document.getElementById('editEmpContractHours').value) || 35;
+            
+            if (!newName) {
+                showToast('Le nom est requis', 'error');
+                return;
+            }
+            
+            // Vérifier si le nom existe déjà (autre employé)
+            const existingEmployee = globalState.employees.find(
+                emp => emp.id !== employeeId && emp.name.toLowerCase() === newName.toLowerCase()
+            );
+            if (existingEmployee) {
+                showToast('Un autre employé avec ce nom existe déjà', 'error');
+                return;
+            }
+            
+            // Trouver et mettre à jour l'employé
+            const employee = globalState.employees.find(emp => emp.id === employeeId);
+            if (!employee) {
+                showToast('Employé non trouvé', 'error');
+                return;
+            }
+            
+            employee.name = newName;
+            employee.role = newRole || 'Employé';
+            employee.contractHours = newContractHours;
+            
+            closeModal();
+            renderPlanning();
+            updateSummary();
+            saveData();
+            
+            showToast(`${newName} modifié avec succès (Contrat: ${newContractHours}h)`, 'success');
+            
+        } catch (error) {
+            console.error('Erreur sauvegarde employé:', error);
+            showToast('Erreur lors de la sauvegarde', 'error');
+        }
+    }
+
     
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
