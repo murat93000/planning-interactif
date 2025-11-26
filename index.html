@@ -2983,8 +2983,8 @@ weekStart.setDate(date.getDate() + diff2);
                 </div>
                 <div class="employee-role">${employee.role}</div>
                 <div class="employee-hours">${formatHours(weekHours)} | ${workDays} jours</div>
-                <div style="font-size: 10px; color: ${weekSoldeColor}; font-weight: 700; margin-top: 2px;">📅 Sem: ${weekSoldeText}</div>
-                <div style="font-size: 10px; color: ${monthSoldeColor}; font-weight: 700; margin-top: 1px;">📊 Mois: ${monthSoldeText}</div>
+                <div style="font-size: 12px; color: ${weekSoldeColor}; font-weight: 700; margin-top: 2px;">📅 Sem: ${weekSoldeText}</div>
+                <div style="font-size: 12px; color: ${monthSoldeColor}; font-weight: 700; margin-top: 1px;">📊 Mois: ${monthSoldeText}</div>
                 ${globalState.isAdminMode ? `
                     <button class="remove-emp" onclick="removeEmployee('${employee.id}')" title="Supprimer">×</button>
                     <button class="edit-emp" onclick="openEditEmployeeModal('${employee.id}')" title="Modifier contrat" style="position: absolute; top: 5px; left: 5px; background: #8b5cf6; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✏️</button>
@@ -5633,3 +5633,4 @@ while (currentWeekStart <= lastDayOfMonth) {
 </script>
 </body>
 </html>
+
