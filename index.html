@@ -3764,9 +3764,9 @@ let totalHours = 0;
                     <h4 style="color: #374151; font-size: 1.2em; font-weight: 700;">${employee.name}</h4>
                     <span style="background: ${statusColor}20; color: ${statusColor}; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600;">📋 ${contractHours}h</span>
                 </div>
-                <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
                     <span style="background: ${statusColor}15; color: ${statusColor}; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">Sem: ${diffText}</span>
-                    <span style="background: ${soldeColor}15; color: ${soldeColor}; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">📊 Solde mois: ${soldeText}</span>
+                    <span style="background: ${soldeColor}15; color: ${soldeColor}; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">📊 Mois: ${soldeText} (${monthSolde.weeksWorked || 0} sem)</span>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
                     <div style="display: flex; justify-content: space-between; padding: 6px 8px; background: rgba(102, 126, 234, 0.1); border-radius: 8px;">
@@ -3949,16 +3949,16 @@ let totalHours = 0;
             recapCard.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                     <h4 style="color: #374151; font-size: 1.2em; font-weight: 700;">${employee.name}</h4>
-                    <span style="background: ${statusColor}20; color: ${statusColor}; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600;">📋 Contrat ${contractHours}h/sem</span>
+                    <span style="background: ${statusColor}20; color: ${statusColor}; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600;">📋 ${contractHours}h</span>
                 </div>
                 <p style="color: #6b7280; font-size: 12px; margin-bottom: 10px; text-transform: capitalize;">${monthName}</p>
-                <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                    <span style="background: ${statusColor}15; color: ${statusColor}; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">Mois: ${diffText}</span>
-                    <span style="background: rgba(107, 114, 128, 0.15); color: #6b7280; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">Attendu: ${formatHours(expectedHours)}</span>
+                <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                    <span style="background: ${statusColor}15; color: ${statusColor}; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">Solde: ${diffText}</span>
+                    <span style="background: rgba(107, 114, 128, 0.15); color: #6b7280; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">${weeksWorked} sem × ${contractHours}h = ${formatHours(expectedHours)}</span>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
                     <div style="display: flex; justify-content: space-between; padding: 6px 8px; background: rgba(102, 126, 234, 0.1); border-radius: 8px;">
-                        <span style="font-weight: 600;">⏰ Total heures:</span>
+                        <span style="font-weight: 600;">⏰ Heures travail:</span>
                         <span style="font-weight: 700; color: #667eea;">${formatHours(workHours)}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; padding: 6px 8px; background: ${retardHours > 0 ? 'rgba(249, 115, 22, 0.1)' : 'rgba(107, 114, 128, 0.1)'}; border-radius: 8px;">
