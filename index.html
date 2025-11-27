@@ -5967,16 +5967,15 @@ let totalHours = 0;
                                 if (shift.type === 'work' && shift.hours) {
                                     const hours = parseHours(shift.hours);
                                     
-                                    // TOUJOURS compter dans les heures normales
-                                    weekNormalHours += hours;
-                                    
-                                    // MAIS AUSSI lister pour majoration si dimanche ou férié
+                                    // Séparer dim/fériés des heures normales
                                     if (isDimanche) {
                                         weekDimanchesHours += hours;
                                         weekDimanchesDetails.push({ date: dateStr, hours: hours, text: shift.text });
                                     } else if (ferie) {
                                         weekFeriesHours += hours;
                                         weekFeriesDetails.push({ date: dateStr, ferie: ferie.nom, hours: hours, text: shift.text });
+                                    } else {
+                                        weekNormalHours += hours;
                                     }
                                 }
                                 
@@ -6019,15 +6018,17 @@ let totalHours = 0;
                     const weekStartStr = weekStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
                     const weekEndStr = weekEnd.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
                     
-                    const weekTotalWorked = weekNormalHours + weekDimanchesHours + weekFeriesHours;
                     const weekRetardHours = weekRetardMinutes / 60;
-                    const weekEffective = weekTotalWorked - weekRetardHours;
-                    const weekSolde = weekNormalHours - contractHours; // Solde = heures normales - contrat (sans dim/fériés)
+                    // Solde = heures normales - retards - contrat (SANS dim/fériés)
+                    const weekEffectiveNormal = weekNormalHours - weekRetardHours;
+                    const weekSolde = weekEffectiveNormal - contractHours;
                     
                     weeksData.push({
                         number: weekNumber,
                         range: `${weekStartStr} - ${weekEndStr}`,
                         normalHours: weekNormalHours,
+                        effectiveHours: weekEffectiveNormal,
+                        retardHours: weekRetardHours,
                         dimanchesHours: weekDimanchesHours,
                         feriesHours: weekFeriesHours,
                         absencesHours: weekAbsencesHours,
@@ -6063,7 +6064,13 @@ let totalHours = 0;
                 // Détail par semaine
                 weeksData.forEach(week => {
                     texte += `📅 SEMAINE ${week.number} (${week.range})\n`;
-                    texte += `   Heures travaillées : ${formatHours(week.normalHours)}\n`;
+                    
+                    // Afficher heures travaillées (avec retards si présents)
+                    if (week.retardHours > 0) {
+                        texte += `   Heures travaillées : ${formatHours(week.normalHours)} - ${formatHours(week.retardHours)} retard = ${formatHours(week.effectiveHours)}\n`;
+                    } else {
+                        texte += `   Heures travaillées : ${formatHours(week.effectiveHours)}\n`;
+                    }
                     texte += `   Heures attendues   : ${formatHours(contractHours)}\n`;
                     
                     if (week.absencesDetails.length > 0) {
@@ -6086,62 +6093,94 @@ let totalHours = 0;
                     texte += `   Solde semaine      : ${soldeText}\n\n`;
                 });
                 
-                // Total du mois
+                // ════════════════════════════════════════════════════════════
+                // PARTIE 2 : ACTIONS COMPTABLE
+                // ════════════════════════════════════════════════════════════
+                
                 const expectedHours = completeWeeks * contractHours;
                 const totalRetardHours = totalRetardMinutes / 60;
-                const soldeHoraire = totalNormalHours - expectedHours - totalRetardHours;
+                const totalEffectiveNormal = totalNormalHours - totalRetardHours;
+                const soldeHoraire = totalEffectiveNormal - expectedHours;
                 
-                texte += `───────────────────────────────────────────────────────────────\n`;
-                texte += `📊 TOTAL MOIS\n`;
-                texte += `───────────────────────────────────────────────────────────────\n`;
+                texte += `┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n`;
+                texte += `┃                    💼 ACTIONS COMPTABLE                     ┃\n`;
+                texte += `┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n\n`;
+                
+                // Résumé des heures
+                texte += `   📊 RÉSUMÉ HEURES\n`;
+                texte += `   ─────────────────────────────────\n`;
                 texte += `   Heures travaillées   : ${formatHours(totalNormalHours)}\n`;
-                texte += `   Heures attendues     : ${formatHours(expectedHours)} (${completeWeeks} sem × ${contractHours}h)\n`;
                 if (totalRetardHours > 0) {
                     texte += `   Retards              : -${formatHours(totalRetardHours)}\n`;
+                    texte += `   Heures effectives    : ${formatHours(totalEffectiveNormal)}\n`;
                 }
+                texte += `   Heures attendues     : ${formatHours(expectedHours)} (${completeWeeks} sem × ${contractHours}h)\n`;
                 texte += `   ─────────────────────────────────\n`;
-                const soldeText = soldeHoraire >= 0 ? `+${formatHours(soldeHoraire)}` : formatHours(soldeHoraire);
-                texte += `   ⚡ SOLDE HORAIRE      : ${soldeText}\n\n`;
                 
-                // Absences
-                if (allAbsencesDetails.length > 0) {
-                    texte += `   ❌ ABSENCES (${allAbsencesDetails.length})\n`;
-                    allAbsencesDetails.forEach(a => {
-                        texte += `   • ${a.date} ${a.jour} (${formatHours(a.hours)})\n`;
-                    });
+                // Solde horaire
+                if (soldeHoraire > 0) {
+                    texte += `   ✅ HEURES SUP À PAYER : +${formatHours(soldeHoraire)}\n\n`;
+                } else if (soldeHoraire < 0) {
+                    texte += `   ⚠️  DÉFICIT HORAIRE   : ${formatHours(soldeHoraire)}\n\n`;
+                } else {
+                    texte += `   ✅ SOLDE ÉQUILIBRÉ    : 0h\n\n`;
+                }
+                
+                // Section À DÉDUIRE
+                if (allAbsencesDetails.length > 0 || totalRetardHours > 0) {
+                    texte += `   ❌ À DÉDUIRE DE LA PAIE\n`;
+                    texte += `   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+                    
+                    if (allAbsencesDetails.length > 0) {
+                        texte += `   ABSENCES (${allAbsencesDetails.length} jour${allAbsencesDetails.length > 1 ? 's' : ''}):\n`;
+                        allAbsencesDetails.forEach(a => {
+                            texte += `      • ${a.date} ${a.jour} : ${formatHours(a.hours)}\n`;
+                        });
+                        texte += `      ➜ Total absences : ${formatHours(totalAbsencesHours)}\n\n`;
+                    }
+                    
+                    if (totalRetardHours > 0) {
+                        texte += `   RETARDS (${allRetardsDetails.length}):\n`;
+                        allRetardsDetails.forEach(r => {
+                            texte += `   ${r}\n`;
+                        });
+                        texte += `      ➜ Total retards : ${formatHours(totalRetardHours)}\n\n`;
+                    }
+                    
+                    const totalDeduire = totalAbsencesHours + totalRetardHours;
                     texte += `   ─────────────────────────────────\n`;
-                    texte += `   💰 TOTAL À DÉDUIRE    : ${formatHours(totalAbsencesHours)}\n\n`;
+                    texte += `   💰 TOTAL À DÉDUIRE    : ${formatHours(totalDeduire)}\n\n`;
                 }
                 
-                // Fériés travaillés
-                if (allFeriesDetails.length > 0) {
-                    texte += `   🎌 FÉRIÉS TRAVAILLÉS - À MAJORER\n`;
-                    allFeriesDetails.forEach(f => {
-                        texte += `   • ${f.date} ${f.ferie} (${formatHours(f.hours)})\n`;
-                    });
+                // Section À MAJORER (Fériés + Dimanches)
+                if (allFeriesDetails.length > 0 || allDimanchesDetails.length > 0) {
+                    texte += `   💵 À MAJORER (en plus du salaire)\n`;
+                    texte += `   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+                    
+                    if (allFeriesDetails.length > 0) {
+                        texte += `   JOURS FÉRIÉS TRAVAILLÉS (${allFeriesDetails.length}):\n`;
+                        allFeriesDetails.forEach(f => {
+                            texte += `      • ${f.date} (${f.ferie}) : ${formatHours(f.hours)}\n`;
+                        });
+                        texte += `      ➜ Total fériés : ${formatHours(totalFeriesHours)}\n\n`;
+                    }
+                    
+                    if (allDimanchesDetails.length > 0) {
+                        texte += `   DIMANCHES TRAVAILLÉS (${allDimanchesDetails.length}):\n`;
+                        allDimanchesDetails.forEach(d => {
+                            texte += `      • ${d.date} : ${formatHours(d.hours)}\n`;
+                        });
+                        texte += `      ➜ Total dimanches : ${formatHours(totalDimanchesHours)}\n\n`;
+                    }
+                    
+                    const totalMajorer = totalFeriesHours + totalDimanchesHours;
                     texte += `   ─────────────────────────────────\n`;
-                    texte += `   💰 TOTAL FÉRIÉS       : ${formatHours(totalFeriesHours)}\n\n`;
+                    texte += `   💰 TOTAL À MAJORER    : ${formatHours(totalMajorer)}\n\n`;
                 }
                 
-                // Dimanches travaillés
-                if (allDimanchesDetails.length > 0) {
-                    texte += `   📅 DIMANCHES TRAVAILLÉS - À MAJORER\n`;
-                    allDimanchesDetails.forEach(d => {
-                        texte += `   • ${d.date} (${formatHours(d.hours)})\n`;
-                    });
-                    texte += `   ─────────────────────────────────\n`;
-                    texte += `   💰 TOTAL DIMANCHES    : ${formatHours(totalDimanchesHours)}\n\n`;
-                }
-                
-                // Retards
-                if (allRetardsDetails.length > 0) {
-                    texte += `   ⏰ RETARDS (${allRetardsDetails.length})\n`;
-                    texte += allRetardsDetails.join('\n') + '\n\n';
-                }
-                
-                // Congés
+                // Congés (informatif)
                 if (allCongesDetails.length > 0) {
-                    texte += `   🏖️ CONGÉS (${allCongesDetails.length})\n`;
+                    texte += `   🏖️ CONGÉS POSÉS (${allCongesDetails.length})\n`;
                     texte += allCongesDetails.join('\n') + '\n\n';
                 }
                 
