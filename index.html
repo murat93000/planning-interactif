@@ -3130,6 +3130,7 @@ weekStart.setDate(date.getDate() + diff2);
                     <button class="edit-emp" onclick="openEditEmployeeModal('${employee.id}')" title="Modifier contrat" style="position: absolute; top: 5px; left: 5px; background: #8b5cf6; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✏️</button>
                     <button class="copy-week-btn" onclick="copyEmployeeWeek('${employee.id}')" title="Copier semaine">📋</button>
                     <button class="paste-week-btn" onclick="pasteEmployeeWeek('${employee.id}')" title="Coller semaine" style="opacity: ${globalState.copiedWeek ? '1' : '0.3'};">📥</button>
+                    <button class="debug-btn" onclick="debugEmployeeWeek('${employee.id}')" title="Voir détails" style="position: absolute; bottom: 5px; left: 5px; background: #f59e0b; color: white; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; cursor: pointer;">🔍</button>
                 ` : ''}
             `;
             
@@ -3459,20 +3460,25 @@ weekStart.setDate(date.getDate() + diff2);
     }
 
     function parseHours(hoursString) {
-        if (!hoursString || typeof hoursString !== 'string') return 0;
+        if (!hoursString) return 0;
+        if (typeof hoursString === 'number') return hoursString;
+        if (typeof hoursString !== 'string') return 0;
         
-        const hourMinuteMatch = hoursString.match(/(\d+)h(\d+)/);
+        // Format "6h30" ou "8h" ou "7h15"
+        const hourMinuteMatch = hoursString.match(/(\d+)h(\d+)/i);
         if (hourMinuteMatch) {
             const hours = parseInt(hourMinuteMatch[1]);
             const minutes = parseInt(hourMinuteMatch[2]);
             return hours + (minutes / 60);
         }
         
-        const hourMatch = hoursString.match(/(\d+)h/);
+        // Format "8h"
+        const hourMatch = hoursString.match(/(\d+)h/i);
         if (hourMatch) {
             return parseInt(hourMatch[1]);
         }
         
+        // Format décimal "6.5" ou "6,5"
         const cleanString = hoursString.replace(/[^\d.,]/g, '');
         const normalizedString = cleanString.replace(',', '.');
         const hours = parseFloat(normalizedString);
@@ -3492,6 +3498,55 @@ weekStart.setDate(date.getDate() + diff2);
             return `${wholeHours}h30`;
         } else {
             return `${wholeHours}h${minutes.toString().padStart(2, '0')}`;
+        }
+    }
+
+    function debugEmployeeWeek(employeeId) {
+        try {
+            const employee = globalState.employees.find(emp => emp.id === employeeId);
+            if (!employee) return;
+            
+            const weekKey = getWeekKey();
+            const planning = employee.planning?.[weekKey] || {};
+            
+            let totalHours = 0;
+            let details = `📊 DEBUG ${employee.name} - Semaine ${weekKey}\n`;
+            details += `📋 Contrat: ${employee.contractHours}h\n\n`;
+            
+            const jours = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+            
+            for (let day = 0; day < 7; day++) {
+                const shifts = planning[day] || [];
+                let dayHours = 0;
+                let dayDetails = [];
+                
+                shifts.forEach(shift => {
+                    if (shift.type === 'work' && shift.hours) {
+                        const hours = parseHours(shift.hours);
+                        dayHours += hours;
+                        dayDetails.push(`${shift.text} = ${shift.hours} (parsed: ${hours}h)`);
+                    }
+                });
+                
+                if (dayDetails.length > 0) {
+                    details += `${jours[day]}: ${dayDetails.join(', ')} → ${dayHours}h\n`;
+                    totalHours += dayHours;
+                } else {
+                    details += `${jours[day]}: (vide)\n`;
+                }
+            }
+            
+            details += `\n━━━━━━━━━━━━━━━━━━\n`;
+            details += `TOTAL: ${totalHours}h\n`;
+            details += `Contrat: ${employee.contractHours}h\n`;
+            details += `Diff: ${totalHours - employee.contractHours}h`;
+            
+            alert(details);
+            console.log(details);
+            console.log('Planning brut:', planning);
+            
+        } catch (error) {
+            console.error('Erreur debug:', error);
         }
     }
 
