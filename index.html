@@ -1068,7 +1068,7 @@
         </div>
         <div class="control-group">
             <label>📋 Contrat (h/sem)</label>
-            <input type="number" id="empContractHours" placeholder="35" value="35" min="1" max="48" style="width: 80px;">
+            <input type="number" id="empContractHours" placeholder="35" value="35" min="1" max="48" step="0.5" style="width: 80px;">
         </div>
         <button class="btn" onclick="addEmployee()">➕ Ajouter</button>
     </div>
@@ -1338,7 +1338,7 @@
             </div>
             <div class="form-group">
                 <label>📋 Heures contrat par semaine:</label>
-                <input type="number" id="editEmpContractHours" min="1" max="48" required style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                <input type="number" id="editEmpContractHours" min="1" max="48" step="0.5" required style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
                 <p style="color: #6b7280; font-size: 12px; margin-top: 5px;">Exemples: 35h (temps plein), 24h (temps partiel), 39h...</p>
             </div>
             <div class="form-actions" style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
@@ -2679,7 +2679,7 @@ weekStart.setDate(date.getDate() + diff2);
         
         const name = document.getElementById('empName').value.trim();
         const role = document.getElementById('empRole').value.trim();
-        const contractHours = parseInt(document.getElementById('empContractHours').value) || 35;
+        const contractHours = parseFloat(document.getElementById('empContractHours').value) || 35;
         
         if (!name) {
             showToast('Le nom est requis', 'error');
@@ -3122,7 +3122,7 @@ weekStart.setDate(date.getDate() + diff2);
                     ${globalState.isAdminMode ? '⬍⬍ ' : ''}${employee.name}
                 </div>
                 <div class="employee-role">${employee.role}</div>
-                <div class="employee-hours">${formatHours(weekHours)} | ${workDays} jours</div>
+                <div class="employee-hours">${formatHours(contractHours)} | ${workDays} jours</div>
                 <div style="font-size: 10px; color: ${weekSoldeColor}; font-weight: 700; margin-top: 2px;">📅 Sem: ${weekSoldeText}</div>
                 <div style="font-size: 10px; color: ${monthSoldeColor}; font-weight: 700; margin-top: 1px;">📊 Mois: ${monthSoldeText}</div>
                 ${globalState.isAdminMode ? `
@@ -5137,7 +5137,7 @@ let totalHours = 0;
             const employeeId = document.getElementById('editEmpId').value;
             const newName = document.getElementById('editEmpName').value.trim();
             const newRole = document.getElementById('editEmpRole').value.trim();
-            const newContractHours = parseInt(document.getElementById('editEmpContractHours').value) || 35;
+            const newContractHours = parseFloat(document.getElementById('editEmpContractHours').value) || 35;
             
             if (!newName) {
                 showToast('Le nom est requis', 'error');
