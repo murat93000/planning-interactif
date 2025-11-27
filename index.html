@@ -3931,7 +3931,9 @@ let totalHours = 0;
                         const shiftDate = new Date(currentWeekStart);
                         shiftDate.setDate(shiftDate.getDate() + parseInt(dayIndex));
                         
-                        if (shiftDate.getMonth() === currentDate.getMonth()) {
+                        // IMPORTANT: Ne compter que les jours dans les semaines COMPLÈTES
+                        // (entre le premier lundi et le dernier dimanche du mois)
+                        if (shiftDate >= firstMonday && shiftDate <= lastSunday && shiftDate.getMonth() === currentDate.getMonth()) {
                             let hasWork = false;
                             dayShifts.forEach(shift => {
                                 switch(shift.type) {
@@ -5488,8 +5490,9 @@ let totalHours = 0;
                     const shiftDate = new Date(currentWeekStart);
                     shiftDate.setDate(shiftDate.getDate() + parseInt(dayIndex));
                     
-                    // Vérifier que le jour est dans le mois cible
-                    if (shiftDate.getMonth() === targetMonth && shiftDate.getFullYear() === targetYear) {
+                    // IMPORTANT: Ne compter que les jours dans les semaines COMPLÈTES
+                    // (entre le premier lundi et le dernier dimanche du mois)
+                    if (shiftDate >= firstMonday && shiftDate <= lastSunday && shiftDate.getMonth() === targetMonth && shiftDate.getFullYear() === targetYear) {
                         // Si RAZ, ne compter que les jours après la RAZ
                         if (razDate && shiftDate < razDate) return;
                         
@@ -5836,7 +5839,8 @@ let totalHours = 0;
                             const shiftDate = new Date(currentWeekStart);
                             shiftDate.setDate(shiftDate.getDate() + parseInt(dayIndex));
                             
-                            if (shiftDate.getMonth() === currentDate.getMonth()) {
+                            // IMPORTANT: Ne compter que les jours dans les semaines COMPLÈTES
+                            if (shiftDate >= firstMonday && shiftDate <= lastSunday && shiftDate.getMonth() === currentDate.getMonth()) {
                                 const dateStr = shiftDate.toLocaleDateString('fr-FR');
                                 const jourNom = jours[shiftDate.getDay()];
                                 
