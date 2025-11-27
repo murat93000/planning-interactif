@@ -3766,7 +3766,7 @@ let totalHours = 0;
                 </div>
                 <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
                     <span style="background: ${statusColor}15; color: ${statusColor}; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">Sem: ${diffText}</span>
-                    <span style="background: ${soldeColor}15; color: ${soldeColor}; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">📊 Mois: ${soldeText} (${monthSolde.weeksWorked || 0} sem)</span>
+                    <span style="background: ${soldeColor}15; color: ${soldeColor}; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">📊 Mois: ${soldeText} (${monthSolde.completeWeeks || 0} sem)</span>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
                     <div style="display: flex; justify-content: space-between; padding: 6px 8px; background: rgba(102, 126, 234, 0.1); border-radius: 8px;">
@@ -3819,6 +3819,20 @@ let totalHours = 0;
         const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
         const monthName = currentDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
         
+        // Calculer le nombre de semaines COMPLÈTES dans le mois (lundi-dimanche)
+        // Trouver le premier lundi du mois
+        let firstMonday = new Date(firstDayOfMonth);
+        while (firstMonday.getDay() !== 1) {
+            firstMonday.setDate(firstMonday.getDate() + 1);
+        }
+        // Trouver le dernier dimanche du mois
+        let lastSunday = new Date(lastDayOfMonth);
+        while (lastSunday.getDay() !== 0) {
+            lastSunday.setDate(lastSunday.getDate() - 1);
+        }
+        // Nombre de semaines complètes
+        const completeWeeks = Math.max(0, Math.floor((lastSunday - firstMonday) / (7 * 24 * 60 * 60 * 1000)) + 1);
+        
         employees.forEach(employee => {
             let workHours = 0;
             let workDays = 0;
@@ -3829,7 +3843,6 @@ let totalHours = 0;
             let retardMinutes = 0;
             let dimanchesCount = 0;
             let feriesCount = 0;
-            let weeksWithWork = new Set(); // Pour compter les semaines travaillées
 
             // Parcourir toutes les semaines du mois
             let currentWeekStart = new Date(firstDayOfMonth);
@@ -3845,8 +3858,6 @@ let totalHours = 0;
                 const weekKey = `${year}-W${weekNumber}`;
                 
                 if (employee.planning && employee.planning[weekKey]) {
-                    let weekHasWork = false;
-                    
                     Object.keys(employee.planning[weekKey]).forEach(dayIndex => {
                         const dayShifts = employee.planning[weekKey][dayIndex];
                         
@@ -3861,7 +3872,6 @@ let totalHours = 0;
                                         if (shift.hours) {
                                             workHours += parseHours(shift.hours);
                                             hasWork = true;
-                                            weekHasWork = true;
                                             if (isDimanche(shiftDate)) dimanchesCount++;
                                             if (isJourFerie(shiftDate)) feriesCount++;
                                         }
@@ -3879,7 +3889,6 @@ let totalHours = 0;
                                         if (shift.hours) {
                                             workHours += parseHours(shift.hours);
                                             hasWork = true;
-                                            weekHasWork = true;
                                         }
                                         break;
                                     case 'repos':
@@ -3890,7 +3899,6 @@ let totalHours = 0;
                                         if (shift.hours) {
                                             workHours += parseHours(shift.hours);
                                             hasWork = true;
-                                            weekHasWork = true;
                                         }
                                         break;
                                     case 'ferie':
@@ -3898,7 +3906,6 @@ let totalHours = 0;
                                         if (shift.hours) {
                                             workHours += parseHours(shift.hours);
                                             hasWork = true;
-                                            weekHasWork = true;
                                         }
                                         break;
                                 }
@@ -3906,10 +3913,6 @@ let totalHours = 0;
                             if (hasWork) workDays++;
                         }
                     });
-                    
-                    if (weekHasWork) {
-                        weeksWithWork.add(weekKey);
-                    }
                 }
                 
                 currentWeekStart.setDate(currentWeekStart.getDate() + 7);
@@ -3918,9 +3921,8 @@ let totalHours = 0;
             const contractHours = employee.contractHours || 35;
             const retardHours = retardMinutes / 60;
             
-            // Calculer les heures attendues = semaines travaillées × contrat
-            const weeksWorked = weeksWithWork.size || 1;
-            const expectedHours = weeksWorked * contractHours;
+            // Calculer les heures attendues = semaines COMPLÈTES × contrat
+            const expectedHours = completeWeeks * contractHours;
             
             const effectiveHours = workHours - retardHours;
             const diff = effectiveHours - expectedHours;
@@ -3954,7 +3956,7 @@ let totalHours = 0;
                 <p style="color: #6b7280; font-size: 12px; margin-bottom: 10px; text-transform: capitalize;">${monthName}</p>
                 <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
                     <span style="background: ${statusColor}15; color: ${statusColor}; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">Solde: ${diffText}</span>
-                    <span style="background: rgba(107, 114, 128, 0.15); color: #6b7280; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">${weeksWorked} sem × ${contractHours}h = ${formatHours(expectedHours)}</span>
+                    <span style="background: rgba(107, 114, 128, 0.15); color: #6b7280; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">${completeWeeks} sem × ${contractHours}h = ${formatHours(expectedHours)}</span>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
                     <div style="display: flex; justify-content: space-between; padding: 6px 8px; background: rgba(102, 126, 234, 0.1); border-radius: 8px;">
@@ -5371,7 +5373,23 @@ let totalHours = 0;
         let totalWorkedHours = 0;
         let totalRetardMinutes = 0;
         let workDaysInMonth = 0;
-        let weeksWithWork = new Set();
+        
+        // Calculer le nombre de semaines COMPLÈTES dans le mois (lundi-dimanche)
+        const firstDayOfMonth = new Date(targetYear, targetMonth, 1);
+        const lastDayOfMonth = new Date(targetYear, targetMonth + 1, 0);
+        
+        // Trouver le premier lundi du mois
+        let firstMonday = new Date(firstDayOfMonth);
+        while (firstMonday.getDay() !== 1) {
+            firstMonday.setDate(firstMonday.getDate() + 1);
+        }
+        // Trouver le dernier dimanche du mois
+        let lastSunday = new Date(lastDayOfMonth);
+        while (lastSunday.getDay() !== 0) {
+            lastSunday.setDate(lastSunday.getDate() - 1);
+        }
+        // Nombre de semaines complètes
+        const completeWeeks = Math.max(0, Math.floor((lastSunday - firstMonday) / (7 * 24 * 60 * 60 * 1000)) + 1);
         
         // Vérifier si une RAZ manuelle a été faite ce mois-ci
         let razDate = null;
@@ -5383,9 +5401,6 @@ let totalHours = 0;
         }
         
         // Parcourir toutes les semaines du mois
-        const firstDayOfMonth = new Date(targetYear, targetMonth, 1);
-        const lastDayOfMonth = new Date(targetYear, targetMonth + 1, 0);
-        
         let currentWeekStart = new Date(firstDayOfMonth);
         const dayOfWeek = currentWeekStart.getDay();
         const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
@@ -5399,8 +5414,6 @@ let totalHours = 0;
             const weekKey = `${year}-W${weekNumber}`;
             
             if (employee.planning && employee.planning[weekKey]) {
-                let weekHasWork = false;
-                
                 Object.keys(employee.planning[weekKey]).forEach(dayIndex => {
                     const dayShifts = employee.planning[weekKey][dayIndex];
                     const shiftDate = new Date(currentWeekStart);
@@ -5417,13 +5430,11 @@ let totalHours = 0;
                             if (shift.type === 'work' && shift.hours) {
                                 totalWorkedHours += parseHours(shift.hours);
                                 dayHasWork = true;
-                                weekHasWork = true;
                             }
                             // Compter les heures de Cours, Congés et Férié (si elles ont des heures)
                             if (['cours', 'conges', 'ferie'].includes(shift.type) && shift.hours) {
                                 totalWorkedHours += parseHours(shift.hours);
                                 dayHasWork = true;
-                                weekHasWork = true;
                             }
                             // Soustraire les retards
                             if (shift.type === 'retard' && shift.retardMinutes) {
@@ -5433,16 +5444,13 @@ let totalHours = 0;
                         if (dayHasWork) workDaysInMonth++;
                     }
                 });
-                
-                if (weekHasWork) weeksWithWork.add(weekKey);
             }
             
             currentWeekStart.setDate(currentWeekStart.getDate() + 7);
         }
         
-        // Calculer les heures attendues = semaines travaillées × contrat
-        const weeksWorked = weeksWithWork.size || 1;
-        const expectedHours = weeksWorked * contractHours;
+        // Calculer les heures attendues = semaines COMPLÈTES × contrat
+        const expectedHours = completeWeeks * contractHours;
         
         // Soustraire les retards des heures travaillées
         const effectiveWorkedHours = totalWorkedHours - (totalRetardMinutes / 60);
@@ -5456,7 +5464,7 @@ let totalHours = 0;
             expected: expectedHours,
             solde: solde,
             workDays: workDaysInMonth,
-            weeksWorked: weeksWorked
+            completeWeeks: completeWeeks
         };
     }
 
@@ -5515,11 +5523,23 @@ let totalHours = 0;
             const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
             const monthName = currentDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
             
+            // Calculer le nombre de semaines COMPLÈTES dans le mois (lundi-dimanche)
+            let firstMonday = new Date(firstDayOfMonth);
+            while (firstMonday.getDay() !== 1) {
+                firstMonday.setDate(firstMonday.getDate() + 1);
+            }
+            let lastSunday = new Date(lastDayOfMonth);
+            while (lastSunday.getDay() !== 0) {
+                lastSunday.setDate(lastSunday.getDate() - 1);
+            }
+            const completeWeeks = Math.max(0, Math.floor((lastSunday - firstMonday) / (7 * 24 * 60 * 60 * 1000)) + 1);
+            
             const jours = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
             
             let texte = `═══════════════════════════════════════════════════════════════\n`;
             texte += `                    RÉCAPITULATIF PAIE\n`;
             texte += `                    ${monthName.toUpperCase()}\n`;
+            texte += `               (${completeWeeks} semaines complètes)\n`;
             texte += `═══════════════════════════════════════════════════════════════\n\n`;
             
             const activeEmployees = globalState.employees.filter(emp => !emp.archived);
@@ -5532,7 +5552,6 @@ let totalHours = 0;
                 let retardsDetails = [];
                 let absencesDetails = [];
                 let congesDetails = [];
-                let weeksWithWork = new Set();
                 
                 // Parcourir toutes les semaines du mois
                 let currentWeekStart = new Date(firstDayOfMonth);
@@ -5548,8 +5567,6 @@ let totalHours = 0;
                     const weekKey = `${year}-W${weekNumber}`;
                     
                     if (employee.planning && employee.planning[weekKey]) {
-                        let weekHasWork = false;
-                        
                         Object.keys(employee.planning[weekKey]).forEach(dayIndex => {
                             const dayShifts = employee.planning[weekKey][dayIndex];
                             const shiftDate = new Date(currentWeekStart);
@@ -5563,7 +5580,6 @@ let totalHours = 0;
                                     if (shift.type === 'work' && shift.hours) {
                                         const hours = parseHours(shift.hours);
                                         workHours += hours;
-                                        weekHasWork = true;
                                         
                                         // Dimanche travaillé
                                         if (shiftDate.getDay() === 0) {
@@ -5592,34 +5608,28 @@ let totalHours = 0;
                                         congesDetails.push(`  • ${dateStr} (${jourNom})${shift.hours ? ` - ${shift.hours}` : ''}`);
                                         if (shift.hours) {
                                             workHours += parseHours(shift.hours);
-                                            weekHasWork = true;
                                         }
                                     }
                                     
                                     if (shift.type === 'cours' && shift.hours) {
                                         workHours += parseHours(shift.hours);
-                                        weekHasWork = true;
                                     }
                                     
                                     if (shift.type === 'ferie' && shift.hours) {
                                         workHours += parseHours(shift.hours);
-                                        weekHasWork = true;
                                         const ferie = isJourFerie(shiftDate);
                                         feriesDetails.push(`  • ${dateStr} (${ferie ? ferie.nom : 'Férié'}) : ${shift.hours}`);
                                     }
                                 });
                             }
                         });
-                        
-                        if (weekHasWork) weeksWithWork.add(weekKey);
                     }
                     
                     currentWeekStart.setDate(currentWeekStart.getDate() + 7);
                 }
                 
                 const contractHours = employee.contractHours || 35;
-                const weeksWorked = weeksWithWork.size || 1;
-                const expectedHours = weeksWorked * contractHours;
+                const expectedHours = completeWeeks * contractHours;
                 const retardHours = retardMinutes / 60;
                 const effectiveHours = workHours - retardHours;
                 const solde = effectiveHours - expectedHours;
@@ -5629,13 +5639,12 @@ let totalHours = 0;
                 texte += `───────────────────────────────────────────────────────────────\n`;
                 texte += `👤 ${employee.name.toUpperCase()}\n`;
                 texte += `───────────────────────────────────────────────────────────────\n`;
-                texte += `   Contrat : ${contractHours}h/semaine\n`;
-                texte += `   Semaines travaillées : ${weeksWorked}\n\n`;
+                texte += `   Contrat : ${contractHours}h/semaine\n\n`;
                 
                 texte += `   📊 HEURES\n`;
                 texte += `   ─────────────────────────────────\n`;
                 texte += `   Heures effectuées    : ${formatHours(workHours)}\n`;
-                texte += `   Heures attendues     : ${formatHours(expectedHours)} (${weeksWorked} sem × ${contractHours}h)\n`;
+                texte += `   Heures attendues     : ${formatHours(expectedHours)} (${completeWeeks} sem × ${contractHours}h)\n`;
                 if (retardHours > 0) {
                     texte += `   Retards              : -${formatHours(retardHours)}\n`;
                     texte += `   Heures effectives    : ${formatHours(effectiveHours)}\n`;
