@@ -5967,14 +5967,16 @@ let totalHours = 0;
                                 if (shift.type === 'work' && shift.hours) {
                                     const hours = parseHours(shift.hours);
                                     
+                                    // TOUJOURS compter dans les heures normales
+                                    weekNormalHours += hours;
+                                    
+                                    // MAIS AUSSI lister pour majoration si dimanche ou férié
                                     if (isDimanche) {
                                         weekDimanchesHours += hours;
                                         weekDimanchesDetails.push({ date: dateStr, hours: hours, text: shift.text });
                                     } else if (ferie) {
                                         weekFeriesHours += hours;
                                         weekFeriesDetails.push({ date: dateStr, ferie: ferie.nom, hours: hours, text: shift.text });
-                                    } else {
-                                        weekNormalHours += hours;
                                     }
                                 }
                                 
@@ -6061,7 +6063,7 @@ let totalHours = 0;
                 // Détail par semaine
                 weeksData.forEach(week => {
                     texte += `📅 SEMAINE ${week.number} (${week.range})\n`;
-                    texte += `   Heures travaillées : ${formatHours(week.normalHours)}${week.dimanchesHours > 0 || week.feriesHours > 0 ? ' (hors dim/fériés)' : ''}\n`;
+                    texte += `   Heures travaillées : ${formatHours(week.normalHours)}\n`;
                     texte += `   Heures attendues   : ${formatHours(contractHours)}\n`;
                     
                     if (week.absencesDetails.length > 0) {
@@ -6070,13 +6072,13 @@ let totalHours = 0;
                     
                     if (week.feriesDetails.length > 0) {
                         week.feriesDetails.forEach(f => {
-                            texte += `   Férié travaillé    : +1 jour le ${f.date} (${formatHours(f.hours)}) ← À MAJORER\n`;
+                            texte += `   Férié travaillé    : 1 jour le ${f.date} (${formatHours(f.hours)}) ← À MAJORER\n`;
                         });
                     }
                     
                     if (week.dimanchesDetails.length > 0) {
                         week.dimanchesDetails.forEach(d => {
-                            texte += `   Dimanche travaillé : +1 jour le ${d.date} (${formatHours(d.hours)}) ← À MAJORER\n`;
+                            texte += `   Dimanche travaillé : 1 jour le ${d.date} (${formatHours(d.hours)}) ← À MAJORER\n`;
                         });
                     }
                     
@@ -6092,7 +6094,7 @@ let totalHours = 0;
                 texte += `───────────────────────────────────────────────────────────────\n`;
                 texte += `📊 TOTAL MOIS\n`;
                 texte += `───────────────────────────────────────────────────────────────\n`;
-                texte += `   Heures normales      : ${formatHours(totalNormalHours)} (hors dim/fériés)\n`;
+                texte += `   Heures travaillées   : ${formatHours(totalNormalHours)}\n`;
                 texte += `   Heures attendues     : ${formatHours(expectedHours)} (${completeWeeks} sem × ${contractHours}h)\n`;
                 if (totalRetardHours > 0) {
                     texte += `   Retards              : -${formatHours(totalRetardHours)}\n`;
