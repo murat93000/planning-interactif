@@ -3517,6 +3517,7 @@ weekStart.setDate(date.getDate() + diff2);
             const planning = employee.planning?.[weekKey] || {};
             
             let totalHours = 0;
+            let totalRetardMinutes = 0;
             let details = `📊 DEBUG ${employee.name} - Semaine ${weekKey}\n`;
             details += `📋 Contrat: ${employee.contractHours}h\n\n`;
             
@@ -3525,6 +3526,7 @@ weekStart.setDate(date.getDate() + diff2);
             for (let day = 0; day < 7; day++) {
                 const shifts = planning[day] || [];
                 let dayHours = 0;
+                let dayRetardMins = 0;
                 let dayDetails = [];
                 
                 shifts.forEach(shift => {
@@ -3544,22 +3546,37 @@ weekStart.setDate(date.getDate() + diff2);
                             dayDetails.push(`${icon} ${shift.text || shift.type} = ⚠️ PAS D'HEURES DÉFINIES!`);
                         }
                     }
+                    if (shift.type === 'retard' && shift.retardMinutes) {
+                        dayRetardMins += shift.retardMinutes;
+                        const h = Math.floor(shift.retardMinutes / 60);
+                        const m = shift.retardMinutes % 60;
+                        const retardStr = h > 0 ? `${h}h${m > 0 ? m : ''}` : `${m}min`;
+                        dayDetails.push(`⏰ Retard: -${retardStr}`);
+                    }
                     if (shift.type === 'repos') {
                         dayDetails.push(`😴 Repos`);
                     }
                 });
                 
                 if (dayDetails.length > 0) {
-                    details += `${jours[day]}: ${dayDetails.join(', ')} → ${dayHours}h\n`;
+                    details += `${jours[day]}: ${dayDetails.join(', ')} → ${dayHours}h${dayRetardMins > 0 ? ` (-${dayRetardMins}min retard)` : ''}\n`;
                     totalHours += dayHours;
+                    totalRetardMinutes += dayRetardMins;
                 } else {
                     details += `${jours[day]}: (vide)\n`;
                 }
             }
             
-            const diff = totalHours - employee.contractHours;
+            const totalRetardHours = totalRetardMinutes / 60;
+            const effectiveHours = totalHours - totalRetardHours;
+            const diff = effectiveHours - employee.contractHours;
+            
             details += `\n━━━━━━━━━━━━━━━━━━\n`;
-            details += `TOTAL: ${totalHours}h\n`;
+            details += `TOTAL BRUT: ${formatHours(totalHours)}\n`;
+            if (totalRetardMinutes > 0) {
+                details += `RETARDS: -${formatHours(totalRetardHours)}\n`;
+                details += `TOTAL EFFECTIF: ${formatHours(effectiveHours)}\n`;
+            }
             details += `Contrat: ${employee.contractHours}h\n`;
             details += `Diff: ${diff >= 0 ? '+' : ''}${formatHours(diff)}`;
             
