@@ -1150,7 +1150,7 @@
                     <button class="recap-period-btn" id="monthRecapBtn" onclick="switchRecapPeriod('month')">Mois</button>
                 </div>
                 <div class="admin-panel" style="display: flex; gap: 8px;">
-                    <button class="btn" onclick="openRazSoldesModal()" style="padding: 8px 12px; font-size: 12px;">🔄 RAZ Soldes</button>
+                    <button class="btn" onclick="openRegularisationModal()" style="padding: 8px 12px; font-size: 12px;">💰 Régulariser</button>
                     <button class="btn admin" onclick="generateExportTexte()" style="padding: 8px 12px; font-size: 12px;">📧 Export Mail</button>
                 </div>
             </div>
@@ -1416,6 +1416,72 @@
                 <button type="submit" class="btn admin" id="heuresAbsenceSubmitBtn">✅ Valider</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- MODALE RÉGULARISATION -->
+<div id="regularisationModal" class="modal">
+    <div class="modal-content" style="max-width: 550px;">
+        <h2>💰 Régularisation des heures</h2>
+        <p style="color: #6b7280; margin-bottom: 20px; font-size: 14px;">
+            Régularisez les heures supplémentaires ou le déficit d'un employé
+        </p>
+        
+        <div class="form-group">
+            <label>👤 Employé :</label>
+            <select id="regularisationEmploye" onchange="updateRegularisationSolde()" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+            </select>
+        </div>
+        
+        <div id="regularisationInfo" style="background: #f3f4f6; border-radius: 12px; padding: 15px; margin: 15px 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="font-weight: 600; color: #374151;">Solde actuel :</span>
+                <span id="regularisationSoldeActuel" style="font-size: 1.5em; font-weight: 700; color: #667eea;">+0h</span>
+            </div>
+            <div id="regularisationHistorique" style="font-size: 12px; color: #6b7280;"></div>
+        </div>
+        
+        <div class="form-group">
+            <label>📝 Type de régularisation :</label>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
+                <label style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #f3f4f6; border-radius: 8px; cursor: pointer; flex: 1;">
+                    <input type="radio" name="regularisationType" value="paye" checked onchange="updateRegularisationUI()">
+                    <span>💵 Payé</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #f3f4f6; border-radius: 8px; cursor: pointer; flex: 1;">
+                    <input type="radio" name="regularisationType" value="recupere" onchange="updateRegularisationUI()">
+                    <span>🔄 Récupéré</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #f3f4f6; border-radius: 8px; cursor: pointer; flex: 1;">
+                    <input type="radio" name="regularisationType" value="reporte" onchange="updateRegularisationUI()">
+                    <span>📅 Tout reporter</span>
+                </label>
+            </div>
+        </div>
+        
+        <div id="regularisationHeuresGroup" class="form-group">
+            <label>⏱️ Heures à régulariser :</label>
+            <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
+                <input type="number" id="regularisationHeures" min="0" max="200" value="0" style="width: 100px; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 18px; text-align: center; font-weight: 700;" onchange="updateRegularisationReste()">
+                <span style="font-weight: 600;">h</span>
+                <input type="number" id="regularisationMinutes" min="0" max="59" value="0" step="5" style="width: 80px; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 18px; text-align: center; font-weight: 700;" onchange="updateRegularisationReste()">
+                <span style="font-weight: 600;">min</span>
+                <button type="button" onclick="regulariserTout()" class="btn" style="padding: 8px 12px; font-size: 12px;">Tout</button>
+            </div>
+            <div id="regularisationReste" style="margin-top: 10px; padding: 10px; background: #fef3c7; border-radius: 8px; font-size: 13px; color: #92400e;">
+                📌 Reste à reporter : <strong>0h</strong>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>📝 Note (optionnel) :</label>
+            <input type="text" id="regularisationNote" placeholder="Ex: Payé sur paie novembre, Récupéré le 15/11..." style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+        </div>
+        
+        <div class="form-actions" style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+            <button type="button" class="btn" onclick="closeModal()">Annuler</button>
+            <button type="button" class="btn admin" onclick="executeRegularisation()">✅ Valider</button>
+        </div>
     </div>
 </div>
 
@@ -5455,10 +5521,21 @@ let totalHours = 0;
         // Calculer les heures attendues = semaines COMPLÈTES × contrat
         const expectedHours = completeWeeks * contractHours;
         
+        // Prendre en compte les régularisations du mois
+        let regularisationTotal = 0;
+        if (employee.regularisations) {
+            employee.regularisations.forEach(reg => {
+                const regDate = new Date(reg.date);
+                if (regDate.getMonth() === targetMonth && regDate.getFullYear() === targetYear) {
+                    regularisationTotal += reg.heures;
+                }
+            });
+        }
+        
         // Soustraire les retards des heures travaillées
         const effectiveWorkedHours = totalWorkedHours - (totalRetardMinutes / 60);
-        // Calculer le solde
-        const solde = effectiveWorkedHours - expectedHours;
+        // Calculer le solde (en tenant compte des régularisations)
+        const solde = effectiveWorkedHours - expectedHours - regularisationTotal;
         
         return {
             worked: totalWorkedHours,
@@ -5467,12 +5544,196 @@ let totalHours = 0;
             expected: expectedHours,
             solde: solde,
             workDays: workDaysInMonth,
-            completeWeeks: completeWeeks
+            completeWeeks: completeWeeks,
+            regularise: regularisationTotal
         };
     }
 
     // ============================================
-    // RAZ SOLDES
+    // RÉGULARISATION DES HEURES
+    // ============================================
+    function openRegularisationModal() {
+        const select = document.getElementById('regularisationEmploye');
+        select.innerHTML = '';
+        
+        globalState.employees.filter(emp => !emp.archived).forEach(emp => {
+            select.innerHTML += `<option value="${emp.id}">${emp.name}</option>`;
+        });
+        
+        updateRegularisationSolde();
+        updateRegularisationUI();
+        document.getElementById('regularisationModal').style.display = 'block';
+    }
+    
+    function updateRegularisationSolde() {
+        const employeeId = document.getElementById('regularisationEmploye').value;
+        const employee = globalState.employees.find(emp => emp.id === employeeId);
+        if (!employee) return;
+        
+        const currentDate = new Date(globalState.currentWeek);
+        const monthSolde = calculateMonthlySolde(employee, currentDate.getMonth(), currentDate.getFullYear());
+        
+        const soldeElement = document.getElementById('regularisationSoldeActuel');
+        const solde = monthSolde.solde;
+        
+        if (solde >= 0) {
+            soldeElement.textContent = `+${formatHours(solde)}`;
+            soldeElement.style.color = solde > 0 ? '#ef4444' : '#10b981';
+        } else {
+            soldeElement.textContent = `-${formatHours(Math.abs(solde))}`;
+            soldeElement.style.color = '#f59e0b';
+        }
+        
+        // Mettre à jour les heures par défaut
+        const heures = Math.floor(Math.abs(solde));
+        const minutes = Math.round((Math.abs(solde) - heures) * 60);
+        document.getElementById('regularisationHeures').value = heures;
+        document.getElementById('regularisationMinutes').value = minutes;
+        
+        // Afficher l'historique des régularisations
+        const historiqueElement = document.getElementById('regularisationHistorique');
+        if (employee.regularisations && employee.regularisations.length > 0) {
+            const currentMonth = currentDate.getMonth();
+            const currentYear = currentDate.getFullYear();
+            const monthRegs = employee.regularisations.filter(reg => {
+                const regDate = new Date(reg.date);
+                return regDate.getMonth() === currentMonth && regDate.getFullYear() === currentYear;
+            });
+            
+            if (monthRegs.length > 0) {
+                let html = '<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #d1d5db;"><strong>📜 Régularisations ce mois :</strong><ul style="margin: 5px 0; padding-left: 20px;">';
+                monthRegs.forEach(reg => {
+                    const dateStr = new Date(reg.date).toLocaleDateString('fr-FR');
+                    const icon = reg.type === 'paye' ? '💵' : reg.type === 'recupere' ? '🔄' : '📅';
+                    html += `<li>${icon} ${dateStr} : ${formatHours(reg.heures)} ${reg.type === 'paye' ? 'payé' : reg.type === 'recupere' ? 'récupéré' : 'reporté'}${reg.note ? ` (${reg.note})` : ''}</li>`;
+                });
+                html += '</ul></div>';
+                historiqueElement.innerHTML = html;
+            } else {
+                historiqueElement.innerHTML = '';
+            }
+        } else {
+            historiqueElement.innerHTML = '';
+        }
+        
+        updateRegularisationReste();
+    }
+    
+    function updateRegularisationUI() {
+        const type = document.querySelector('input[name="regularisationType"]:checked').value;
+        const heuresGroup = document.getElementById('regularisationHeuresGroup');
+        
+        if (type === 'reporte') {
+            heuresGroup.style.display = 'none';
+        } else {
+            heuresGroup.style.display = 'block';
+        }
+    }
+    
+    function updateRegularisationReste() {
+        const employeeId = document.getElementById('regularisationEmploye').value;
+        const employee = globalState.employees.find(emp => emp.id === employeeId);
+        if (!employee) return;
+        
+        const currentDate = new Date(globalState.currentWeek);
+        const monthSolde = calculateMonthlySolde(employee, currentDate.getMonth(), currentDate.getFullYear());
+        const soldeTotal = Math.abs(monthSolde.solde);
+        
+        const heures = parseInt(document.getElementById('regularisationHeures').value) || 0;
+        const minutes = parseInt(document.getElementById('regularisationMinutes').value) || 0;
+        const heuresRegul = heures + (minutes / 60);
+        
+        const reste = soldeTotal - heuresRegul;
+        const resteElement = document.getElementById('regularisationReste');
+        
+        if (reste > 0) {
+            resteElement.innerHTML = `📌 Reste à reporter : <strong>${formatHours(reste)}</strong>`;
+            resteElement.style.background = '#fef3c7';
+            resteElement.style.color = '#92400e';
+        } else if (reste < 0) {
+            resteElement.innerHTML = `⚠️ Attention : vous régularisez plus que le solde !`;
+            resteElement.style.background = '#fee2e2';
+            resteElement.style.color = '#dc2626';
+        } else {
+            resteElement.innerHTML = `✅ Solde entièrement régularisé`;
+            resteElement.style.background = '#dcfce7';
+            resteElement.style.color = '#16a34a';
+        }
+    }
+    
+    function regulariserTout() {
+        const employeeId = document.getElementById('regularisationEmploye').value;
+        const employee = globalState.employees.find(emp => emp.id === employeeId);
+        if (!employee) return;
+        
+        const currentDate = new Date(globalState.currentWeek);
+        const monthSolde = calculateMonthlySolde(employee, currentDate.getMonth(), currentDate.getFullYear());
+        const soldeTotal = Math.abs(monthSolde.solde);
+        
+        const heures = Math.floor(soldeTotal);
+        const minutes = Math.round((soldeTotal - heures) * 60);
+        
+        document.getElementById('regularisationHeures').value = heures;
+        document.getElementById('regularisationMinutes').value = minutes;
+        updateRegularisationReste();
+    }
+    
+    function executeRegularisation() {
+        try {
+            const employeeId = document.getElementById('regularisationEmploye').value;
+            const employee = globalState.employees.find(emp => emp.id === employeeId);
+            if (!employee) return;
+            
+            const type = document.querySelector('input[name="regularisationType"]:checked').value;
+            const note = document.getElementById('regularisationNote').value;
+            
+            const currentDate = new Date(globalState.currentWeek);
+            const monthName = currentDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+            
+            if (type === 'reporte') {
+                // Juste une note, pas de régularisation
+                showToast(`Solde de ${employee.name} reporté au mois suivant`, 'success');
+            } else {
+                const heures = parseInt(document.getElementById('regularisationHeures').value) || 0;
+                const minutes = parseInt(document.getElementById('regularisationMinutes').value) || 0;
+                const heuresTotal = heures + (minutes / 60);
+                
+                if (heuresTotal <= 0) {
+                    showToast('Veuillez entrer un nombre d\'heures valide', 'error');
+                    return;
+                }
+                
+                // Initialiser le tableau des régularisations si nécessaire
+                if (!employee.regularisations) {
+                    employee.regularisations = [];
+                }
+                
+                // Ajouter la régularisation
+                employee.regularisations.push({
+                    id: generateId(),
+                    date: new Date().toISOString(),
+                    mois: `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`,
+                    type: type,
+                    heures: heuresTotal,
+                    note: note || (type === 'paye' ? `Payé sur paie ${monthName}` : `Récupéré ${monthName}`)
+                });
+                
+                const typeLabel = type === 'paye' ? 'payées' : 'récupérées';
+                showToast(`${formatHours(heuresTotal)} ${typeLabel} pour ${employee.name}`, 'success');
+            }
+            
+            closeModal();
+            updateSummary();
+            saveData();
+            
+        } catch (error) {
+            console.error('Erreur régularisation:', error);
+            showToast('Erreur lors de la régularisation', 'error');
+        }
+    }
+
+    // ============================================
+    // RAZ SOLDES (ancienne fonction conservée)
     // ============================================
     function openRazSoldesModal() {
         const select = document.getElementById('razSelection');
@@ -5635,7 +5896,24 @@ let totalHours = 0;
                 const expectedHours = completeWeeks * contractHours;
                 const retardHours = retardMinutes / 60;
                 const effectiveHours = workHours - retardHours;
+                
+                // Récupérer les régularisations du mois
+                let regularisationsDetails = [];
+                let totalRegularise = 0;
+                if (employee.regularisations) {
+                    employee.regularisations.forEach(reg => {
+                        const regDate = new Date(reg.date);
+                        if (regDate.getMonth() === currentDate.getMonth() && regDate.getFullYear() === currentDate.getFullYear()) {
+                            const icon = reg.type === 'paye' ? '💵' : '🔄';
+                            const typeLabel = reg.type === 'paye' ? 'Payé' : 'Récupéré';
+                            regularisationsDetails.push(`  • ${regDate.toLocaleDateString('fr-FR')} : ${formatHours(reg.heures)} ${typeLabel}${reg.note ? ` (${reg.note})` : ''}`);
+                            totalRegularise += reg.heures;
+                        }
+                    });
+                }
+                
                 const solde = effectiveHours - expectedHours;
+                const soldeApresRegul = solde - totalRegularise;
                 const heuresSup = Math.max(0, solde);
                 const deficit = Math.max(0, -solde);
                 
@@ -5659,6 +5937,17 @@ let totalHours = 0;
                     texte += `   ⚠️  DÉFICIT           : -${formatHours(deficit)}\n`;
                 } else {
                     texte += `   ✅ SOLDE              : 0h\n`;
+                }
+                
+                // Afficher les régularisations
+                if (regularisationsDetails.length > 0) {
+                    texte += `\n   💰 RÉGULARISATIONS\n`;
+                    texte += `   ─────────────────────────────────\n`;
+                    texte += regularisationsDetails.join('\n') + '\n';
+                    texte += `   ─────────────────────────────────\n`;
+                    texte += `   Total régularisé     : ${formatHours(totalRegularise)}\n`;
+                    const resteLabel = soldeApresRegul >= 0 ? `+${formatHours(soldeApresRegul)}` : `-${formatHours(Math.abs(soldeApresRegul))}`;
+                    texte += `   📌 RESTE À REPORTER  : ${resteLabel}\n`;
                 }
                 texte += `\n`;
                 
