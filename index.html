@@ -3711,7 +3711,8 @@ let totalHours = 0;
                                 }
                                 break;
                             case 'ferie':
-                                feriesCount++;
+                                // Case Férié = jour férié NON travaillé (payé)
+                                // Ne compte PAS comme "férié travaillé"
                                 // Compter les heures si définies
                                 if (shift.hours) {
                                     workHours += parseHours(shift.hours);
@@ -3872,6 +3873,7 @@ let totalHours = 0;
                                         if (shift.hours) {
                                             workHours += parseHours(shift.hours);
                                             hasWork = true;
+                                            // Compter seulement si c'est du TRAVAIL un jour férié/dimanche
                                             if (isDimanche(shiftDate)) dimanchesCount++;
                                             if (isJourFerie(shiftDate)) feriesCount++;
                                         }
@@ -3902,7 +3904,8 @@ let totalHours = 0;
                                         }
                                         break;
                                     case 'ferie':
-                                        feriesCount++;
+                                        // Case Férié = jour férié NON travaillé (payé)
+                                        // Ne compte PAS comme "férié travaillé"
                                         if (shift.hours) {
                                             workHours += parseHours(shift.hours);
                                             hasWork = true;
@@ -5616,9 +5619,9 @@ let totalHours = 0;
                                     }
                                     
                                     if (shift.type === 'ferie' && shift.hours) {
+                                        // Férié NON travaillé - juste compter les heures
                                         workHours += parseHours(shift.hours);
-                                        const ferie = isJourFerie(shiftDate);
-                                        feriesDetails.push(`  • ${dateStr} (${ferie ? ferie.nom : 'Férié'}) : ${shift.hours}`);
+                                        // Ne PAS ajouter aux feriesDetails (réservé aux fériés TRAVAILLÉS)
                                     }
                                 });
                             }
@@ -5661,12 +5664,12 @@ let totalHours = 0;
                 
                 // Détails des événements
                 if (dimanchesDetails.length > 0) {
-                    texte += `   📅 DIMANCHES TRAVAILLÉS (${dimanchesDetails.length})\n`;
+                    texte += `   📅 DIMANCHES TRAVAILLÉS (${dimanchesDetails.length}) - À MAJORER\n`;
                     texte += dimanchesDetails.join('\n') + '\n\n';
                 }
                 
                 if (feriesDetails.length > 0) {
-                    texte += `   🎌 JOURS FÉRIÉS (${feriesDetails.length})\n`;
+                    texte += `   🎌 JOURS FÉRIÉS TRAVAILLÉS (${feriesDetails.length}) - À MAJORER\n`;
                     texte += feriesDetails.join('\n') + '\n\n';
                 }
                 
