@@ -3489,16 +3489,23 @@ weekStart.setDate(date.getDate() + diff2);
     function formatHours(hours) {
         if (hours === 0) return '0h';
         
-        const wholeHours = Math.floor(hours);
-        const minutes = Math.round((hours - wholeHours) * 60);
+        // Gérer les nombres négatifs correctement
+        const isNegative = hours < 0;
+        const absHours = Math.abs(hours);
         
+        const wholeHours = Math.floor(absHours);
+        const minutes = Math.round((absHours - wholeHours) * 60);
+        
+        let result;
         if (minutes === 0) {
-            return `${wholeHours}h`;
+            result = `${wholeHours}h`;
         } else if (minutes === 30) {
-            return `${wholeHours}h30`;
+            result = `${wholeHours}h30`;
         } else {
-            return `${wholeHours}h${minutes.toString().padStart(2, '0')}`;
+            result = `${wholeHours}h${minutes.toString().padStart(2, '0')}`;
         }
+        
+        return isNegative ? `-${result}` : result;
     }
 
     function debugEmployeeWeek(employeeId) {
