@@ -1495,9 +1495,9 @@
 <!-- MODALE RAZ CUMUL -->
 <div id="razCumulModal" class="modal">
     <div class="modal-content" style="max-width: 450px;">
-        <h2>🔄 Remise à zéro du cumul</h2>
+        <h2>🔄 Ajustement du cumul</h2>
         <p style="color: #6b7280; margin-bottom: 20px; font-size: 14px;">
-            Définir le mois de départ pour le calcul du solde cumulé
+            Définir le point de départ et le solde initial du cumul
         </p>
         
         <div class="form-group">
@@ -1506,12 +1506,29 @@
         </div>
         
         <div class="form-group">
-            <label>📅 Calculer le cumul à partir de :</label>
+            <label>📅 Démarrer le cumul à partir de :</label>
             <input type="month" id="razCumulDate" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
         </div>
         
-        <div style="background: #fef3c7; border-radius: 8px; padding: 12px; margin: 15px 0; font-size: 13px; color: #92400e;">
-            ⚠️ Le solde cumulé sera recalculé à partir du mois sélectionné. Les mois précédents seront ignorés.
+        <div class="form-group">
+            <label>💰 Solde de départ (optionnel) :</label>
+            <div style="display: flex; gap: 10px; align-items: center; margin-top: 8px;">
+                <select id="razCumulSigne" style="padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                    <option value="-">− Déficit</option>
+                    <option value="+">+ Excédent</option>
+                </select>
+                <input type="number" id="razCumulHeures" min="0" max="9999" value="0" placeholder="0" style="flex: 1; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 18px; text-align: center; font-weight: 700;">
+                <span style="font-weight: 600;">h</span>
+                <input type="number" id="razCumulMinutes" min="0" max="59" value="0" step="5" style="width: 70px; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 18px; text-align: center; font-weight: 700;">
+                <span style="font-weight: 600;">min</span>
+            </div>
+            <p style="font-size: 12px; color: #6b7280; margin-top: 8px;">
+                💡 Laisse à 0 pour repartir de zéro, ou saisis une valeur pour reprendre un solde existant.
+            </p>
+        </div>
+        
+        <div style="background: #dbeafe; border-radius: 8px; padding: 12px; margin: 15px 0; font-size: 13px; color: #1e40af;">
+            📊 Le cumul sera : <strong>Solde de départ + Soldes des mois à partir du mois sélectionné</strong>
         </div>
         
         <div class="form-actions" style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
@@ -5888,9 +5905,14 @@ let totalHours = 0;
             startMonth = startDate.getMonth();
         }
         
+        // Ajouter le solde de départ s'il existe
+        if (employee.cumulStartBalance !== undefined) {
+            cumulativeSolde = employee.cumulStartBalance;
+        }
+        
         // Ne pas calculer si la date cible est avant la date de début
         if (targetYear < startYear || (targetYear === startYear && targetMonth < startMonth)) {
-            return 0;
+            return cumulativeSolde; // Retourner juste le solde de départ
         }
         
         for (let year = startYear; year <= targetYear; year++) {
@@ -5919,6 +5941,20 @@ let totalHours = 0;
         const monthValue = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`;
         document.getElementById('razCumulDate').value = monthValue;
         
+        // Réinitialiser les champs de solde de départ
+        document.getElementById('razCumulSigne').value = '-';
+        document.getElementById('razCumulHeures').value = 0;
+        document.getElementById('razCumulMinutes').value = 0;
+        
+        // Si un solde de départ existe déjà, le pré-remplir
+        if (employee.cumulStartBalance !== undefined && employee.cumulStartBalance !== 0) {
+            const balance = employee.cumulStartBalance;
+            document.getElementById('razCumulSigne').value = balance >= 0 ? '+' : '-';
+            const absBalance = Math.abs(balance);
+            document.getElementById('razCumulHeures').value = Math.floor(absBalance);
+            document.getElementById('razCumulMinutes').value = Math.round((absBalance - Math.floor(absBalance)) * 60);
+        }
+        
         document.getElementById('razCumulModal').style.display = 'block';
     }
     
@@ -5937,15 +5973,23 @@ let totalHours = 0;
             return;
         }
         
-        // Stocker la date de début du cumul
+        // Récupérer le solde de départ
+        const signe = document.getElementById('razCumulSigne').value;
+        const heures = parseInt(document.getElementById('razCumulHeures').value) || 0;
+        const minutes = parseInt(document.getElementById('razCumulMinutes').value) || 0;
+        const soldeDepart = (heures + minutes / 60) * (signe === '-' ? -1 : 1);
+        
+        // Stocker la date de début et le solde de départ
         employee.cumulStartDate = `${monthInput}-01`;
+        employee.cumulStartBalance = soldeDepart;
         
         saveData();
         closeRazCumulModal();
         updateRegularisationSolde();
         
         const monthName = new Date(monthInput + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-        showToast(`Cumul de ${employee.name} recalculé à partir de ${monthName}`, 'success');
+        const soldeText = soldeDepart === 0 ? '0h' : (soldeDepart >= 0 ? `+${formatHours(soldeDepart)}` : `-${formatHours(Math.abs(soldeDepart))}`);
+        showToast(`Cumul de ${employee.name} : départ ${soldeText} depuis ${monthName}`, 'success');
     }
     
     // Fonctions pour l'export Mail
