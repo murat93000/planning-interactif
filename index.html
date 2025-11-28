@@ -5900,17 +5900,22 @@ let totalHours = 0;
         const monthValue = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`;
         document.getElementById('exportMois').value = monthValue;
         
-        // Générer la liste des employés avec cases à cocher
+        // Générer la liste des employés avec cases à cocher et prime
         const container = document.getElementById('exportEmployesList');
         container.innerHTML = '';
         
         globalState.employees.filter(emp => !emp.archived).forEach(emp => {
             const div = document.createElement('div');
-            div.style.cssText = 'display: flex; align-items: center; gap: 10px; padding: 8px; border-bottom: 1px solid #e5e7eb;';
+            div.style.cssText = 'display: flex; align-items: center; gap: 8px; padding: 10px 8px; border-bottom: 1px solid #e5e7eb;';
             div.innerHTML = `
                 <input type="checkbox" id="export_${emp.id}" value="${emp.id}" checked style="width: 18px; height: 18px; cursor: pointer;">
                 <label for="export_${emp.id}" style="cursor: pointer; flex: 1; font-weight: 500;">${emp.name}</label>
-                <span style="font-size: 12px; color: #6b7280;">${emp.contractHours || 35}h</span>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                    <span style="font-size: 11px; color: #6b7280;">Prime:</span>
+                    <input type="number" id="prime_${emp.id}" min="0" step="0.01" placeholder="0" 
+                           style="width: 70px; padding: 4px 6px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 12px; text-align: right;">
+                    <span style="font-size: 11px; color: #6b7280;">€</span>
+                </div>
             `;
             container.appendChild(div);
         });
@@ -5930,11 +5935,16 @@ let totalHours = 0;
             return;
         }
         
-        // Récupérer les employés sélectionnés
+        // Récupérer les employés sélectionnés avec leurs primes
         const checkboxes = document.querySelectorAll('#exportEmployesList input[type="checkbox"]:checked');
-        const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+        const selectedData = Array.from(checkboxes).map(cb => {
+            const empId = cb.value;
+            const primeInput = document.getElementById(`prime_${empId}`);
+            const prime = primeInput ? parseFloat(primeInput.value) || 0 : 0;
+            return { id: empId, prime: prime };
+        });
         
-        if (selectedIds.length === 0) {
+        if (selectedData.length === 0) {
             showToast('Veuillez sélectionner au moins un employé', 'error');
             return;
         }
@@ -5944,7 +5954,7 @@ let totalHours = 0;
         // Générer le rapport
         const [year, month] = monthInput.split('-').map(Number);
         const exportDate = new Date(year, month - 1, 15); // Milieu du mois
-        const texte = generateExportTexteForMonth(exportDate, selectedIds);
+        const texte = generateExportTexteForMonth(exportDate, selectedData);
         
         if (format === 'email') {
             // Copier dans le presse-papier
@@ -5996,27 +6006,35 @@ let totalHours = 0;
         
         const currentDate = new Date(globalState.currentWeek);
         const monthSolde = calculateMonthlySolde(employee, currentDate.getMonth(), currentDate.getFullYear());
+        const soldeCumule = calculateCumulativeSolde(employee, currentDate.getMonth(), currentDate.getFullYear());
         const soldeTotal = Math.abs(monthSolde.solde);
+        const soldeCumulTotal = Math.abs(soldeCumule);
         
         const heures = parseInt(document.getElementById('regularisationHeures').value) || 0;
         const minutes = parseInt(document.getElementById('regularisationMinutes').value) || 0;
         const heuresRegul = heures + (minutes / 60);
         
-        const reste = soldeTotal - heuresRegul;
+        const resteMois = soldeTotal - heuresRegul;
+        const resteCumul = soldeCumulTotal - heuresRegul;
         const resteElement = document.getElementById('regularisationReste');
         
-        if (reste > 0) {
-            resteElement.innerHTML = `📌 Reste à reporter : <strong>${formatHours(reste)}</strong>`;
+        if (heuresRegul <= 0) {
+            resteElement.innerHTML = `📌 Saisissez les heures à régulariser`;
+            resteElement.style.background = '#f3f4f6';
+            resteElement.style.color = '#6b7280';
+        } else if (resteMois > 0) {
+            resteElement.innerHTML = `📌 Reste ce mois : <strong>${formatHours(resteMois)}</strong> | Reste cumulé : <strong>${formatHours(resteCumul)}</strong>`;
             resteElement.style.background = '#fef3c7';
             resteElement.style.color = '#92400e';
-        } else if (reste < 0) {
-            resteElement.innerHTML = `⚠️ Attention : vous régularisez plus que le solde !`;
-            resteElement.style.background = '#fee2e2';
-            resteElement.style.color = '#dc2626';
-        } else {
-            resteElement.innerHTML = `✅ Solde entièrement régularisé`;
+        } else if (resteMois === 0) {
+            resteElement.innerHTML = `✅ Solde du mois entièrement régularisé${resteCumul > 0 ? ` | Reste cumulé : <strong>${formatHours(resteCumul)}</strong>` : ''}`;
             resteElement.style.background = '#dcfce7';
             resteElement.style.color = '#16a34a';
+        } else {
+            // On régularise plus que le mois
+            resteElement.innerHTML = `ℹ️ Régularise ${formatHours(heuresRegul)} (${formatHours(Math.abs(resteMois))} de plus que le mois)${resteCumul > 0 ? ` | Reste cumulé : <strong>${formatHours(resteCumul)}</strong>` : resteCumul < 0 ? ` | ⚠️ Dépasse le cumul de ${formatHours(Math.abs(resteCumul))}` : ' | ✅ Cumul soldé'}`;
+            resteElement.style.background = '#dbeafe';
+            resteElement.style.color = '#1e40af';
         }
     }
     
@@ -6207,12 +6225,26 @@ let totalHours = 0;
             
             // Filtrer les employés selon la sélection
             let activeEmployees = globalState.employees.filter(emp => !emp.archived);
+            
+            // Créer un map des primes par employé
+            const primesMap = {};
             if (selectedEmployeeIds && selectedEmployeeIds.length > 0) {
-                activeEmployees = activeEmployees.filter(emp => selectedEmployeeIds.includes(emp.id));
+                // Nouveau format: [{id, prime}, ...]
+                if (typeof selectedEmployeeIds[0] === 'object') {
+                    selectedEmployeeIds.forEach(item => {
+                        primesMap[item.id] = item.prime || 0;
+                    });
+                    const selectedIds = selectedEmployeeIds.map(item => item.id);
+                    activeEmployees = activeEmployees.filter(emp => selectedIds.includes(emp.id));
+                } else {
+                    // Ancien format: [id, id, ...]
+                    activeEmployees = activeEmployees.filter(emp => selectedEmployeeIds.includes(emp.id));
+                }
             }
             
             activeEmployees.forEach(employee => {
                 const contractHours = employee.contractHours || 35;
+                const primeExceptionnelle = primesMap[employee.id] || 0;
                 
                 // Structure pour stocker les données par semaine
                 let weeksData = [];
@@ -6443,6 +6475,11 @@ let totalHours = 0;
                 if (allDimanchesDetails.length > 0) {
                     const joursDim = allDimanchesDetails.map(d => d.date).join(', ');
                     texte += `   📅 DIMANCHES TRAVAILLÉS : ${allDimanchesDetails.length} jour${allDimanchesDetails.length > 1 ? 's' : ''} (${formatHours(totalDimanchesHours)}) - ${joursDim}\n`;
+                }
+                
+                // Prime exceptionnelle
+                if (primeExceptionnelle > 0) {
+                    texte += `   💰 PRIME EXCEPTIONNELLE : ${primeExceptionnelle.toFixed(2)}€ NET\n`;
                 }
                 
                 // Solde cumulé (pour information)
