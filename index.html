@@ -6415,9 +6415,6 @@ let totalHours = 0;
                 const totalEffectiveNormal = totalNormalHours - totalRetardHours;
                 const soldeHoraire = totalEffectiveNormal - expectedHours;
                 
-                // Calculer le solde cumulé
-                const soldeCumule = calculateCumulativeSolde(employee, currentDate.getMonth(), currentDate.getFullYear());
-                
                 texte += `┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n`;
                 texte += `┃                    💼 ACTIONS COMPTABLE                     ┃\n`;
                 texte += `┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n\n`;
