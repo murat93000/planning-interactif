@@ -3088,7 +3088,7 @@ weekStart.setDate(date.getDate() + diff2);
                         }
                         // Soustraire les retards
                         if (shift.type === 'retard' && shift.retardMinutes) {
-                            retardMins += shift.retardMinutes;
+                            retardMins += parseInt(shift.retardMinutes) || 0;
                         }
                     });
                     if (hasWork) workDays++;
@@ -3547,9 +3547,10 @@ weekStart.setDate(date.getDate() + diff2);
                         }
                     }
                     if (shift.type === 'retard' && shift.retardMinutes) {
-                        dayRetardMins += shift.retardMinutes;
-                        const h = Math.floor(shift.retardMinutes / 60);
-                        const m = shift.retardMinutes % 60;
+                        const retardMinsValue = parseInt(shift.retardMinutes) || 0;
+                        dayRetardMins += retardMinsValue;
+                        const h = Math.floor(retardMinsValue / 60);
+                        const m = retardMinsValue % 60;
                         const retardStr = h > 0 ? `${h}h${m > 0 ? m : ''}` : `${m}min`;
                         dayDetails.push(`⏰ Retard: -${retardStr}`);
                     }
@@ -3845,7 +3846,7 @@ let totalHours = 0;
                                 break;
                             case 'retard':
                                 if (shift.retardMinutes) {
-                                    retardMinutes += shift.retardMinutes;
+                                    retardMinutes += parseInt(shift.retardMinutes) || 0;
                                 }
                                 break;
                             case 'absent':
@@ -4042,7 +4043,7 @@ let totalHours = 0;
                                         break;
                                     case 'retard':
                                         if (shift.retardMinutes) {
-                                            retardMinutes += shift.retardMinutes;
+                                            retardMinutes += parseInt(shift.retardMinutes) || 0;
                                         }
                                         break;
                                     case 'absent':
@@ -5607,7 +5608,7 @@ let totalHours = 0;
                             }
                             // Soustraire les retards
                             if (shift.type === 'retard' && shift.retardMinutes) {
-                                totalRetardMinutes += shift.retardMinutes;
+                                totalRetardMinutes += parseInt(shift.retardMinutes) || 0;
                             }
                         });
                         if (dayHasWork) workDaysInMonth++;
@@ -5634,8 +5635,11 @@ let totalHours = 0;
         
         // Soustraire les retards des heures travaillées
         const effectiveWorkedHours = totalWorkedHours - (totalRetardMinutes / 60);
-        // Calculer le solde (en tenant compte des régularisations)
-        const solde = effectiveWorkedHours - expectedHours - regularisationTotal;
+        // Calculer le solde AVANT régularisation
+        const soldeAvantRegul = effectiveWorkedHours - expectedHours;
+        // Le solde APRÈS régularisation : on ajoute les heures régularisées (elles "compensent" le solde)
+        // Si solde = -5h et on régularise 5h, le nouveau solde = -5h + 5h = 0h
+        const solde = soldeAvantRegul + regularisationTotal;
         
         return {
             worked: totalWorkedHours,
@@ -6003,9 +6007,10 @@ let totalHours = 0;
                                 
                                 // Retards
                                 if (shift.type === 'retard' && shift.retardMinutes) {
-                                    weekRetardMinutes += shift.retardMinutes;
-                                    const h = Math.floor(shift.retardMinutes / 60);
-                                    const m = shift.retardMinutes % 60;
+                                    const retardMinsValue = parseInt(shift.retardMinutes) || 0;
+                                    weekRetardMinutes += retardMinsValue;
+                                    const h = Math.floor(retardMinsValue / 60);
+                                    const m = retardMinsValue % 60;
                                     const duree = h > 0 ? `${h}h${m > 0 ? m.toString().padStart(2, '0') : ''}` : `${m}min`;
                                     allRetardsDetails.push(`  • ${dateStr} (${jourNom}) : -${duree}${shift.motif ? ` (${shift.motif})` : ''}`);
                                 }
@@ -6114,7 +6119,7 @@ let totalHours = 0;
                 texte += `   Heures attendues     : ${formatHours(expectedHours)} (${completeWeeks} sem × ${contractHours}h)\n`;
                 texte += `   ─────────────────────────────────\n`;
                 
-                // Solde horaire
+                // Solde horaire (heures sup ou déficit)
                 if (soldeHoraire > 0) {
                     texte += `   ✅ HEURES SUP À PAYER : +${formatHours(soldeHoraire)}\n`;
                 } else if (soldeHoraire < 0) {
@@ -6123,7 +6128,7 @@ let totalHours = 0;
                     texte += `   ✅ SOLDE ÉQUILIBRÉ    : 0h\n`;
                 }
                 
-                // À majorer (fériés + dimanches) - format simplifié
+                // À majorer (fériés + dimanches) - format simplifié sur une ligne
                 if (allFeriesDetails.length > 0 || allDimanchesDetails.length > 0) {
                     let majorerDetails = [];
                     allFeriesDetails.forEach(f => majorerDetails.push(`Férié ${f.date}`));
@@ -6131,20 +6136,6 @@ let totalHours = 0;
                     
                     const totalMajorer = totalFeriesHours + totalDimanchesHours;
                     texte += `   ✅ À MAJORER         : +${formatHours(totalMajorer)} (${majorerDetails.join(', ')})\n`;
-                }
-                
-                // À déduire (absences + retards) - format simplifié
-                if (allAbsencesDetails.length > 0 || totalRetardHours > 0) {
-                    let deduireDetails = [];
-                    if (allAbsencesDetails.length > 0) {
-                        deduireDetails.push(`${allAbsencesDetails.length} absence${allAbsencesDetails.length > 1 ? 's' : ''}`);
-                    }
-                    if (totalRetardHours > 0) {
-                        deduireDetails.push(`${formatHours(totalRetardHours)} retards`);
-                    }
-                    
-                    const totalDeduire = totalAbsencesHours + totalRetardHours;
-                    texte += `   ❌ À DÉDUIRE         : -${formatHours(totalDeduire)} (${deduireDetails.join(', ')})\n`;
                 }
                 
                 texte += `\n`;
@@ -6380,7 +6371,7 @@ let totalHours = 0;
                             break;
                         case 'retard':
                             if (shift.retardMinutes) {
-                                retardHours += shift.retardMinutes / 60;
+                                retardHours += (parseInt(shift.retardMinutes) || 0) / 60;
                             }
                             break;
                         case 'absent':
