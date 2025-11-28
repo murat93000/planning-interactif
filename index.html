@@ -5799,13 +5799,21 @@ let totalHours = 0;
             });
             
             if (monthRegs.length > 0) {
-                let html = '<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #d1d5db;"><strong>📜 Régularisations ce mois :</strong><ul style="margin: 5px 0; padding-left: 20px;">';
+                let html = '<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #d1d5db;">';
+                html += '<div style="display: flex; justify-content: space-between; align-items: center;">';
+                html += '<strong>📜 Régularisations ce mois :</strong>';
+                html += `<button type="button" onclick="clearAllRegularisations('${employee.id}')" style="padding: 2px 8px; font-size: 10px; background: #fee2e2; color: #dc2626; border: none; border-radius: 4px; cursor: pointer;">🗑️ Tout supprimer</button>`;
+                html += '</div>';
+                html += '<ul style="margin: 5px 0; padding-left: 15px; list-style: none;">';
                 monthRegs.forEach(reg => {
                     const dateStr = new Date(reg.date).toLocaleDateString('fr-FR');
                     const icon = reg.type === 'paye' ? '💵' : reg.type === 'recupere' ? '🔄' : reg.type === 'report_entrant' ? '📥' : '📅';
                     const typeLabel = reg.type === 'paye' ? 'payé' : reg.type === 'recupere' ? 'récupéré' : reg.type === 'report_entrant' ? 'report entrant' : 'reporté';
                     const heuresText = reg.heures >= 0 ? `+${formatHours(reg.heures)}` : `-${formatHours(Math.abs(reg.heures))}`;
-                    html += `<li>${icon} ${dateStr} : ${heuresText} ${typeLabel}${reg.note ? ` (${reg.note})` : ''}</li>`;
+                    html += `<li style="display: flex; justify-content: space-between; align-items: center; padding: 3px 0;">`;
+                    html += `<span>${icon} ${dateStr} : ${heuresText} ${typeLabel}${reg.note ? ` (${reg.note})` : ''}</span>`;
+                    html += `<button type="button" onclick="deleteRegularisation('${employee.id}', '${reg.id}')" style="padding: 1px 5px; font-size: 10px; background: #fee2e2; color: #dc2626; border: none; border-radius: 3px; cursor: pointer;">✕</button>`;
+                    html += `</li>`;
                 });
                 html += '</ul></div>';
                 historiqueElement.innerHTML = html;
@@ -5817,6 +5825,53 @@ let totalHours = 0;
         }
         
         updateRegularisationReste();
+    }
+    
+    function deleteRegularisation(employeeId, regId) {
+        const employee = globalState.employees.find(emp => emp.id === employeeId);
+        if (!employee || !employee.regularisations) return;
+        
+        const regIndex = employee.regularisations.findIndex(r => r.id === regId);
+        if (regIndex === -1) return;
+        
+        const reg = employee.regularisations[regIndex];
+        if (!confirm(`Supprimer cette régularisation ?\n${formatHours(Math.abs(reg.heures))} ${reg.type}`)) return;
+        
+        employee.regularisations.splice(regIndex, 1);
+        saveData();
+        updateRegularisationSolde();
+        updateSummary();
+        showToast('Régularisation supprimée', 'success');
+    }
+    
+    function clearAllRegularisations(employeeId) {
+        const employee = globalState.employees.find(emp => emp.id === employeeId);
+        if (!employee || !employee.regularisations) return;
+        
+        const currentDate = new Date(globalState.currentWeek);
+        const targetMonthKey = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`;
+        
+        const monthRegs = employee.regularisations.filter(reg => {
+            if (reg.mois) return reg.mois === targetMonthKey;
+            const regDate = new Date(reg.date);
+            return regDate.getMonth() === currentDate.getMonth() && regDate.getFullYear() === currentDate.getFullYear();
+        });
+        
+        if (monthRegs.length === 0) return;
+        
+        if (!confirm(`Supprimer TOUTES les ${monthRegs.length} régularisations de ce mois pour ${employee.name} ?`)) return;
+        
+        // Supprimer les régularisations du mois
+        employee.regularisations = employee.regularisations.filter(reg => {
+            if (reg.mois) return reg.mois !== targetMonthKey;
+            const regDate = new Date(reg.date);
+            return !(regDate.getMonth() === currentDate.getMonth() && regDate.getFullYear() === currentDate.getFullYear());
+        });
+        
+        saveData();
+        updateRegularisationSolde();
+        updateSummary();
+        showToast(`${monthRegs.length} régularisations supprimées pour ${employee.name}`, 'success');
     }
     
     // Calculer le solde cumulé de tous les mois jusqu'au mois cible
@@ -6126,18 +6181,26 @@ let totalHours = 0;
                     return;
                 }
                 
+                // Calculer le solde actuel pour déterminer le signe de la régularisation
+                const monthSolde = calculateMonthlySolde(employee, currentDate.getMonth(), currentDate.getFullYear());
+                
+                // Si solde positif (heures sup): régularisation négative (on soustrait)
+                // Si solde négatif (déficit): régularisation positive (on ajoute)
+                const heuresRegul = monthSolde.solde >= 0 ? -heuresTotal : heuresTotal;
+                
                 // Ajouter la régularisation
                 employee.regularisations.push({
                     id: generateId(),
                     date: new Date().toISOString(),
                     mois: currentMonth,
                     type: type,
-                    heures: heuresTotal,
+                    heures: heuresRegul,
                     note: note || (type === 'paye' ? `Payé sur paie ${monthName}` : `Récupéré ${monthName}`)
                 });
                 
                 const typeLabel = type === 'paye' ? 'payées' : 'récupérées';
-                showToast(`${formatHours(heuresTotal)} ${typeLabel} pour ${employee.name}`, 'success');
+                const actionLabel = monthSolde.solde >= 0 ? 'régularisées' : 'compensées';
+                showToast(`${formatHours(heuresTotal)} ${typeLabel} (${actionLabel}) pour ${employee.name}`, 'success');
             }
             
             closeModal();
