@@ -3812,7 +3812,7 @@ let totalHours = 0;
         const currentDate = new Date(globalState.currentWeek);
         
         employees.forEach(employee => {
-            let workHours = 0;
+            let workHours = 0;  // Heures conventionnelles (hors dimanches)
             let workDays = 0;
             let absences = 0;
             let conges = 0;
@@ -3820,7 +3820,12 @@ let totalHours = 0;
             let cours = 0;
             let retardMinutes = 0;
             let dimanchesCount = 0;
+            let dimanchesHours = 0;
             let feriesCount = 0;
+            let feriesHours = 0;
+            
+            const contractHours = employee.contractHours || 35;
+            const heuresBaseJourFerie = contractHours >= 39 ? 8 : 7;
             
             if (employee.planning && employee.planning[weekKey]) {
                 Object.keys(employee.planning[weekKey]).forEach(dayIndex => {
@@ -3830,18 +3835,28 @@ let totalHours = 0;
                     // Calculer la date du jour
                     const shiftDate = new Date(currentDate);
                     shiftDate.setDate(shiftDate.getDate() + parseInt(dayIndex));
+                    const isDim = isDimanche(shiftDate);
+                    const ferie = isJourFerie(shiftDate);
                     
                     dayShifts.forEach(shift => {
                         switch(shift.type) {
                             case 'work':
                                 if (shift.hours) {
                                     const hours = parseHours(shift.hours);
-                                    workHours += hours;
                                     hasWork = true;
                                     
-                                    // Vérifier dimanche et férié
-                                    if (isDimanche(shiftDate)) dimanchesCount++;
-                                    if (isJourFerie(shiftDate)) feriesCount++;
+                                    if (isDim) {
+                                        // Dimanche = heures à part (pas dans conventionnelles)
+                                        dimanchesCount++;
+                                        dimanchesHours += hours;
+                                    } else if (ferie) {
+                                        // Férié travaillé = base conventionnelle + heures à majorer
+                                        workHours += heuresBaseJourFerie;
+                                        feriesCount++;
+                                        feriesHours += hours;
+                                    } else {
+                                        workHours += hours;
+                                    }
                                 }
                                 break;
                             case 'retard':
@@ -3854,7 +3869,6 @@ let totalHours = 0;
                                 break;
                             case 'conges':
                                 conges++;
-                                // Compter les heures si définies
                                 if (shift.hours) {
                                     workHours += parseHours(shift.hours);
                                     hasWork = true;
@@ -3865,7 +3879,6 @@ let totalHours = 0;
                                 break;
                             case 'cours':
                                 cours++;
-                                // Compter les heures si définies
                                 if (shift.hours) {
                                     workHours += parseHours(shift.hours);
                                     hasWork = true;
@@ -3873,8 +3886,6 @@ let totalHours = 0;
                                 break;
                             case 'ferie':
                                 // Case Férié = jour férié NON travaillé (payé)
-                                // Ne compte PAS comme "férié travaillé"
-                                // Compter les heures si définies
                                 if (shift.hours) {
                                     workHours += parseHours(shift.hours);
                                     hasWork = true;
@@ -3886,7 +3897,6 @@ let totalHours = 0;
                 });
             }
             
-            const contractHours = employee.contractHours || 35;
             const retardHours = retardMinutes / 60;
             const effectiveHours = workHours - retardHours;
             const diff = effectiveHours - contractHours;
@@ -3959,10 +3969,10 @@ let totalHours = 0;
                         <span style="font-weight: 600;">😴 Repos:</span>
                         <span style="font-weight: 700; color: #6b7280;">${repos}</span>
                     </div>
-                    ${dimanchesCount > 0 || feriesCount > 0 ? `
+                    ${(dimanchesCount > 0 || feriesCount > 0) ? `
                     <div style="display: flex; justify-content: space-between; padding: 6px 8px; background: rgba(139, 92, 246, 0.1); border-radius: 8px;">
                         <span style="font-weight: 600;">🎌 Dim/Fériés:</span>
-                        <span style="font-weight: 700; color: #8b5cf6;">${dimanchesCount}/${feriesCount}</span>
+                        <span style="font-weight: 700; color: #8b5cf6;">${dimanchesCount > 0 ? dimanchesCount + 'D(' + formatHours(dimanchesHours) + ')' : ''}${dimanchesCount > 0 && feriesCount > 0 ? '/' : ''}${feriesCount > 0 ? feriesCount + 'F(' + formatHours(feriesHours) + ')' : ''}</span>
                     </div>
                     ` : ''}
                 </div>
@@ -3996,7 +4006,7 @@ let totalHours = 0;
         const completeWeeks = Math.max(0, Math.floor((lastSunday - firstMonday) / (7 * 24 * 60 * 60 * 1000)) + 1);
         
         employees.forEach(employee => {
-            let workHours = 0;
+            let workHours = 0;  // Heures conventionnelles (hors dimanches)
             let workDays = 0;
             let absences = 0;
             let conges = 0;
@@ -4004,7 +4014,12 @@ let totalHours = 0;
             let cours = 0;
             let retardMinutes = 0;
             let dimanchesCount = 0;
+            let dimanchesHours = 0;
             let feriesCount = 0;
+            let feriesHours = 0;
+            
+            const contractHours = employee.contractHours || 35;
+            const heuresBaseJourFerie = contractHours >= 39 ? 8 : 7;
 
             // Parcourir toutes les semaines du mois
             let currentWeekStart = new Date(firstDayOfMonth);
@@ -4030,15 +4045,28 @@ let totalHours = 0;
                         // (entre le premier lundi et le dernier dimanche du mois)
                         if (shiftDate >= firstMonday && shiftDate <= lastSunday && shiftDate.getMonth() === currentDate.getMonth()) {
                             let hasWork = false;
+                            const isDim = isDimanche(shiftDate);
+                            const ferie = isJourFerie(shiftDate);
+                            
                             dayShifts.forEach(shift => {
                                 switch(shift.type) {
                                     case 'work':
                                         if (shift.hours) {
-                                            workHours += parseHours(shift.hours);
+                                            const hours = parseHours(shift.hours);
                                             hasWork = true;
-                                            // Compter seulement si c'est du TRAVAIL un jour férié/dimanche
-                                            if (isDimanche(shiftDate)) dimanchesCount++;
-                                            if (isJourFerie(shiftDate)) feriesCount++;
+                                            
+                                            if (isDim) {
+                                                // Dimanche = heures à part (pas dans conventionnelles)
+                                                dimanchesCount++;
+                                                dimanchesHours += hours;
+                                            } else if (ferie) {
+                                                // Férié travaillé = base conventionnelle + heures à majorer
+                                                workHours += heuresBaseJourFerie;
+                                                feriesCount++;
+                                                feriesHours += hours;
+                                            } else {
+                                                workHours += hours;
+                                            }
                                         }
                                         break;
                                     case 'retard':
@@ -4068,7 +4096,6 @@ let totalHours = 0;
                                         break;
                                     case 'ferie':
                                         // Case Férié = jour férié NON travaillé (payé)
-                                        // Ne compte PAS comme "férié travaillé"
                                         if (shift.hours) {
                                             workHours += parseHours(shift.hours);
                                             hasWork = true;
@@ -4084,7 +4111,6 @@ let totalHours = 0;
                 currentWeekStart.setDate(currentWeekStart.getDate() + 7);
             }
             
-            const contractHours = employee.contractHours || 35;
             const retardHours = retardMinutes / 60;
             
             // Calculer les heures attendues = semaines COMPLÈTES × contrat
@@ -4153,10 +4179,10 @@ let totalHours = 0;
                         <span style="font-weight: 600;">😴 Repos:</span>
                         <span style="font-weight: 700; color: #6b7280;">${repos}</span>
                     </div>
-                    ${dimanchesCount > 0 || feriesCount > 0 ? `
+                    ${(dimanchesCount > 0 || feriesCount > 0) ? `
                     <div style="display: flex; justify-content: space-between; padding: 6px 8px; background: rgba(139, 92, 246, 0.1); border-radius: 8px;">
                         <span style="font-weight: 600;">🎌 Dim/Fériés:</span>
-                        <span style="font-weight: 700; color: #8b5cf6;">${dimanchesCount}/${feriesCount}</span>
+                        <span style="font-weight: 700; color: #8b5cf6;">${dimanchesCount > 0 ? dimanchesCount + 'D(' + formatHours(dimanchesHours) + ')' : ''}${dimanchesCount > 0 && feriesCount > 0 ? '/' : ''}${feriesCount > 0 ? feriesCount + 'F(' + formatHours(feriesHours) + ')' : ''}</span>
                     </div>
                     ` : ''}
                 </div>
@@ -5966,20 +5992,27 @@ let totalHours = 0;
                             const isDimanche = shiftDate.getDay() === 0;
                             const ferie = isJourFerie(shiftDate);
                             
+                            // Heures de base pour un jour férié selon contrat (7h pour 35h, 8h pour 39h)
+                            const heuresBaseJourFerie = contractHours >= 39 ? 8 : 7;
+                            
                             dayShifts.forEach(shift => {
                                 // Heures de travail
                                 if (shift.type === 'work' && shift.hours) {
                                     const hours = parseHours(shift.hours);
                                     
-                                    // Fériés et dimanches travaillés = À PART (pas dans les heures normales)
                                     if (isDimanche) {
+                                        // Dimanche travaillé = UNIQUEMENT à majorer (pas dans les heures conventionnelles)
                                         weekDimanchesHours += hours;
                                         weekDimanchesDetails.push({ date: dateStr, hours: hours, text: shift.text });
                                     } else if (ferie) {
+                                        // Férié travaillé :
+                                        // 1. Ajouter la BASE conventionnelle (7h ou 8h) aux heures normales
+                                        weekNormalHours += heuresBaseJourFerie;
+                                        // 2. Lister les heures RÉELLEMENT travaillées pour majoration
                                         weekFeriesHours += hours;
                                         weekFeriesDetails.push({ date: dateStr, ferie: ferie.nom, hours: hours, text: shift.text });
                                     } else {
-                                        // Heures normales (hors fériés/dimanches)
+                                        // Heures normales
                                         weekNormalHours += hours;
                                     }
                                 }
