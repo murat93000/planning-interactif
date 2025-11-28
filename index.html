@@ -1151,7 +1151,7 @@
                 </div>
                 <div class="admin-panel" style="display: flex; gap: 8px;">
                     <button class="btn" onclick="openRegularisationModal()" style="padding: 8px 12px; font-size: 12px;">💰 Régulariser</button>
-                    <button class="btn admin" onclick="generateExportTexte()" style="padding: 8px 12px; font-size: 12px;">📧 Export Mail</button>
+                    <button class="btn admin" onclick="openExportMailModal()" style="padding: 8px 12px; font-size: 12px;">📧 Export Mail</button>
                 </div>
             </div>
         </div>
@@ -1438,6 +1438,13 @@
                 <span style="font-weight: 600; color: #374151;">Solde actuel :</span>
                 <span id="regularisationSoldeActuel" style="font-size: 1.5em; font-weight: 700; color: #667eea;">+0h</span>
             </div>
+            <div id="regularisationSoldeCumuleContainer" style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px dashed #d1d5db;">
+                <span style="font-weight: 500; color: #6b7280;">📊 Solde cumulé :</span>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span id="regularisationSoldeCumule" style="font-size: 1.2em; font-weight: 700; color: #667eea;">0h</span>
+                    <button type="button" onclick="openRazCumulModal()" class="btn" style="padding: 4px 8px; font-size: 11px; background: #fee2e2; color: #dc2626;">🔄 RAZ</button>
+                </div>
+            </div>
             <div id="regularisationHistorique" style="font-size: 12px; color: #6b7280;"></div>
         </div>
         
@@ -1485,42 +1492,79 @@
     </div>
 </div>
 
+<!-- MODALE RAZ CUMUL -->
+<div id="razCumulModal" class="modal">
+    <div class="modal-content" style="max-width: 450px;">
+        <h2>🔄 Remise à zéro du cumul</h2>
+        <p style="color: #6b7280; margin-bottom: 20px; font-size: 14px;">
+            Définir le mois de départ pour le calcul du solde cumulé
+        </p>
+        
+        <div class="form-group">
+            <label>👤 Employé :</label>
+            <div id="razCumulEmployeeName" style="padding: 12px; background: #f3f4f6; border-radius: 8px; font-weight: 600;"></div>
+        </div>
+        
+        <div class="form-group">
+            <label>📅 Calculer le cumul à partir de :</label>
+            <input type="month" id="razCumulDate" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+        </div>
+        
+        <div style="background: #fef3c7; border-radius: 8px; padding: 12px; margin: 15px 0; font-size: 13px; color: #92400e;">
+            ⚠️ Le solde cumulé sera recalculé à partir du mois sélectionné. Les mois précédents seront ignorés.
+        </div>
+        
+        <div class="form-actions" style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+            <button type="button" class="btn" onclick="closeRazCumulModal()">Annuler</button>
+            <button type="button" class="btn admin" onclick="executeRazCumul()">✅ Valider</button>
+        </div>
+    </div>
+</div>
+
 <!-- MODALE EXPORT COMPTABLE -->
 <div id="exportComptableModal" class="modal">
-    <div class="modal-content" style="max-width: 500px;">
+    <div class="modal-content" style="max-width: 550px;">
         <h2>📤 Export Comptable</h2>
         <p style="color: #6b7280; margin-bottom: 20px; font-size: 14px;">
-            Générez un fichier Excel détaillé pour votre comptable avec toutes les informations de paie.
+            Générez un récapitulatif pour votre comptable
         </p>
+        
         <div class="form-group">
-            <label>📅 Période :</label>
-            <select id="exportPeriode" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
-                <option value="mois">Mois en cours</option>
-                <option value="moisPrecedent">Mois précédent</option>
-                <option value="personnalise">Période personnalisée</option>
-            </select>
+            <label>📅 Mois :</label>
+            <input type="month" id="exportMois" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
         </div>
-        <div id="periodePersonnalisee" style="display: none; margin-top: 15px;">
-            <div style="display: flex; gap: 10px;">
-                <div class="form-group" style="flex: 1;">
-                    <label>Du :</label>
-                    <input type="date" id="exportDateDebut" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
-                </div>
-                <div class="form-group" style="flex: 1;">
-                    <label>Au :</label>
-                    <input type="date" id="exportDateFin" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
-                </div>
+        
+        <div class="form-group" style="margin-top: 15px;">
+            <label>👥 Employés à inclure :</label>
+            <div style="display: flex; gap: 10px; margin: 10px 0;">
+                <button type="button" onclick="selectAllExportEmployees(true)" class="btn" style="padding: 6px 12px; font-size: 12px;">✅ Tout sélectionner</button>
+                <button type="button" onclick="selectAllExportEmployees(false)" class="btn" style="padding: 6px 12px; font-size: 12px;">❌ Tout désélectionner</button>
+            </div>
+            <div id="exportEmployesList" style="max-height: 200px; overflow-y: auto; border: 2px solid #e5e7eb; border-radius: 8px; padding: 10px;">
+                <!-- Liste des employés avec cases à cocher -->
             </div>
         </div>
+        
         <div class="form-group" style="margin-top: 15px;">
-            <label>👥 Employés :</label>
-            <select id="exportEmployes" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
-                <option value="tous">Tous les employés</option>
-            </select>
+            <label>📋 Format :</label>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <label style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #f3f4f6; border-radius: 8px; cursor: pointer; flex: 1;">
+                    <input type="radio" name="exportFormat" value="texte" checked>
+                    <span>📄 Texte (.txt)</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #f3f4f6; border-radius: 8px; cursor: pointer; flex: 1;">
+                    <input type="radio" name="exportFormat" value="email">
+                    <span>📧 Copier pour email</span>
+                </label>
+            </div>
         </div>
+        
         <div class="form-actions" style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
             <button type="button" class="btn" onclick="closeModal()">Annuler</button>
-            <button type="button" class="btn admin" onclick="generateExportComptable()">📥 Générer Excel</button>
+            <button type="button" class="btn admin" onclick="executeExportComptable()">📤 Exporter</button>
+        </div>
+    </div>
+</div>
         </div>
     </div>
 </div>
@@ -5728,23 +5772,12 @@ let totalHours = 0;
         }
         soldeElement.textContent = soldeText;
         
-        // Afficher le solde cumulé en dessous
-        const infoDiv = document.getElementById('regularisationInfo');
+        // Afficher le solde cumulé
+        const cumulElement = document.getElementById('regularisationSoldeCumule');
         let cumulText = soldeCumule >= 0 ? `+${formatHours(soldeCumule)}` : `-${formatHours(Math.abs(soldeCumule))}`;
         let cumulColor = soldeCumule > 0 ? '#ef4444' : soldeCumule < 0 ? '#f59e0b' : '#10b981';
-        
-        // Vérifier si l'élément cumulé existe déjà
-        let cumulElement = document.getElementById('regularisationSoldeCumule');
-        if (!cumulElement) {
-            cumulElement = document.createElement('div');
-            cumulElement.id = 'regularisationSoldeCumule';
-            cumulElement.style.cssText = 'margin-top: 10px; padding-top: 10px; border-top: 1px dashed #d1d5db; display: flex; justify-content: space-between; align-items: center;';
-            infoDiv.insertBefore(cumulElement, infoDiv.querySelector('#regularisationHistorique'));
-        }
-        cumulElement.innerHTML = `
-            <span style="font-weight: 500; color: #6b7280;">📊 Solde cumulé :</span>
-            <span style="font-size: 1.2em; font-weight: 700; color: ${cumulColor};">${cumulText}</span>
-        `;
+        cumulElement.textContent = cumulText;
+        cumulElement.style.color = cumulColor;
         
         // Mettre à jour les heures par défaut
         const heures = Math.floor(Math.abs(solde));
@@ -5790,9 +5823,20 @@ let totalHours = 0;
     function calculateCumulativeSolde(employee, targetMonth, targetYear) {
         let cumulativeSolde = 0;
         
-        // Commencer depuis janvier de l'année en cours (ou une date de départ configurable)
-        const startYear = targetYear;
-        const startMonth = 0; // Janvier
+        // Utiliser la date de RAZ cumul si définie, sinon janvier de l'année en cours
+        let startYear = targetYear;
+        let startMonth = 0; // Janvier par défaut
+        
+        if (employee.cumulStartDate) {
+            const startDate = new Date(employee.cumulStartDate);
+            startYear = startDate.getFullYear();
+            startMonth = startDate.getMonth();
+        }
+        
+        // Ne pas calculer si la date cible est avant la date de début
+        if (targetYear < startYear || (targetYear === startYear && targetMonth < startMonth)) {
+            return 0;
+        }
         
         for (let year = startYear; year <= targetYear; year++) {
             const monthStart = (year === startYear) ? startMonth : 0;
@@ -5805,6 +5849,133 @@ let totalHours = 0;
         }
         
         return cumulativeSolde;
+    }
+    
+    // Fonctions pour la RAZ Cumul
+    function openRazCumulModal() {
+        const employeeId = document.getElementById('regularisationEmploye').value;
+        const employee = globalState.employees.find(emp => emp.id === employeeId);
+        if (!employee) return;
+        
+        document.getElementById('razCumulEmployeeName').textContent = employee.name;
+        
+        // Définir le mois actuel par défaut
+        const currentDate = new Date(globalState.currentWeek);
+        const monthValue = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`;
+        document.getElementById('razCumulDate').value = monthValue;
+        
+        document.getElementById('razCumulModal').style.display = 'block';
+    }
+    
+    function closeRazCumulModal() {
+        document.getElementById('razCumulModal').style.display = 'none';
+    }
+    
+    function executeRazCumul() {
+        const employeeId = document.getElementById('regularisationEmploye').value;
+        const employee = globalState.employees.find(emp => emp.id === employeeId);
+        if (!employee) return;
+        
+        const monthInput = document.getElementById('razCumulDate').value;
+        if (!monthInput) {
+            showToast('Veuillez sélectionner un mois', 'error');
+            return;
+        }
+        
+        // Stocker la date de début du cumul
+        employee.cumulStartDate = `${monthInput}-01`;
+        
+        saveData();
+        closeRazCumulModal();
+        updateRegularisationSolde();
+        
+        const monthName = new Date(monthInput + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+        showToast(`Cumul de ${employee.name} recalculé à partir de ${monthName}`, 'success');
+    }
+    
+    // Fonctions pour l'export Mail
+    function openExportMailModal() {
+        // Définir le mois actuel
+        const currentDate = new Date(globalState.currentWeek);
+        const monthValue = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`;
+        document.getElementById('exportMois').value = monthValue;
+        
+        // Générer la liste des employés avec cases à cocher
+        const container = document.getElementById('exportEmployesList');
+        container.innerHTML = '';
+        
+        globalState.employees.filter(emp => !emp.archived).forEach(emp => {
+            const div = document.createElement('div');
+            div.style.cssText = 'display: flex; align-items: center; gap: 10px; padding: 8px; border-bottom: 1px solid #e5e7eb;';
+            div.innerHTML = `
+                <input type="checkbox" id="export_${emp.id}" value="${emp.id}" checked style="width: 18px; height: 18px; cursor: pointer;">
+                <label for="export_${emp.id}" style="cursor: pointer; flex: 1; font-weight: 500;">${emp.name}</label>
+                <span style="font-size: 12px; color: #6b7280;">${emp.contractHours || 35}h</span>
+            `;
+            container.appendChild(div);
+        });
+        
+        document.getElementById('exportComptableModal').style.display = 'block';
+    }
+    
+    function selectAllExportEmployees(checked) {
+        const checkboxes = document.querySelectorAll('#exportEmployesList input[type="checkbox"]');
+        checkboxes.forEach(cb => cb.checked = checked);
+    }
+    
+    function executeExportComptable() {
+        const monthInput = document.getElementById('exportMois').value;
+        if (!monthInput) {
+            showToast('Veuillez sélectionner un mois', 'error');
+            return;
+        }
+        
+        // Récupérer les employés sélectionnés
+        const checkboxes = document.querySelectorAll('#exportEmployesList input[type="checkbox"]:checked');
+        const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+        
+        if (selectedIds.length === 0) {
+            showToast('Veuillez sélectionner au moins un employé', 'error');
+            return;
+        }
+        
+        const format = document.querySelector('input[name="exportFormat"]:checked').value;
+        
+        // Générer le rapport
+        const [year, month] = monthInput.split('-').map(Number);
+        const exportDate = new Date(year, month - 1, 15); // Milieu du mois
+        const texte = generateExportTexteForMonth(exportDate, selectedIds);
+        
+        if (format === 'email') {
+            // Copier dans le presse-papier
+            navigator.clipboard.writeText(texte).then(() => {
+                showToast('📋 Rapport copié dans le presse-papier !', 'success');
+            }).catch(() => {
+                // Fallback si clipboard ne fonctionne pas
+                const textarea = document.createElement('textarea');
+                textarea.value = texte;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showToast('📋 Rapport copié dans le presse-papier !', 'success');
+            });
+        } else {
+            // Télécharger en fichier texte
+            const monthName = exportDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+            const blob = new Blob([texte], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Recap_Paie_${monthName.replace(' ', '_')}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('📄 Fichier téléchargé !', 'success');
+        }
+        
+        closeModal();
     }
     
     function updateRegularisationUI() {
@@ -6009,9 +6180,9 @@ let totalHours = 0;
     // ============================================
     // EXPORT TEXTE SIMPLIFIÉ POUR COMPTABLE
     // ============================================
-    function generateExportTexte() {
+    function generateExportTexteForMonth(exportDate, selectedEmployeeIds) {
         try {
-            const currentDate = new Date(globalState.currentWeek);
+            const currentDate = exportDate || new Date(globalState.currentWeek);
             const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
             const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
             const monthName = currentDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
@@ -6034,7 +6205,11 @@ let totalHours = 0;
             texte += `                    ${monthName.toUpperCase()}\n`;
             texte += `═══════════════════════════════════════════════════════════════\n\n`;
             
-            const activeEmployees = globalState.employees.filter(emp => !emp.archived);
+            // Filtrer les employés selon la sélection
+            let activeEmployees = globalState.employees.filter(emp => !emp.archived);
+            if (selectedEmployeeIds && selectedEmployeeIds.length > 0) {
+                activeEmployees = activeEmployees.filter(emp => selectedEmployeeIds.includes(emp.id));
+            }
             
             activeEmployees.forEach(employee => {
                 const contractHours = employee.contractHours || 35;
@@ -6261,11 +6436,6 @@ let totalHours = 0;
                 const soldeMoisIcon = soldeHoraire > 0 ? '✅' : soldeHoraire < 0 ? '⚠️ ' : '✅';
                 texte += `   ${soldeMoisIcon} SOLDE DU MOIS    : ${soldeMoisText}\n`;
                 
-                // Solde cumulé
-                const soldeCumuleText = soldeCumule >= 0 ? `+${formatHours(soldeCumule)}` : formatHours(soldeCumule);
-                const soldeCumuleIcon = soldeCumule > 0 ? '📈' : soldeCumule < 0 ? '📉' : '📊';
-                texte += `   ${soldeCumuleIcon} SOLDE CUMULÉ    : ${soldeCumuleText} (depuis janvier ${currentDate.getFullYear()})\n`;
-                
                 // Jours fériés travaillés
                 if (allFeriesDetails.length > 0) {
                     const joursFeries = allFeriesDetails.map(f => f.date).join(', ');
@@ -6278,6 +6448,12 @@ let totalHours = 0;
                     texte += `   📅 DIMANCHES TRAVAILLÉS : ${allDimanchesDetails.length} jour${allDimanchesDetails.length > 1 ? 's' : ''} (${formatHours(totalDimanchesHours)}) - ${joursDim}\n`;
                 }
                 
+                // Solde cumulé (pour information)
+                const soldeCumule = calculateCumulativeSolde(employee, currentDate.getMonth(), currentDate.getFullYear());
+                const soldeCumuleText = soldeCumule >= 0 ? `+${formatHours(soldeCumule)}` : formatHours(soldeCumule);
+                texte += `   ─────────────────────────────────\n`;
+                texte += `   ℹ️  Pour info - Solde cumulé : ${soldeCumuleText}\n`;
+                
                 texte += `\n`;
             });
             
@@ -6285,27 +6461,12 @@ let totalHours = 0;
             texte += `Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}\n`;
             texte += `═══════════════════════════════════════════════════════════════\n`;
             
-            // Créer et télécharger le fichier
-            const blob = new Blob([texte], { type: 'text/plain;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Recap_Paie_${monthName.replace(' ', '_')}.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            // Aussi copier dans le presse-papier
-            navigator.clipboard.writeText(texte).then(() => {
-                showToast('📧 Export généré et copié dans le presse-papier !', 'success');
-            }).catch(() => {
-                showToast('📧 Export généré ! Fichier téléchargé.', 'success');
-            });
+            return texte;
             
         } catch (error) {
             console.error('Erreur export texte:', error);
             showToast('Erreur lors de l\'export', 'error');
+            return '';
         }
     }
 
