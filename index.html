@@ -1882,7 +1882,7 @@
                 console.log('📡 Données cloud trouvées (main):', cloudData);
 
                 if (cloudData.employees && Array.isArray(cloudData.employees)) {
-                    // 🔥 DEBUG : Afficher tous les shifts de type 'retard'
+                    // 🔥 DEBUG & NORMALISATION des retards
                     cloudData.employees.forEach(emp => {
                         if (emp.planning) {
                             Object.keys(emp.planning).forEach(weekKey => {
@@ -1892,11 +1892,37 @@
                                         shifts.forEach(shift => {
                                             if (shift.type === 'retard') {
                                                 console.log(`🔍 DEBUG RETARD - ${emp.name} - ${weekKey} jour ${dayKey}:`, JSON.stringify(shift));
-                                            }
-                                            // NORMALISATION : S'assurer que retardMinutes est bien un nombre
-                                            if (shift.type === 'retard' && shift.retardMinutes !== undefined) {
-                                                shift.retardMinutes = parseInt(shift.retardMinutes) || 0;
-                                                console.log(`🔧 Retard normalisé: ${shift.retardMinutes} minutes`);
+                                                
+                                                // Si retardMinutes existe, le normaliser
+                                                if (shift.retardMinutes !== undefined && shift.retardMinutes !== null && shift.retardMinutes !== '') {
+                                                    shift.retardMinutes = parseInt(shift.retardMinutes) || 0;
+                                                    console.log(`🔧 Retard normalisé depuis retardMinutes: ${shift.retardMinutes} minutes`);
+                                                } 
+                                                // SINON, extraire depuis le texte (ex: "⏰ -1h30" ou "⏰ -30min")
+                                                else if (shift.text) {
+                                                    let extractedMinutes = 0;
+                                                    const text = shift.text;
+                                                    
+                                                    // Pattern: -Xh ou -XhYY ou -Xmin
+                                                    const heuresMatch = text.match(/-(\d+)h/);
+                                                    const minutesMatch = text.match(/h(\d+)/); // Minutes après 'h'
+                                                    const minOnlyMatch = text.match(/-(\d+)min/); // Seulement minutes
+                                                    
+                                                    if (heuresMatch) {
+                                                        extractedMinutes += parseInt(heuresMatch[1]) * 60;
+                                                    }
+                                                    if (minutesMatch) {
+                                                        extractedMinutes += parseInt(minutesMatch[1]);
+                                                    }
+                                                    if (minOnlyMatch && !heuresMatch) {
+                                                        extractedMinutes = parseInt(minOnlyMatch[1]);
+                                                    }
+                                                    
+                                                    if (extractedMinutes > 0) {
+                                                        shift.retardMinutes = extractedMinutes;
+                                                        console.log(`🔧 Retard extrait depuis texte "${text}": ${extractedMinutes} minutes`);
+                                                    }
+                                                }
                                             }
                                         });
                                     }
@@ -1990,8 +2016,25 @@
                                             const shifts = emp.planning[weekKey][dayKey];
                                             if (Array.isArray(shifts)) {
                                                 shifts.forEach(shift => {
-                                                    if (shift.type === 'retard' && shift.retardMinutes !== undefined) {
-                                                        shift.retardMinutes = parseInt(shift.retardMinutes) || 0;
+                                                    if (shift.type === 'retard') {
+                                                        // Si retardMinutes existe, le normaliser
+                                                        if (shift.retardMinutes !== undefined && shift.retardMinutes !== null && shift.retardMinutes !== '') {
+                                                            shift.retardMinutes = parseInt(shift.retardMinutes) || 0;
+                                                        } 
+                                                        // SINON, extraire depuis le texte
+                                                        else if (shift.text) {
+                                                            let extractedMinutes = 0;
+                                                            const text = shift.text;
+                                                            const heuresMatch = text.match(/-(\d+)h/);
+                                                            const minutesMatch = text.match(/h(\d+)/);
+                                                            const minOnlyMatch = text.match(/-(\d+)min/);
+                                                            
+                                                            if (heuresMatch) extractedMinutes += parseInt(heuresMatch[1]) * 60;
+                                                            if (minutesMatch) extractedMinutes += parseInt(minutesMatch[1]);
+                                                            if (minOnlyMatch && !heuresMatch) extractedMinutes = parseInt(minOnlyMatch[1]);
+                                                            
+                                                            if (extractedMinutes > 0) shift.retardMinutes = extractedMinutes;
+                                                        }
                                                     }
                                                 });
                                             }
