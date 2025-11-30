@@ -1,4 +1,4 @@
-v34
+v35
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -1933,6 +1933,13 @@ v34
                     
                     globalState.employees = cloudData.employees;
                     console.log('👥 Employés chargés:', globalState.employees.length);
+                    
+                    // DEBUG: Afficher les régularisations chargées
+                    globalState.employees.forEach(emp => {
+                        if (emp.regularisations && emp.regularisations.length > 0) {
+                            console.log(`🔍 DEBUG LOAD - ${emp.name} a ${emp.regularisations.length} régularisation(s):`, JSON.stringify(emp.regularisations));
+                        }
+                    });
                 }
 
                 if (cloudData.customTemplates && Array.isArray(cloudData.customTemplates)) {
@@ -6367,26 +6374,52 @@ let totalHours = 0;
             document.getElementById('regularisationMinutes').value = 0;
             document.getElementById('regularisationNote').value = '';
             
+            // DEBUG: Afficher les régularisations avant sauvegarde
+            console.log('🔍 DEBUG REGUL - Employé:', employee.name);
+            console.log('🔍 DEBUG REGUL - Régularisations:', JSON.stringify(employee.regularisations));
+            
             // Fermer la modale et mettre à jour
             closeModal();
             updateSummary();
             
-            // Sauvegarde avec confirmation
+            // Sauvegarde avec confirmation - utiliser cleanData comme saveToCloudSilent
             if (isFirebaseEnabled && currentUser && db) {
+                const cleanData = (obj) => {
+                    if (Array.isArray(obj)) {
+                        return obj.map(item => cleanData(item)).filter(item => item !== undefined);
+                    }
+                    if (obj && typeof obj === 'object') {
+                        const cleaned = {};
+                        Object.keys(obj).forEach(key => {
+                            const value = cleanData(obj[key]);
+                            if (value !== undefined) {
+                                cleaned[key] = value;
+                            }
+                        });
+                        return cleaned;
+                    }
+                    return obj;
+                };
+                
                 const dataToSave = {
-                    employees: globalState.employees,
-                    customTemplates: globalState.customTemplates || [],
-                    timeSlots: globalState.timeSlots || [],
-                    weekTemplates: globalState.weekTemplates || [],
+                    employees: cleanData(globalState.employees || []),
+                    customTemplates: cleanData(globalState.customTemplates || []),
+                    timeSlots: cleanData(globalState.timeSlots || []),
+                    weekTemplates: cleanData(globalState.weekTemplates || []),
                     currentWeek: globalState.currentWeek.toISOString(),
                     lastSave: new Date().toISOString(),
                     version: '3.1',
                     userId: currentUser.uid
                 };
                 
+                // DEBUG: Vérifier que les régularisations sont dans dataToSave
+                const empInSave = dataToSave.employees.find(e => e.id === employee.id);
+                console.log('🔍 DEBUG SAVE - Régularisations dans dataToSave:', empInSave ? JSON.stringify(empInSave.regularisations) : 'NON TROUVE');
+                
                 db.collection('plannings').doc('main').set(dataToSave)
                     .then(() => {
                         console.log('✅ Régularisation sauvegardée sur Firebase');
+                        showToast('✅ Sauvegardé sur Firebase', 'success');
                     })
                     .catch((error) => {
                         console.error('❌ Erreur sauvegarde régularisation:', error);
