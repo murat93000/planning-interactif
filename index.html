@@ -6251,9 +6251,22 @@ let totalHours = 0;
     
     function executeRegularisation() {
         try {
+            // Désactiver le bouton pour éviter double-clic
+            const validateBtn = document.querySelector('#regularisationModal .btn.admin');
+            if (validateBtn) {
+                validateBtn.disabled = true;
+                validateBtn.textContent = '⏳ Enregistrement...';
+            }
+            
             const employeeId = document.getElementById('regularisationEmploye').value;
             const employee = globalState.employees.find(emp => emp.id === employeeId);
-            if (!employee) return;
+            if (!employee) {
+                if (validateBtn) {
+                    validateBtn.disabled = false;
+                    validateBtn.textContent = '✅ Valider';
+                }
+                return;
+            }
             
             const type = document.querySelector('input[name="regularisationType"]:checked').value;
             const note = document.getElementById('regularisationNote').value;
@@ -6274,6 +6287,10 @@ let totalHours = 0;
                 
                 if (soldeActuel === 0) {
                     showToast('Le solde est déjà à 0, rien à reporter', 'info');
+                    if (validateBtn) {
+                        validateBtn.disabled = false;
+                        validateBtn.textContent = '✅ Valider';
+                    }
                     closeModal();
                     return;
                 }
@@ -6308,7 +6325,7 @@ let totalHours = 0;
                 });
                 
                 const soldeText = soldeActuel >= 0 ? `+${formatHours(soldeActuel)}` : `-${formatHours(Math.abs(soldeActuel))}`;
-                showToast(`Solde ${soldeText} de ${employee.name} reporté vers ${nextMonthName}`, 'success');
+                showToast(`✅ ${employee.name} : ${soldeText} reporté vers ${nextMonthName}`, 'success');
                 
             } else {
                 const heures = parseInt(document.getElementById('regularisationHeures').value) || 0;
@@ -6317,6 +6334,10 @@ let totalHours = 0;
                 
                 if (heuresTotal <= 0) {
                     showToast('Veuillez entrer un nombre d\'heures valide', 'error');
+                    if (validateBtn) {
+                        validateBtn.disabled = false;
+                        validateBtn.textContent = '✅ Valider';
+                    }
                     return;
                 }
                 
@@ -6338,10 +6359,15 @@ let totalHours = 0;
                 });
                 
                 const typeLabel = type === 'paye' ? 'payées' : 'récupérées';
-                const actionLabel = monthSolde.solde >= 0 ? 'régularisées' : 'compensées';
-                showToast(`${formatHours(heuresTotal)} ${typeLabel} (${actionLabel}) pour ${employee.name}`, 'success');
+                showToast(`✅ ${employee.name} : ${formatHours(heuresTotal)} ${typeLabel}`, 'success');
             }
             
+            // Reset des champs pour éviter confusion
+            document.getElementById('regularisationHeures').value = 0;
+            document.getElementById('regularisationMinutes').value = 0;
+            document.getElementById('regularisationNote').value = '';
+            
+            // Fermer la modale, sauvegarder, mettre à jour
             closeModal();
             updateSummary();
             saveData();
@@ -6349,6 +6375,13 @@ let totalHours = 0;
         } catch (error) {
             console.error('Erreur régularisation:', error);
             showToast('Erreur lors de la régularisation', 'error');
+        } finally {
+            // Réactiver le bouton dans tous les cas
+            const validateBtn = document.querySelector('#regularisationModal .btn.admin');
+            if (validateBtn) {
+                validateBtn.disabled = false;
+                validateBtn.textContent = '✅ Valider';
+            }
         }
     }
 
