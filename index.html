@@ -1,4 +1,4 @@
-v35
+v36
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -6807,7 +6807,8 @@ let totalHours = 0;
                 // Calculer les régularisations du mois
                 const targetMonthKey = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`;
                 let totalRegularisations = 0;
-                let regularisationsDetails = [];
+                let heuresPayees = 0;
+                let heuresRecuperees = 0;
                 
                 if (employee.regularisations && employee.regularisations.length > 0) {
                     employee.regularisations.forEach(reg => {
@@ -6821,9 +6822,8 @@ let totalHours = 0;
                         
                         if (isThisMonth) {
                             totalRegularisations += reg.heures;
-                            const typeLabel = reg.type === 'paye' ? '💵 Payé' : reg.type === 'recupere' ? '🔄 Récupéré' : reg.type === 'reporte' ? '📅 Reporté' : '📥 Report entrant';
-                            const heuresText = reg.heures >= 0 ? `+${formatHours(reg.heures)}` : formatHours(reg.heures);
-                            regularisationsDetails.push(`${typeLabel} : ${heuresText}`);
+                            if (reg.type === 'paye') heuresPayees += Math.abs(reg.heures);
+                            if (reg.type === 'recupere') heuresRecuperees += Math.abs(reg.heures);
                         }
                     });
                 }
@@ -6834,98 +6834,58 @@ let totalHours = 0;
                 texte += `┃                    💼 ACTIONS COMPTABLE                     ┃\n`;
                 texte += `┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n\n`;
                 
-                texte += `   📊 RÉSUMÉ HEURES (hors fériés/dimanches travaillés)\n`;
-                texte += `   ─────────────────────────────────\n`;
-                texte += `   Heures travaillées   : ${formatHours(totalNormalHours)}\n`;
-                if (totalRetardHours > 0) {
-                    texte += `   Heures effectives    : ${formatHours(totalEffectiveNormal)}\n`;
+                // Solde horaire simplifié - soit à payer soit à déduire
+                if (soldeHoraire > 0) {
+                    texte += `   📈 Solde horaire à payer    : +${formatHours(soldeHoraire)}\n`;
+                } else if (soldeHoraire < 0) {
+                    texte += `   📉 Solde horaire à déduire  : ${formatHours(soldeHoraire)}\n`;
+                } else {
+                    texte += `   ✅ Solde horaire            : 0h (équilibré)\n`;
                 }
-                texte += `   Heures attendues     : ${formatHours(expectedHours)} (${completeWeeks} sem × ${contractHours}h)\n`;
-                texte += `   ─────────────────────────────────\n`;
                 
-                // Solde brut du mois (avant régularisation)
-                const soldeBrutText = soldeHoraireBrut >= 0 ? `+${formatHours(soldeHoraireBrut)}` : formatHours(soldeHoraireBrut);
-                texte += `   📈 Solde brut         : ${soldeBrutText}\n`;
+                // Si régularisation payée ce mois
+                if (heuresPayees > 0) {
+                    texte += `   💰 Régularisation payée     : ${formatHours(heuresPayees)} (déjà inclus ci-dessus)\n`;
+                }
                 
-                // Afficher les régularisations si présentes avec ACTION PAIE
-                if (regularisationsDetails.length > 0) {
+                texte += `\n`;
+                
+                // Jours exceptionnels travaillés
+                if (totalFeriesFullMonth.length > 0 || totalDimanchesFullMonth.length > 0) {
+                    texte += `   📆 JOURS EXCEPTIONNELS TRAVAILLÉS\n`;
                     texte += `   ─────────────────────────────────\n`;
-                    texte += `   📝 RÉGULARISATIONS CE MOIS :\n`;
-                    regularisationsDetails.forEach(detail => {
-                        texte += `      • ${detail}\n`;
-                    });
+                    texte += `   Jours travaillés     : ${totalDaysWorkedFullMonth} jours (du 1er au ${lastDayOfMonth.getDate()})\n`;
                     
-                    // Calculer les heures payées séparément
-                    let heuresPayees = 0;
-                    let heuresRecuperees = 0;
-                    if (employee.regularisations) {
-                        employee.regularisations.forEach(reg => {
-                            let isThisMonth = false;
-                            if (reg.mois) {
-                                isThisMonth = reg.mois === targetMonthKey;
-                            } else {
-                                const regDate = new Date(reg.date);
-                                isThisMonth = regDate.getMonth() === currentDate.getMonth() && regDate.getFullYear() === currentDate.getFullYear();
-                            }
-                            if (isThisMonth) {
-                                if (reg.type === 'paye') heuresPayees += Math.abs(reg.heures);
-                                if (reg.type === 'recupere') heuresRecuperees += Math.abs(reg.heures);
-                            }
-                        });
+                    // Jours fériés travaillés
+                    if (totalFeriesFullMonth.length > 0) {
+                        const totalFeriesHoursMonth = totalFeriesFullMonth.reduce((sum, f) => sum + f.hours, 0);
+                        const joursFeries = totalFeriesFullMonth.map(f => `${f.date} (${formatHours(f.hours)})`).join(', ');
+                        texte += `   🎌 FÉRIÉS TRAVAILLÉS  : ${totalFeriesFullMonth.length} jour${totalFeriesFullMonth.length > 1 ? 's' : ''} - ${joursFeries}\n`;
+                        texte += `      → Total à majorer : ${formatHours(totalFeriesHoursMonth)}\n`;
                     }
                     
-                    texte += `   ─────────────────────────────────\n`;
+                    // Dimanches travaillés
+                    if (totalDimanchesFullMonth.length > 0) {
+                        const totalDimHoursMonth = totalDimanchesFullMonth.reduce((sum, d) => sum + d.hours, 0);
+                        const joursDim = totalDimanchesFullMonth.map(d => `${d.date} (${formatHours(d.hours)})`).join(', ');
+                        texte += `   📅 DIMANCHES TRAVAILLÉS : ${totalDimanchesFullMonth.length} jour${totalDimanchesFullMonth.length > 1 ? 's' : ''} - ${joursDim}\n`;
+                        texte += `      → Total à majorer : ${formatHours(totalDimHoursMonth)}\n`;
+                    }
                     
-                    // Message ACTION PAIE clair pour le comptable
-                    if (heuresPayees > 0) {
-                        texte += `   💰 ACTION PAIE : DÉDUIRE ${formatHours(heuresPayees)} sur ce bulletin\n`;
-                    }
-                    if (heuresRecuperees > 0) {
-                        texte += `   🔄 RÉCUPÉRATION : ${formatHours(heuresRecuperees)} seront récupérées\n`;
-                    }
-                }
-                
-                texte += `   ─────────────────────────────────\n`;
-                
-                // Solde final du mois (après régularisation)
-                const soldeMoisText = soldeHoraire >= 0 ? `+${formatHours(soldeHoraire)}` : formatHours(soldeHoraire);
-                const soldeMoisIcon = soldeHoraire > 0 ? '✅' : soldeHoraire < 0 ? '⚠️ ' : '✅';
-                const soldeLabel = regularisationsDetails.length > 0 ? 'SOLDE RESTANT' : 'SOLDE DU MOIS';
-                texte += `   ${soldeMoisIcon} ${soldeLabel}  : ${soldeMoisText}${soldeHoraire !== 0 && regularisationsDetails.length > 0 ? ' (à récupérer)' : ''}\n\n`;
-                
-                // ════════════════════════════════════════════════════════════
-                // STATISTIQUES SUR TOUT LE MOIS (1er au dernier jour)
-                // ════════════════════════════════════════════════════════════
-                texte += `   📆 STATISTIQUES DU MOIS COMPLET\n`;
-                texte += `   ─────────────────────────────────\n`;
-                texte += `   Jours travaillés     : ${totalDaysWorkedFullMonth} jours (du 1er au ${lastDayOfMonth.getDate()})\n`;
-                
-                // Jours fériés travaillés (sur tout le mois)
-                if (totalFeriesFullMonth.length > 0) {
-                    const totalFeriesHoursMonth = totalFeriesFullMonth.reduce((sum, f) => sum + f.hours, 0);
-                    const joursFeries = totalFeriesFullMonth.map(f => `${f.date} (${formatHours(f.hours)})`).join(', ');
-                    texte += `   🎌 FÉRIÉS TRAVAILLÉS  : ${totalFeriesFullMonth.length} jour${totalFeriesFullMonth.length > 1 ? 's' : ''} - ${joursFeries}\n`;
-                    texte += `      → Total à majorer : ${formatHours(totalFeriesHoursMonth)}\n`;
-                }
-                
-                // Dimanches travaillés (sur tout le mois)
-                if (totalDimanchesFullMonth.length > 0) {
-                    const totalDimHoursMonth = totalDimanchesFullMonth.reduce((sum, d) => sum + d.hours, 0);
-                    const joursDim = totalDimanchesFullMonth.map(d => `${d.date} (${formatHours(d.hours)})`).join(', ');
-                    texte += `   📅 DIMANCHES TRAVAILLÉS : ${totalDimanchesFullMonth.length} jour${totalDimanchesFullMonth.length > 1 ? 's' : ''} - ${joursDim}\n`;
-                    texte += `      → Total à majorer : ${formatHours(totalDimHoursMonth)}\n`;
+                    texte += `\n`;
                 }
                 
                 // Prime exceptionnelle
                 if (primeExceptionnelle > 0) {
-                    texte += `   💰 PRIME EXCEPTIONNELLE : ${primeExceptionnelle.toFixed(2)}€ NET\n`;
+                    texte += `   💰 PRIME EXCEPTIONNELLE : ${primeExceptionnelle.toFixed(2)}€ NET\n\n`;
                 }
                 
-                // Solde cumulé (pour information)
+                // Solde cumulé (pour information) - optionnel
                 const soldeCumule = calculateCumulativeSolde(employee, currentDate.getMonth(), currentDate.getFullYear());
-                const soldeCumuleText = soldeCumule >= 0 ? `+${formatHours(soldeCumule)}` : formatHours(soldeCumule);
-                texte += `   ─────────────────────────────────\n`;
-                texte += `   ℹ️  Pour info - Solde cumulé : ${soldeCumuleText}\n`;
+                if (soldeCumule !== 0) {
+                    const soldeCumuleText = soldeCumule >= 0 ? `+${formatHours(soldeCumule)}` : formatHours(soldeCumule);
+                    texte += `   ℹ️  Solde cumulé : ${soldeCumuleText}\n`;
+                }
                 
                 texte += `\n`;
             });
