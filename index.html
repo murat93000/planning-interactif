@@ -3148,8 +3148,13 @@ weekStart.setDate(date.getDate() + diff2);
                             hasWork = true;
                         }
                         // Soustraire les retards
-                        if (shift.type === 'retard' && shift.retardMinutes) {
-                            retardMins += parseInt(shift.retardMinutes) || 0;
+                        if (shift.type === 'retard') {
+                            // Essayer plusieurs sources pour la valeur du retard
+                            let mins = 0;
+                            if (shift.retardMinutes !== undefined && shift.retardMinutes !== null) {
+                                mins = parseInt(shift.retardMinutes) || 0;
+                            }
+                            retardMins += mins;
                         }
                     });
                     if (hasWork) workDays++;
@@ -5694,8 +5699,12 @@ let totalHours = 0;
                                 dayHasWork = true;
                             }
                             // Soustraire les retards
-                            if (shift.type === 'retard' && shift.retardMinutes) {
-                                totalRetardMinutes += parseInt(shift.retardMinutes) || 0;
+                            if (shift.type === 'retard') {
+                                let mins = 0;
+                                if (shift.retardMinutes !== undefined && shift.retardMinutes !== null) {
+                                    mins = parseInt(shift.retardMinutes) || 0;
+                                }
+                                totalRetardMinutes += mins;
                             }
                         });
                         if (dayHasWork) workDaysInMonth++;
@@ -6366,6 +6375,71 @@ let totalHours = 0;
                 let allRetardsDetails = [];
                 let allCongesDetails = [];
                 
+                // ═══════════════════════════════════════════════════════════
+                // COMPTAGE SUR TOUT LE MOIS (1er au dernier jour)
+                // Pour : jours travaillés, fériés, dimanches
+                // ═══════════════════════════════════════════════════════════
+                let totalDaysWorkedFullMonth = 0;
+                let totalFeriesFullMonth = [];
+                let totalDimanchesFullMonth = [];
+                
+                // Parcourir chaque jour du mois complet
+                let currentDayCheck = new Date(firstDayOfMonth);
+                while (currentDayCheck <= lastDayOfMonth) {
+                    // Trouver la clé de semaine pour ce jour
+                    const dayOfWeek = currentDayCheck.getDay();
+                    const mondayOfWeek = new Date(currentDayCheck);
+                    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                    mondayOfWeek.setDate(mondayOfWeek.getDate() + diffToMonday);
+                    
+                    const year = mondayOfWeek.getFullYear();
+                    const firstDayOfYear = new Date(year, 0, 1);
+                    const pastDays = (mondayOfWeek - firstDayOfYear) / 86400000;
+                    const weekNum = Math.ceil((pastDays + firstDayOfYear.getDay() + 1) / 7);
+                    const weekKeyCheck = `${year}-W${weekNum}`;
+                    
+                    const dayIndexInWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                    
+                    if (employee.planning && employee.planning[weekKeyCheck] && employee.planning[weekKeyCheck][dayIndexInWeek]) {
+                        const dayShifts = employee.planning[weekKeyCheck][dayIndexInWeek];
+                        const isDimanche = currentDayCheck.getDay() === 0;
+                        const ferie = isJourFerie(currentDayCheck);
+                        const dateStr = currentDayCheck.toLocaleDateString('fr-FR');
+                        
+                        let hasWorkThisDay = false;
+                        let dayWorkHours = 0;
+                        
+                        dayShifts.forEach(shift => {
+                            if (shift.type === 'work' && shift.hours) {
+                                hasWorkThisDay = true;
+                                dayWorkHours += parseHours(shift.hours);
+                            }
+                            if (['cours', 'conges', 'ferie'].includes(shift.type) && shift.hours) {
+                                hasWorkThisDay = true;
+                            }
+                        });
+                        
+                        if (hasWorkThisDay) {
+                            totalDaysWorkedFullMonth++;
+                            
+                            // Compter fériés travaillés sur tout le mois
+                            if (ferie && dayWorkHours > 0) {
+                                totalFeriesFullMonth.push({ date: dateStr, ferie: ferie.nom, hours: dayWorkHours });
+                            }
+                            // Compter dimanches travaillés sur tout le mois
+                            if (isDimanche && dayWorkHours > 0) {
+                                totalDimanchesFullMonth.push({ date: dateStr, hours: dayWorkHours });
+                            }
+                        }
+                    }
+                    
+                    currentDayCheck.setDate(currentDayCheck.getDate() + 1);
+                }
+                
+                // ═══════════════════════════════════════════════════════════
+                // PARCOURS DES SEMAINES COMPLÈTES (pour calcul heures conventionnelles)
+                // ═══════════════════════════════════════════════════════════
+                
                 // Parcourir chaque semaine du mois
                 let weekStart = new Date(firstMonday);
                 let weekNumber = 1;
@@ -6570,18 +6644,29 @@ let totalHours = 0;
                 // Solde du mois
                 const soldeMoisText = soldeHoraire >= 0 ? `+${formatHours(soldeHoraire)}` : formatHours(soldeHoraire);
                 const soldeMoisIcon = soldeHoraire > 0 ? '✅' : soldeHoraire < 0 ? '⚠️ ' : '✅';
-                texte += `   ${soldeMoisIcon} SOLDE DU MOIS    : ${soldeMoisText}\n`;
+                texte += `   ${soldeMoisIcon} SOLDE DU MOIS    : ${soldeMoisText}\n\n`;
                 
-                // Jours fériés travaillés
-                if (allFeriesDetails.length > 0) {
-                    const joursFeries = allFeriesDetails.map(f => f.date).join(', ');
-                    texte += `   🎌 FÉRIÉS TRAVAILLÉS  : ${allFeriesDetails.length} jour${allFeriesDetails.length > 1 ? 's' : ''} (${formatHours(totalFeriesHours)}) - ${joursFeries}\n`;
+                // ════════════════════════════════════════════════════════════
+                // STATISTIQUES SUR TOUT LE MOIS (1er au dernier jour)
+                // ════════════════════════════════════════════════════════════
+                texte += `   📆 STATISTIQUES DU MOIS COMPLET\n`;
+                texte += `   ─────────────────────────────────\n`;
+                texte += `   Jours travaillés     : ${totalDaysWorkedFullMonth} jours (du 1er au ${lastDayOfMonth.getDate()})\n`;
+                
+                // Jours fériés travaillés (sur tout le mois)
+                if (totalFeriesFullMonth.length > 0) {
+                    const totalFeriesHoursMonth = totalFeriesFullMonth.reduce((sum, f) => sum + f.hours, 0);
+                    const joursFeries = totalFeriesFullMonth.map(f => `${f.date} (${formatHours(f.hours)})`).join(', ');
+                    texte += `   🎌 FÉRIÉS TRAVAILLÉS  : ${totalFeriesFullMonth.length} jour${totalFeriesFullMonth.length > 1 ? 's' : ''} - ${joursFeries}\n`;
+                    texte += `      → Total à majorer : ${formatHours(totalFeriesHoursMonth)}\n`;
                 }
                 
-                // Dimanches travaillés
-                if (allDimanchesDetails.length > 0) {
-                    const joursDim = allDimanchesDetails.map(d => d.date).join(', ');
-                    texte += `   📅 DIMANCHES TRAVAILLÉS : ${allDimanchesDetails.length} jour${allDimanchesDetails.length > 1 ? 's' : ''} (${formatHours(totalDimanchesHours)}) - ${joursDim}\n`;
+                // Dimanches travaillés (sur tout le mois)
+                if (totalDimanchesFullMonth.length > 0) {
+                    const totalDimHoursMonth = totalDimanchesFullMonth.reduce((sum, d) => sum + d.hours, 0);
+                    const joursDim = totalDimanchesFullMonth.map(d => `${d.date} (${formatHours(d.hours)})`).join(', ');
+                    texte += `   📅 DIMANCHES TRAVAILLÉS : ${totalDimanchesFullMonth.length} jour${totalDimanchesFullMonth.length > 1 ? 's' : ''} - ${joursDim}\n`;
+                    texte += `      → Total à majorer : ${formatHours(totalDimHoursMonth)}\n`;
                 }
                 
                 // Prime exceptionnelle
