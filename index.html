@@ -1429,7 +1429,7 @@
         
         <div class="form-group">
             <label>👤 Employé :</label>
-            <select id="regularisationEmploye" onchange="updateRegularisationSolde()" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+            <select id="regularisationEmploye" onchange="updateRegularisationSolde(true)" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
             </select>
         </div>
         
@@ -5854,12 +5854,12 @@ let totalHours = 0;
             select.innerHTML += `<option value="${emp.id}">${emp.name}</option>`;
         });
         
-        updateRegularisationSolde();
+        updateRegularisationSolde(true); // true = réinitialiser les heures
         updateRegularisationUI();
         document.getElementById('regularisationModal').style.display = 'block';
     }
     
-    function updateRegularisationSolde() {
+    function updateRegularisationSolde(resetHeures = false) {
         const employeeId = document.getElementById('regularisationEmploye').value;
         const employee = globalState.employees.find(emp => emp.id === employeeId);
         if (!employee) return;
@@ -5891,11 +5891,16 @@ let totalHours = 0;
         cumulElement.textContent = cumulText;
         cumulElement.style.color = cumulColor;
         
-        // Mettre à jour les heures par défaut
-        const heures = Math.floor(Math.abs(solde));
-        const minutes = Math.round((Math.abs(solde) - heures) * 60);
-        document.getElementById('regularisationHeures').value = heures;
-        document.getElementById('regularisationMinutes').value = minutes;
+        // Mettre à jour les heures par défaut SEULEMENT si demandé (changement d'employé ou ouverture)
+        if (resetHeures) {
+            const heures = Math.floor(Math.abs(solde));
+            const minutes = Math.round((Math.abs(solde) - heures) * 60);
+            document.getElementById('regularisationHeures').value = heures;
+            document.getElementById('regularisationMinutes').value = minutes;
+        }
+        
+        // Mettre à jour l'affichage du reste
+        updateRegularisationReste();
         
         // Afficher l'historique des régularisations
         const historiqueElement = document.getElementById('regularisationHistorique');
