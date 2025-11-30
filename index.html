@@ -1,4 +1,4 @@
-v33
+v34
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -6367,10 +6367,34 @@ let totalHours = 0;
             document.getElementById('regularisationMinutes').value = 0;
             document.getElementById('regularisationNote').value = '';
             
-            // Fermer la modale, sauvegarder, mettre à jour
+            // Fermer la modale et mettre à jour
             closeModal();
             updateSummary();
-            saveData();
+            
+            // Sauvegarde avec confirmation
+            if (isFirebaseEnabled && currentUser && db) {
+                const dataToSave = {
+                    employees: globalState.employees,
+                    customTemplates: globalState.customTemplates || [],
+                    timeSlots: globalState.timeSlots || [],
+                    weekTemplates: globalState.weekTemplates || [],
+                    currentWeek: globalState.currentWeek.toISOString(),
+                    lastSave: new Date().toISOString(),
+                    version: '3.1',
+                    userId: currentUser.uid
+                };
+                
+                db.collection('plannings').doc('main').set(dataToSave)
+                    .then(() => {
+                        console.log('✅ Régularisation sauvegardée sur Firebase');
+                    })
+                    .catch((error) => {
+                        console.error('❌ Erreur sauvegarde régularisation:', error);
+                        showToast('⚠️ Erreur sauvegarde - Clique sur Sauver Cloud', 'error');
+                    });
+            } else {
+                showToast('⚠️ Firebase non connecté - Données non sauvegardées', 'error');
+            }
             
         } catch (error) {
             console.error('Erreur régularisation:', error);
