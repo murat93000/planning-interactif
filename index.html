@@ -1,3 +1,4 @@
+v32
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -6745,7 +6746,33 @@ let totalHours = 0;
                 const expectedHours = completeWeeks * contractHours;
                 const totalRetardHours = totalRetardMinutes / 60;
                 const totalEffectiveNormal = totalNormalHours - totalRetardHours;
-                const soldeHoraire = totalEffectiveNormal - expectedHours;
+                const soldeHoraireBrut = totalEffectiveNormal - expectedHours;
+                
+                // Calculer les régularisations du mois
+                const targetMonthKey = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`;
+                let totalRegularisations = 0;
+                let regularisationsDetails = [];
+                
+                if (employee.regularisations && employee.regularisations.length > 0) {
+                    employee.regularisations.forEach(reg => {
+                        let isThisMonth = false;
+                        if (reg.mois) {
+                            isThisMonth = reg.mois === targetMonthKey;
+                        } else {
+                            const regDate = new Date(reg.date);
+                            isThisMonth = regDate.getMonth() === currentDate.getMonth() && regDate.getFullYear() === currentDate.getFullYear();
+                        }
+                        
+                        if (isThisMonth) {
+                            totalRegularisations += reg.heures;
+                            const typeLabel = reg.type === 'paye' ? '💵 Payé' : reg.type === 'recupere' ? '🔄 Récupéré' : reg.type === 'reporte' ? '📅 Reporté' : '📥 Report entrant';
+                            const heuresText = reg.heures >= 0 ? `+${formatHours(reg.heures)}` : formatHours(reg.heures);
+                            regularisationsDetails.push(`${typeLabel} : ${heuresText}`);
+                        }
+                    });
+                }
+                
+                const soldeHoraire = soldeHoraireBrut + totalRegularisations;
                 
                 texte += `┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n`;
                 texte += `┃                    💼 ACTIONS COMPTABLE                     ┃\n`;
@@ -6760,10 +6787,28 @@ let totalHours = 0;
                 texte += `   Heures attendues     : ${formatHours(expectedHours)} (${completeWeeks} sem × ${contractHours}h)\n`;
                 texte += `   ─────────────────────────────────\n`;
                 
-                // Solde du mois
+                // Solde brut du mois (avant régularisation)
+                const soldeBrutText = soldeHoraireBrut >= 0 ? `+${formatHours(soldeHoraireBrut)}` : formatHours(soldeHoraireBrut);
+                texte += `   📈 Solde brut         : ${soldeBrutText}\n`;
+                
+                // Afficher les régularisations si présentes
+                if (regularisationsDetails.length > 0) {
+                    texte += `   ─────────────────────────────────\n`;
+                    texte += `   📝 RÉGULARISATIONS CE MOIS :\n`;
+                    regularisationsDetails.forEach(detail => {
+                        texte += `      • ${detail}\n`;
+                    });
+                    const totalRegText = totalRegularisations >= 0 ? `+${formatHours(totalRegularisations)}` : formatHours(totalRegularisations);
+                    texte += `      ───────────────────────\n`;
+                    texte += `      Total régularisé : ${totalRegText}\n`;
+                }
+                
+                texte += `   ─────────────────────────────────\n`;
+                
+                // Solde final du mois (après régularisation)
                 const soldeMoisText = soldeHoraire >= 0 ? `+${formatHours(soldeHoraire)}` : formatHours(soldeHoraire);
                 const soldeMoisIcon = soldeHoraire > 0 ? '✅' : soldeHoraire < 0 ? '⚠️ ' : '✅';
-                texte += `   ${soldeMoisIcon} SOLDE DU MOIS    : ${soldeMoisText}\n\n`;
+                texte += `   ${soldeMoisIcon} SOLDE FINAL      : ${soldeMoisText}${regularisationsDetails.length > 0 ? ' (après régul.)' : ''}\n\n`;
                 
                 // ════════════════════════════════════════════════════════════
                 // STATISTIQUES SUR TOUT LE MOIS (1er au dernier jour)
