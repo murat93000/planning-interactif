@@ -1882,7 +1882,7 @@
                 console.log('📡 Données cloud trouvées (main):', cloudData);
 
                 if (cloudData.employees && Array.isArray(cloudData.employees)) {
-                    // 🔥 NORMALISATION : S'assurer que retardMinutes est bien un nombre
+                    // 🔥 DEBUG : Afficher tous les shifts de type 'retard'
                     cloudData.employees.forEach(emp => {
                         if (emp.planning) {
                             Object.keys(emp.planning).forEach(weekKey => {
@@ -1890,8 +1890,11 @@
                                     const shifts = emp.planning[weekKey][dayKey];
                                     if (Array.isArray(shifts)) {
                                         shifts.forEach(shift => {
+                                            if (shift.type === 'retard') {
+                                                console.log(`🔍 DEBUG RETARD - ${emp.name} - ${weekKey} jour ${dayKey}:`, JSON.stringify(shift));
+                                            }
+                                            // NORMALISATION : S'assurer que retardMinutes est bien un nombre
                                             if (shift.type === 'retard' && shift.retardMinutes !== undefined) {
-                                                // Convertir explicitement en nombre
                                                 shift.retardMinutes = parseInt(shift.retardMinutes) || 0;
                                                 console.log(`🔧 Retard normalisé: ${shift.retardMinutes} minutes`);
                                             }
