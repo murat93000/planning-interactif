@@ -1882,6 +1882,26 @@
                 console.log('📡 Données cloud trouvées (main):', cloudData);
 
                 if (cloudData.employees && Array.isArray(cloudData.employees)) {
+                    // 🔥 NORMALISATION : S'assurer que retardMinutes est bien un nombre
+                    cloudData.employees.forEach(emp => {
+                        if (emp.planning) {
+                            Object.keys(emp.planning).forEach(weekKey => {
+                                Object.keys(emp.planning[weekKey]).forEach(dayKey => {
+                                    const shifts = emp.planning[weekKey][dayKey];
+                                    if (Array.isArray(shifts)) {
+                                        shifts.forEach(shift => {
+                                            if (shift.type === 'retard' && shift.retardMinutes !== undefined) {
+                                                // Convertir explicitement en nombre
+                                                shift.retardMinutes = parseInt(shift.retardMinutes) || 0;
+                                                console.log(`🔧 Retard normalisé: ${shift.retardMinutes} minutes`);
+                                            }
+                                        });
+                                    }
+                                });
+                            });
+                        }
+                    });
+                    
                     globalState.employees = cloudData.employees;
                     console.log('👥 Employés chargés:', globalState.employees.length);
                 }
@@ -1959,6 +1979,23 @@
                         console.log('📡 Rechargement forcé des données cloud:', cloudData);
 
                         if (cloudData.employees && Array.isArray(cloudData.employees)) {
+                            // 🔥 NORMALISATION : S'assurer que retardMinutes est bien un nombre
+                            cloudData.employees.forEach(emp => {
+                                if (emp.planning) {
+                                    Object.keys(emp.planning).forEach(weekKey => {
+                                        Object.keys(emp.planning[weekKey]).forEach(dayKey => {
+                                            const shifts = emp.planning[weekKey][dayKey];
+                                            if (Array.isArray(shifts)) {
+                                                shifts.forEach(shift => {
+                                                    if (shift.type === 'retard' && shift.retardMinutes !== undefined) {
+                                                        shift.retardMinutes = parseInt(shift.retardMinutes) || 0;
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    });
+                                }
+                            });
                             globalState.employees = cloudData.employees;
                         }
 
@@ -3153,6 +3190,9 @@ weekStart.setDate(date.getDate() + diff2);
                             let mins = 0;
                             if (shift.retardMinutes !== undefined && shift.retardMinutes !== null) {
                                 mins = parseInt(shift.retardMinutes) || 0;
+                            }
+                            if (mins > 0) {
+                                console.log(`⏰ Retard détecté pour ${employee.name}: ${mins} minutes (raw: ${shift.retardMinutes}, type: ${typeof shift.retardMinutes})`);
                             }
                             retardMins += mins;
                         }
