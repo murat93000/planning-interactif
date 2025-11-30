@@ -1,4 +1,4 @@
-v32
+v33
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -1041,7 +1041,6 @@ v32
     <div class="auth-section">
         
         <button class="btn" id="authBtn" onclick="toggleAuth()">🔑 Se connecter</button>
-        <button class="btn warning" onclick="logoutEmployee()" style="margin-left: 10px;">🚪 Déconnexion</button>
         <div class="admin-panel" style="margin-top: 15px;">
             <button class="btn admin" onclick="openEmployeeModal()">👤 Ajouter Employé</button>
             <button class="btn admin" onclick="openBulkFillModal()">📅 Remplissage par Date</button>
@@ -6791,16 +6790,42 @@ let totalHours = 0;
                 const soldeBrutText = soldeHoraireBrut >= 0 ? `+${formatHours(soldeHoraireBrut)}` : formatHours(soldeHoraireBrut);
                 texte += `   📈 Solde brut         : ${soldeBrutText}\n`;
                 
-                // Afficher les régularisations si présentes
+                // Afficher les régularisations si présentes avec ACTION PAIE
                 if (regularisationsDetails.length > 0) {
                     texte += `   ─────────────────────────────────\n`;
                     texte += `   📝 RÉGULARISATIONS CE MOIS :\n`;
                     regularisationsDetails.forEach(detail => {
                         texte += `      • ${detail}\n`;
                     });
-                    const totalRegText = totalRegularisations >= 0 ? `+${formatHours(totalRegularisations)}` : formatHours(totalRegularisations);
-                    texte += `      ───────────────────────\n`;
-                    texte += `      Total régularisé : ${totalRegText}\n`;
+                    
+                    // Calculer les heures payées séparément
+                    let heuresPayees = 0;
+                    let heuresRecuperees = 0;
+                    if (employee.regularisations) {
+                        employee.regularisations.forEach(reg => {
+                            let isThisMonth = false;
+                            if (reg.mois) {
+                                isThisMonth = reg.mois === targetMonthKey;
+                            } else {
+                                const regDate = new Date(reg.date);
+                                isThisMonth = regDate.getMonth() === currentDate.getMonth() && regDate.getFullYear() === currentDate.getFullYear();
+                            }
+                            if (isThisMonth) {
+                                if (reg.type === 'paye') heuresPayees += Math.abs(reg.heures);
+                                if (reg.type === 'recupere') heuresRecuperees += Math.abs(reg.heures);
+                            }
+                        });
+                    }
+                    
+                    texte += `   ─────────────────────────────────\n`;
+                    
+                    // Message ACTION PAIE clair pour le comptable
+                    if (heuresPayees > 0) {
+                        texte += `   💰 ACTION PAIE : DÉDUIRE ${formatHours(heuresPayees)} sur ce bulletin\n`;
+                    }
+                    if (heuresRecuperees > 0) {
+                        texte += `   🔄 RÉCUPÉRATION : ${formatHours(heuresRecuperees)} seront récupérées\n`;
+                    }
                 }
                 
                 texte += `   ─────────────────────────────────\n`;
@@ -6808,7 +6833,8 @@ let totalHours = 0;
                 // Solde final du mois (après régularisation)
                 const soldeMoisText = soldeHoraire >= 0 ? `+${formatHours(soldeHoraire)}` : formatHours(soldeHoraire);
                 const soldeMoisIcon = soldeHoraire > 0 ? '✅' : soldeHoraire < 0 ? '⚠️ ' : '✅';
-                texte += `   ${soldeMoisIcon} SOLDE FINAL      : ${soldeMoisText}${regularisationsDetails.length > 0 ? ' (après régul.)' : ''}\n\n`;
+                const soldeLabel = regularisationsDetails.length > 0 ? 'SOLDE RESTANT' : 'SOLDE DU MOIS';
+                texte += `   ${soldeMoisIcon} ${soldeLabel}  : ${soldeMoisText}${soldeHoraire !== 0 && regularisationsDetails.length > 0 ? ' (à récupérer)' : ''}\n\n`;
                 
                 // ════════════════════════════════════════════════════════════
                 // STATISTIQUES SUR TOUT LE MOIS (1er au dernier jour)
