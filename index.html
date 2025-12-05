@@ -1,4 +1,4 @@
-v37
+v36
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -1436,10 +1436,7 @@ v37
         <div id="regularisationInfo" style="background: #f3f4f6; border-radius: 12px; padding: 15px; margin: 15px 0;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <span style="font-weight: 600; color: #374151;">Solde actuel :</span>
-                <div style="text-align: right;">
-                    <span id="regularisationSoldeActuel" style="font-size: 1.5em; font-weight: 700; color: #667eea;">+0h</span>
-                    <div id="regularisationDetail"></div>
-                </div>
+                <span id="regularisationSoldeActuel" style="font-size: 1.5em; font-weight: 700; color: #667eea;">+0h</span>
             </div>
             <div id="regularisationSoldeCumuleContainer" style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px dashed #d1d5db;">
                 <span style="font-weight: 500; color: #6b7280;">📊 Solde cumulé :</span>
@@ -5730,11 +5727,6 @@ let totalHours = 0;
         let totalWorkedHours = 0;
         let totalRetardMinutes = 0;
         let workDaysInMonth = 0;
-        let totalDimancheHours = 0; // 🔥 NOUVEAU : Séparer les dimanches
-        let totalFerieHours = 0;    // 🔥 NOUVEAU : Séparer les fériés
-        
-        // Liste des jours fériés français
-        const joursFeries = getJoursFeries(targetYear);
         
         // Calculer le nombre de semaines COMPLÈTES dans le mois (lundi-dimanche)
         const firstDayOfMonth = new Date(targetYear, targetMonth, 1);
@@ -5787,34 +5779,20 @@ let totalHours = 0;
                         // Si RAZ, ne compter que les jours après la RAZ
                         if (razDate && shiftDate < razDate) return;
                         
-                        // 🔥 NOUVEAU : Vérifier si c'est un dimanche ou un jour férié
-                        const isDimanche = shiftDate.getDay() === 0;
-                        const dateStr = shiftDate.toISOString().split('T')[0];
-                        const isFerie = joursFeries.includes(dateStr);
-                        
                         let dayHasWork = false;
                         dayShifts.forEach(shift => {
                             // Compter les heures de travail
                             if (shift.type === 'work' && shift.hours) {
-                                const hours = parseHours(shift.hours);
-                                
-                                // 🔥 NOUVEAU : Séparer dimanches et fériés
-                                if (isFerie) {
-                                    totalFerieHours += hours;
-                                } else if (isDimanche) {
-                                    totalDimancheHours += hours;
-                                } else {
-                                    totalWorkedHours += hours; // Heures normales seulement
-                                }
-                                dayHasWork = true;
-                            }
-                            // Compter les heures de Cours, Congés (pas férié car déjà géré)
-                            if (['cours', 'conges'].includes(shift.type) && shift.hours) {
                                 totalWorkedHours += parseHours(shift.hours);
                                 dayHasWork = true;
                             }
-                            // Soustraire les retards (seulement sur jours normaux)
-                            if (shift.type === 'retard' && !isDimanche && !isFerie) {
+                            // Compter les heures de Cours, Congés et Férié (si elles ont des heures)
+                            if (['cours', 'conges', 'ferie'].includes(shift.type) && shift.hours) {
+                                totalWorkedHours += parseHours(shift.hours);
+                                dayHasWork = true;
+                            }
+                            // Soustraire les retards
+                            if (shift.type === 'retard') {
                                 let mins = 0;
                                 if (shift.retardMinutes !== undefined && shift.retardMinutes !== null) {
                                     mins = parseInt(shift.retardMinutes) || 0;
@@ -5852,9 +5830,9 @@ let totalHours = 0;
             });
         }
         
-        // Soustraire les retards des heures travaillées (NORMALES seulement)
+        // Soustraire les retards des heures travaillées
         const effectiveWorkedHours = totalWorkedHours - (totalRetardMinutes / 60);
-        // Calculer le solde AVANT régularisation (SANS dimanches/fériés)
+        // Calculer le solde AVANT régularisation
         const soldeAvantRegul = effectiveWorkedHours - expectedHours;
         // Le solde APRÈS régularisation : on ajoute les heures régularisées (elles "compensent" le solde)
         // Si solde = -5h et on régularise 5h, le nouveau solde = -5h + 5h = 0h
@@ -5868,9 +5846,7 @@ let totalHours = 0;
             solde: solde,
             workDays: workDaysInMonth,
             completeWeeks: completeWeeks,
-            regularise: regularisationTotal,
-            dimancheHours: totalDimancheHours,  // 🔥 NOUVEAU
-            ferieHours: totalFerieHours          // 🔥 NOUVEAU
+            regularise: regularisationTotal
         };
     }
 
@@ -5904,7 +5880,7 @@ let totalHours = 0;
         const soldeElement = document.getElementById('regularisationSoldeActuel');
         const solde = monthSolde.solde;
         
-        // Affichage du solde du mois (HEURES NORMALES SEULEMENT)
+        // Affichage du solde du mois
         let soldeText = '';
         if (solde >= 0) {
             soldeText = `+${formatHours(solde)}`;
@@ -5914,22 +5890,6 @@ let totalHours = 0;
             soldeElement.style.color = '#f59e0b';
         }
         soldeElement.textContent = soldeText;
-        
-        // 🔥 NOUVEAU : Afficher les heures dim/fériés séparément
-        const detailElement = document.getElementById('regularisationDetail');
-        if (detailElement) {
-            let detailHtml = '';
-            if (monthSolde.dimancheHours > 0 || monthSolde.ferieHours > 0) {
-                detailHtml = '<div style="font-size: 11px; color: #6b7280; margin-top: 5px;">';
-                detailHtml += '(hors ';
-                const parts = [];
-                if (monthSolde.dimancheHours > 0) parts.push(`${formatHours(monthSolde.dimancheHours)} dim.`);
-                if (monthSolde.ferieHours > 0) parts.push(`${formatHours(monthSolde.ferieHours)} fériés`);
-                detailHtml += parts.join(' + ') + ' à majorer)';
-                detailHtml += '</div>';
-            }
-            detailElement.innerHTML = detailHtml;
-        }
         
         // Afficher le solde cumulé
         const cumulElement = document.getElementById('regularisationSoldeCumule');
