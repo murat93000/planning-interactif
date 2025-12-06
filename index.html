@@ -1,4 +1,4 @@
-v36
+v38
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -1791,7 +1791,13 @@ v36
                 planning: {},
                 // 🔥 AJOUT : Sauvegarder les propriétés d'archivage
                 archived: emp.archived || false,
-                archivedDate: emp.archivedDate || null
+                archivedDate: emp.archivedDate || null,
+                // 🔥 CORRECTION : Sauvegarder les régularisations
+                regularisations: emp.regularisations || [],
+                // 🔥 CORRECTION : Sauvegarder le cumul
+                cumulStartDate: emp.cumulStartDate || null,
+                cumulStartBalance: emp.cumulStartBalance || 0,
+                soldeRaz: emp.soldeRaz || null
             };
             
             if (emp.planning && typeof emp.planning === 'object') {
