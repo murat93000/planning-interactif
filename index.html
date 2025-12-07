@@ -1,4 +1,4 @@
-v38
+v39
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -4427,6 +4427,12 @@ let totalHours = 0;
     }
 
     function saveToCloudSilent() {
+    // 🔥 DÉSACTIVÉ : L'auto-sauvegarde silencieuse peut écraser les données d'un autre PC
+    // Utiliser uniquement le bouton "☁️ Sauver sur Cloud" pour sauvegarder
+    console.log('⚠️ Auto-sauvegarde désactivée - Utilisez le bouton Sauver Cloud');
+    return;
+    
+    /* ANCIEN CODE DÉSACTIVÉ
     if (!isFirebaseEnabled || !currentUser || !db) return;
 
     try {
@@ -4451,14 +4457,14 @@ let totalHours = 0;
             employees: cleanData(globalState.employees || []),
             customTemplates: cleanData(globalState.customTemplates || []),
             timeSlots: cleanData(globalState.timeSlots || []),
-            weekTemplates: cleanData(globalState.weekTemplates || []), // 🔥 CORRECTION : Ajouter weekTemplates
-            currentWeek: globalState.currentWeek.toISOString(), // 🔥 AJOUT : Sauvegarder la semaine courante
+            weekTemplates: cleanData(globalState.weekTemplates || []),
+            currentWeek: globalState.currentWeek.toISOString(),
             lastSave: new Date().toISOString(),
             version: '3.1',
             userId: currentUser.uid
         };
 
-        db.collection('plannings').doc('main').set(dataToSave) // 🔥 CORRECTION : Utiliser 'main' au lieu de currentUser.uid
+        db.collection('plannings').doc('main').set(dataToSave)
             .then(() => {
                 console.log('✅ Auto-sauvegarde cloud réussie');
             })
@@ -4469,6 +4475,7 @@ let totalHours = 0;
     } catch (error) {
         console.error('❌ Erreur auto-sauvegarde:', error);
     }
+    */
 }
 
     function loadData() {
