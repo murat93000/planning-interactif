@@ -1,3 +1,4 @@
+v41
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -955,7 +956,7 @@
         margin-right: 8px;
     }
 /* 🔒 SÉCURITÉ : Désactivation en mode lecteur */
-    body:not(.admin-mode) .btn:not(.mode-toggle-btn):not(.btn-login):not(.btn-cancel):not(.week-nav-btn):not(.modal-btn),
+    body:not(.admin-mode) .btn:not(.mode-toggle-btn):not(.btn-login):not(.btn-cancel):not(.week-nav-btn):not(.modal-btn):not(#employeeAuthModal .btn),
     body:not(.admin-mode) input:not(#adminPassword):not(#employeePassword),
     body:not(.admin-mode) select,
     body:not(.admin-mode) textarea,
@@ -965,6 +966,18 @@
         pointer-events: none;
         opacity: 0.5;
         cursor: not-allowed !important;
+    }
+    
+    /* 🔥 EXCEPTION : Boutons toujours actifs */
+    #employeeAuthModal .btn,
+    #passwordModal .btn,
+    #modeBtn,
+    #authBtn,
+    .week-nav .btn,
+    button[onclick="logoutEmployee()"] {
+        pointer-events: auto !important;
+        opacity: 1 !important;
+        cursor: pointer !important;
     }
 
     body:not(.admin-mode) .time-slot,
@@ -7343,4 +7356,4 @@ let totalHours = 0;
     
 </script>
 </body>
-</html>
+    </html>
