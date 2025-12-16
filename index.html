@@ -1,4 +1,3 @@
-v39
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -2209,11 +2208,16 @@ globalState.currentWeek.setDate(today.getDate() + diff);
     }
 
     function checkEmployeeAuthentication() {
-    // Authentification désactivée - accès direct
-    isEmployeeAuthenticated = true;
-    sessionStorage.setItem('employeeAuth', 'true');
-    showPlanningContent();
-}
+        // Vérifier si déjà authentifié dans la session
+        if (sessionStorage.getItem('employeeAuth') === 'true') {
+            isEmployeeAuthenticated = true;
+            showPlanningContent();
+            return;
+        }
+        
+        // Sinon, afficher la modale de connexion
+        showEmployeeAuthModal();
+    }
 
     function showEmployeeAuthModal() {
         hidePlanningContent();
